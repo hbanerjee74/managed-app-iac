@@ -5,12 +5,14 @@ Downloads notion markdown files into local folder.
 Simple tool to download a Notion page as Markdown using a Notion integration API key.
 
 ## Quick start
-1. Create a virtualenv and install dependencies:
+1. Create a virtualenv and install dependencies (recommended):
 
 ```bash
-python -m venv .venv
+# create & activate a venv and install deps in it
+make setup
 source .venv/bin/activate
-pip install -r requirements.txt
+# or, if you prefer not to use the venv, run:
+# make install
 ```
 
 2. Provide your Notion integration key via an environment variable (or a `.env` file):
@@ -24,9 +26,16 @@ export NOTION_API_KEY="secret"
 3. Run the downloader:
 
 ```bash
-python scripts/notion_download.py -p https://www.notion.so/your-page-url
+# install dependencies (recommended)
+make install
+
+# run tests
+make test
+
+# run downloader
+python3 scripts/notion_download.py -p https://www.notion.so/your-page-url
 # or
-python scripts/notion_download.py --page <page-id-or-url> -o saved_page.md
+python3 scripts/notion_download.py --page <page-id-or-url> -o saved_page.md
 ```
 
 Output is written to `output/<page-title>.md` by default.
