@@ -1,46 +1,47 @@
-# Repository Guidelines
+# Repository Guidelines (IaC for PRD-30)
 
-## Project Structure & Module Organization
-- `scripts/notion_download.py` is the CLI entry point that orchestrates API fetch + Markdown conversion.
-- Core conversion and helpers live in `scripts/n2m/` (e.g., `api.py`, `convert.py`, `utils.py`).
-- Tests are under `tests/` and follow `test_*.py` naming.
-- Tooling and deps: `Makefile` defines workflows and `requirements.txt` pins Python packages.
-- Default exports land in `output/` as `<page-title>.md` unless `-o/OUT` is provided.
+## Scope & Current State
+- Project focuses solely on Azure IaC for PRD-30 (managed application infrastructure). The prior Notion converter code has been removed.
+- IaC lives under `iac/` with Bicep modules; tests live under `tests/` (param checks, state_check, validator stubs).
 
-## Build, Test, and Development Commands
-Use the Makefile for repeatable local workflows:
+## Project Structure
+- `iac/main.bicep` — subscription-scope entrypoint wiring RFC-64 parameters to RG modules.
+- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `security`, `data`, `compute`, `gateway`, `ai`, `automation`, `diagnostics`).
+- `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
+- `iac/params.dev.json` — sample params for dev/what-if.
+- `tests/test_params.py` — required param presence check.
+- `tests/state_check/` — `what_if.sh` + `diff_report.py` to compare Bicep vs. RG.
+- `tests/validator/` — placeholder for post-deploy actual/expected JSON comparison.
 
-```bash
-make setup   # create .venv, upgrade pip, install deps
-make install # install deps to current Python
-make test    # run pytest -q (uses .venv if present)
-make export PAGE=<page-url-or-id> [OUT=path]
-```
+## Deployment & Validation
+- Create RG, then run: `az deployment sub what-if -f iac/main.bicep -l <region> -p @iac/params.dev.json` (or `az deployment sub create ...`).
+- State check: `./tests/state_check/what_if.sh <region> iac/params.dev.json && python tests/state_check/diff_report.py tests/state_check/what-if.json`.
+- Diagnostics: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
 
-Direct CLI usage:
+## Naming & Standards
+- Per-resource nanoids (16-char; storage 8) per RFC-71; helper in `iac/lib/naming.bicep`.
+- Subnets derived from `servicesVnetCidr`: /27 appgw, /25 aks, /28 appsvc, /28 private-endpoints; CIDR range asserted /16–/24.
+- Public access disabled for all PaaS; private endpoints + DNS zones per RFC-42/71.
 
-```bash
-python3 scripts/notion_download.py -p <page-url-or-id> -o output/page.md
-pytest -q
-```
+## Identities & RBAC
+- Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push, Postgres Admin). Automation Job Operator assigned to `adminObjectId`.
+- `adminPrincipalType` param (User/Group) for RG Reader assignment.
 
-## Coding Style & Naming Conventions
-- Python uses 4-space indentation; prefer clear, minimal stdlib-style code.
-- Use `snake_case` for functions/variables and `PascalCase` for classes.
-- Keep modules small and focused; add new Notion block handling in `scripts/n2m/`.
-- Tests should be `test_<feature>.py` with `test_<behavior>()` functions.
+## Postgres Roles
+- Deployment script attempts to create `vd_dbo`/`vd_reader` and grant UAMI; relies on `psql` availability in deploymentScripts runtime. If it fails, run equivalent via runbook/CI agent.
 
-## Testing Guidelines
-- Framework: `pytest` (declared in `requirements.txt`).
-- Run the full suite with `make test` or `pytest -q`.
-- Add/adjust tests in `tests/` when you change conversion or API logic.
+## App Gateway
+- WAF_v2 with customer/publisher IP allowlists and deny-all; connection draining enabled. Listeners/backends/probes intentionally empty until app endpoints are ready.
 
-## Commit & Pull Request Guidelines
-- Recent commits use short, sentence-style messages (e.g., “Updated …”, “added …”).
-  Follow that tone and keep commits scoped to a single change.
-- PRs should include a concise summary, test results (e.g., `make test`), and
-  sample output or screenshots if behavior changes affect exported Markdown.
+## Tests & Quality
+- Minimal pytest: `pytest tests/test_params.py` (requires pytest installed).
+- What-if/diag checks are optional dev utilities; not wired into CI.
 
-## Security & Configuration Tips
-- Provide `NOTION_API_KEY` via environment or a local `.env`; never commit secrets.
-- Avoid sharing real Notion content in sample outputs or tests.
+## Git & Ignore Rules
+- `.gitignore` ignores `.venv/`, `.DS_Store`, and `docs/PRD*.md` / `docs/RFC*.md` (intentional to keep specs out of git).
+
+## Coding/PR Practices
+- Keep commits small, sentence-style messages.
+- When adding params/resources, update `params.dev.json`, `test_params.py`, and wiring in `main.bicep`.
+- Maintain deterministic names and idempotent templates; avoid random runtime names inside Bicep.
+
