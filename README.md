@@ -1,6 +1,6 @@
 # Managed Application IaC for PRD-30
 
-This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules are now implementation-ready (not just stubs) and include dev/test drift enforcement and resource-level validation tooling.
+This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include dev/test drift enforcement and resource-level validation tooling.
 
 ## Layout
 - `main.bicep` — subscription-scope entrypoint; wires RFC-64 parameters into resource-group modules.
