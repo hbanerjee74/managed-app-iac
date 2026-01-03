@@ -32,12 +32,14 @@ def main():
     out["location"] = rg_info.get("location")
     out["tags"] = rg_info.get("tags", {})
 
-    # Resources by type
+    # Resources by type (single list pass)
     resources = az(["resource", "list", "-g", rg])
 
     resource_index = {r["id"]: {"type": r["type"], "name": r["name"]} for r in resources if r.get("id")}
+    resource_full = {r["id"]: r for r in resources if r.get("id")}
     if rg_info.get("id"):
         resource_index[rg_info["id"]] = {"type": "Microsoft.Resources/resourceGroups", "name": rg}
+        resource_full[rg_info["id"]] = rg_info
 
     def find_by_type(rtype: str):
         return [r for r in resources if r.get("type") == rtype]
@@ -121,6 +123,19 @@ def main():
     # Private DNS zones
     pdns = find_by_type("Microsoft.Network/privateDnsZones")
     out["network"]["privateDnsZones"] = [z["name"] for z in pdns]
+
+    resource_cache: dict[str, dict] = {}
+
+    def get_resource(res_id: str):
+        if not res_id:
+            return None
+        if res_id in resource_cache:
+            return resource_cache[res_id]
+        if res_id in resource_full:
+            resource_cache[res_id] = resource_full[res_id]
+            return resource_cache[res_id]
+        resource_cache[res_id] = az(["resource", "show", "--ids", res_id])
+        return resource_cache[res_id]
 
     def add_resource(resource: dict):
         out["resources"].append(resource)
@@ -512,7 +527,7 @@ def main():
     # Private DNS zones (resources)
     for zone in pdns:
         zone_name = zone["name"]
-        zone_detail = az(["network", "private-dns", "zone", "show", "-g", rg, "-n", zone_name])
+        zone_detail = get_resource(zone.get("id")) or az(["network", "private-dns", "zone", "show", "-g", rg, "-n", zone_name])
         add_resource(
             {
                 "type": "Microsoft.Network/privateDnsZones",
@@ -527,7 +542,7 @@ def main():
         ["resource", "list", "-g", rg, "--resource-type", "Microsoft.Network/privateDnsZones/virtualNetworkLinks"]
     )
     for link in vnet_links:
-        link_detail = az(["resource", "show", "--ids", link["id"]])
+        link_detail = get_resource(link["id"])
         parts = link["id"].split("/")
         zone_name = None
         link_name = link.get("name")
@@ -560,7 +575,7 @@ def main():
         ]
     )
     for group in zone_groups:
-        group_detail = az(["resource", "show", "--ids", group["id"]])
+        group_detail = get_resource(group["id"])
         parts = group["id"].split("/")
         endpoint_name = None
         group_name = group.get("name")
@@ -591,7 +606,7 @@ def main():
     def storage_subresources(resource_type: str, name_key: str, properties_keys=None):
         items = az(["resource", "list", "-g", rg, "--resource-type", resource_type])
         for item in items:
-            detail = az(["resource", "show", "--ids", item["id"]])
+            detail = get_resource(item["id"]) or item
             name = item.get("name")
             parts = name.split("/") if name else []
             account_name = parts[0] if parts else None

@@ -9,10 +9,11 @@ Validator now operates at resource-level fidelity: expectation templates mirror 
 - Comparator (`tests/validator/compare_expectation.py`) adds `<guid>` and `__ANY__` placeholders, stronger list matching, and resource-by-resource diff reporting to surface missing or mismatched objects.
 
 ## Testing
-- Not run here (local `py_compile` blocked by macOS cache perms). Recommended:
-  - `PYTHONPYCACHEPREFIX=/tmp python3 -m py_compile tests/validator/collect_actual_state.py tests/validator/compare_expectation.py`
+- Local run: `pytest` (offline suite) — 5 passed, 1 skipped (`test_expectation_template.py` skips without ACTUAL_EXPECTATION_PATH).
+- How to run full validator:
   - `python tests/validator/collect_actual_state.py <rg> > /tmp/actual.json`
   - `ACTUAL_EXPECTATION_PATH=/tmp/actual.json pytest tests/validator/test_expectation_template.py`
+  - Optional lint: `PYTHONPYCACHEPREFIX=/tmp python3 -m py_compile tests/validator/collect_actual_state.py tests/validator/compare_expectation.py`
 
 ## Notes
 - The expectation template encodes deterministic names; ensure params/naming seed align before comparison.
