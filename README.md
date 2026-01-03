@@ -1,6 +1,6 @@
-# IaC scaffold for PRD-30
+# Managed Application IaC for PRD-30
 
-This folder holds the Bicep deployment for PRD-30 (managed application infrastructure). Files are stubs; fill out modules per PRD-30, RFC-42, RFC-64, and RFC-71.
+This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules are now implementation-ready (not just stubs) and include dev/test drift enforcement and resource-level validation tooling.
 
 ## Layout
 - `main.bicep` — subscription-scope entrypoint; wires RFC-64 parameters into resource-group modules.
