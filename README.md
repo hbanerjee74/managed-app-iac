@@ -49,6 +49,17 @@ Apply (CD / manual):
 ./scripts/deploy/apply_rg.sh rg-vibedata-dev eastus iac/params.dev.json
 ```
 
+## Validating deployed state against expectation (optional)
+1) Collect actual state (best-effort summary):
+```bash
+python tests/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
+```
+2) Compare against template:
+```bash
+ACTUAL_EXPECTATION_PATH=/tmp/actual.json pytest tests/validator/test_expectation_template.py
+```
+Edit `tests/validator/expected/dev_expectation.template.json` to tighten or expand checks (placeholders like `<16>` validate nanoid lengths; lists are matched as subsets).
+
 Keep parameter names and casing aligned with RFC-64 to match the eventual Marketplace handoff.
 
 ## Release Notes
