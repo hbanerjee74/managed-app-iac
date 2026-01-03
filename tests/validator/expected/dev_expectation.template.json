@@ -1,0 +1,51 @@
+{
+  "resourceGroup": "rg-vibedata-dev",
+  "location": "eastus",
+  "names": {
+    "vnet": "vd-vnet-platform-<16>",
+    "kv": "vd-kv-platform-<16>",
+    "storage": "vdstephemeral<8>",
+    "acr": "vd-acr-platform-<16>",
+    "psql": "vd-psql-platform-<16>",
+    "law": "vd-law-platform-<16>",
+    "agw": "vd-agw-platform-<16>",
+    "pipAgw": "vd-pip-agw-<16>",
+    "uami": "vd-uami-platform-<16>",
+    "asp": "vd-asp-platform-<16>",
+    "appApi": "vd-app-api-<16>",
+    "appUi": "vd-app-ui-<16>",
+    "funcOps": "vd-func-ops-<16>",
+    "automation": "vd-aa-platform-<16>",
+    "search": "vd-search-platform-<16>",
+    "ai": "vd-ai-platform-<16>"
+  },
+  "network": {
+    "vnetCidr": "10.20.0.0/20",
+    "subnets": {
+      "snet-appgw": "10.20.0.0/27",
+      "snet-aks": "10.20.0.32/25",
+      "snet-appsvc": "10.20.0.160/28",
+      "snet-private-endpoints": "10.20.0.176/28",
+      "snet-psql": "10.20.0.192/28"
+    },
+    "privateDnsZones": [
+      "privatelink.vaultcore.azure.net",
+      "privatelink.postgres.database.azure.com",
+      "privatelink.blob.core.windows.net",
+      "privatelink.queue.core.windows.net",
+      "privatelink.table.core.windows.net",
+      "privatelink.azurecr.io",
+      "privatelink.azurewebsites.net",
+      "privatelink.search.windows.net",
+      "privatelink.cognitiveservices.azure.com",
+      "privatelink.azure-automation.net",
+      "vibedata.internal"
+    ]
+  },
+  "tags": {
+    "IAC": "true",
+    "environment": "dev",
+    "owner": "ci",
+    "purpose": "ephemeral"
+  }
+}

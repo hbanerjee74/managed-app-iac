@@ -12,6 +12,7 @@ Added strict drift detection and enforcement workflow for dev/test environments 
 - RG guardrail: deployment scripts require the target RG to be tagged `IAC=true`.
 - Deviation from PRD/RFC subnet list: adds an extra delegated `/28` `snet-psql` for PostgreSQL Flexible Server (in addition to PRD-30/RFC-71 subnets). Rationale: dedicated delegation for PG private access; keeps PE subnet separate.
 - CI hooks (recommended): `az bicep build` for `main.bicep` and `main.rg.bicep`, `what_if_rg.sh` + `diff_report.py` as a gate; added shellcheck-based lint test.
+- Expectation template added: `tests/validator/expected/dev_expectation.template.json` with placeholder-based matching; comparison helper `tests/validator/compare_expectation.py` and pytest `test_expectation_template.py` (run with `ACTUAL_EXPECTATION_PATH` env).
 
 ## Testing
 - `az bicep build -f iac/main.bicep --outdir /tmp/bicep`
