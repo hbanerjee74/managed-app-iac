@@ -96,19 +96,15 @@ var wafCustomRules = concat(wafAllowRules, [
   }
 ])
 
-resource appGw 'Microsoft.Network/applicationGateways@2023-04-01' = {
+resource appGw 'Microsoft.Network/applicationGateways@2021-08-01' = {
   name: agwName
   location: location
   tags: tags
-  sku: {
-    name: 'WAF_v2'
-    tier: 'WAF_v2'
-    capacity: 1
-  }
   properties: {
-    autoscaleConfiguration: {
-      minCapacity: 1
-      maxCapacity: 1
+    sku: {
+      name: 'WAF_v2'
+      tier: 'WAF_v2'
+      capacity: 1
     }
     enableHttp2: true
     gatewayIPConfigurations: [
@@ -158,13 +154,18 @@ resource appGw 'Microsoft.Network/applicationGateways@2023-04-01' = {
     httpListeners: []
     requestRoutingRules: []
     probes: []
-    wafConfiguration: {
+    webApplicationFirewallConfiguration: any({
       enabled: true
       firewallMode: 'Prevention'
       ruleSetType: 'OWASP'
       ruleSetVersion: '3.2'
       customRules: wafCustomRules
-    }
+      sslPolicy: {
+        policyType: 'Predefined'
+        policyName: 'AppGwSslPolicy20220101S'
+        minProtocolVersion: 'TLSv1_2'
+      }
+    })
   }
 }
 

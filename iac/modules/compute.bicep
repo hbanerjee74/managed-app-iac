@@ -35,8 +35,9 @@ param lawId string
 @description('Optional tags to apply.')
 param tags object = {}
 
-var storageBlobUri = 'https://${storageAccountName}.blob.core.windows.net'
-var storageQueueUri = 'https://${storageAccountName}.queue.core.windows.net'
+var storageSuffix = environment().suffixes.storage
+var storageBlobUri = 'https://${storageAccountName}.blob.${storageSuffix}'
+var storageQueueUri = 'https://${storageAccountName}.queue.${storageSuffix}'
 
 resource asp 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: aspName
@@ -189,18 +190,18 @@ resource peAppApi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peAppApiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peAppApi
+  name: 'appapi-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'appapi-dns'
+        name: 'privatelink.azurewebsites.net'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.azurewebsites.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
         }
       }
     ]
@@ -226,18 +227,18 @@ resource peAppUi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peAppUiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peAppUi
+  name: 'appui-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'appui-dns'
+        name: 'privatelink.azurewebsites.net'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.azurewebsites.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
         }
       }
     ]
@@ -263,18 +264,18 @@ resource peFunc 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peFuncDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peFunc
+  name: 'func-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'func-dns'
+        name: 'privatelink.azurewebsites.net'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.azurewebsites.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
         }
       }
     ]

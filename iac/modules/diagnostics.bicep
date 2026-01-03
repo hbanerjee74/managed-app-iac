@@ -29,7 +29,8 @@ resource law 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 
 // Custom table required by PRD-30
 resource customTable 'Microsoft.OperationalInsights/workspaces/tables@2021-12-01-preview' = {
-  name: '${law.name}/VibeData_Operations_CL'
+  parent: law
+  name: 'VibeData_Operations_CL'
   properties: {
     retentionInDays: 30
     totalRetentionInDays: 30

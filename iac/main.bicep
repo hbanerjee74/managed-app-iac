@@ -107,7 +107,6 @@ module dns 'modules/dns.bicep' = {
   name: 'dns'
   scope: deploymentRg
   params: {
-    location: location
     vnetName: naming.outputs.names.vnet
     tags: tags
   }

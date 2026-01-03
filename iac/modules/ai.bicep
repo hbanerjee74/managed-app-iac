@@ -68,18 +68,18 @@ resource peSearch 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peSearch
+  name: 'search-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'search-dns'
+        name: 'privatelink.search.windows.net'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.search.windows.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')
         }
       }
     ]
@@ -105,18 +105,18 @@ resource peAi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peAi
+  name: 'ai-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'ai-dns'
+        name: 'privatelink.cognitiveservices.azure.com'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.cognitiveservices.azure.com'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')
         }
       }
     ]

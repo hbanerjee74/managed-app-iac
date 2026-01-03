@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "16669007234033153831"
+      "templateHash": "10591131123152025905"
     }
   },
   "parameters": {
@@ -256,7 +256,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "18280667287477572645"
+              "templateHash": "710814057626619281"
             }
           },
           "parameters": {
@@ -306,7 +306,7 @@
             {
               "type": "Microsoft.OperationalInsights/workspaces/tables",
               "apiVersion": "2021-12-01-preview",
-              "name": "[format('{0}/VibeData_Operations_CL', parameters('lawName'))]",
+              "name": "[format('{0}/{1}', parameters('lawName'), 'VibeData_Operations_CL')]",
               "properties": {
                 "retentionInDays": 30,
                 "totalRetentionInDays": 30,
@@ -987,9 +987,6 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
-          },
           "vnetName": {
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.vnet]"
           },
@@ -1004,16 +1001,10 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "13580926388642649732"
+              "templateHash": "15310903631767225448"
             }
           },
           "parameters": {
-            "location": {
-              "type": "string",
-              "metadata": {
-                "description": "Deployment location."
-              }
-            },
             "vnetName": {
               "type": "string",
               "metadata": {
@@ -1029,12 +1020,13 @@
             }
           },
           "variables": {
+            "storageSuffix": "[environment().suffixes.storage]",
             "zones": [
               "privatelink.vaultcore.azure.net",
               "privatelink.postgres.database.azure.com",
-              "privatelink.blob.core.windows.net",
-              "privatelink.queue.core.windows.net",
-              "privatelink.table.core.windows.net",
+              "[format('privatelink.blob.{0}', variables('storageSuffix'))]",
+              "[format('privatelink.queue.{0}', variables('storageSuffix'))]",
+              "[format('privatelink.table.{0}', variables('storageSuffix'))]",
               "privatelink.azurecr.io",
               "privatelink.azurewebsites.net",
               "privatelink.search.windows.net",
@@ -1125,7 +1117,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "12671130363688514973"
+              "templateHash": "453352995575157440"
             }
           },
           "parameters": {
@@ -1178,6 +1170,12 @@
                 "description": "Optional tags to apply."
               }
             }
+          },
+          "variables": {
+            "storageSuffix": "[environment().suffixes.storage]",
+            "blobZone": "[format('privatelink.blob.{0}', variables('storageSuffix'))]",
+            "queueZone": "[format('privatelink.queue.{0}', variables('storageSuffix'))]",
+            "tableZone": "[format('privatelink.table.{0}', variables('storageSuffix'))]"
           },
           "resources": [
             {
@@ -1298,25 +1296,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.KeyVault/vaults', parameters('kvName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('kvName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('kvName')), 'kv-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "kv-dns",
+                    "name": "privatelink.vaultcore.azure.net",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.vaultcore.azure.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.KeyVault/vaults', parameters('kvName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('kvName')))]"
               ]
             },
             {
@@ -1339,25 +1340,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}-blob', parameters('storageName')), 'st-blob-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "st-blob-dns",
+                    "name": "[variables('blobZone')]",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.blob.core.windows.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.blob.core.windows.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', variables('blobZone'))]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-blob', parameters('storageName')))]"
               ]
             },
             {
@@ -1380,25 +1384,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}-queue', parameters('storageName')), 'st-queue-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "st-queue-dns",
+                    "name": "[variables('queueZone')]",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.queue.core.windows.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.queue.core.windows.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', variables('queueZone'))]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-queue', parameters('storageName')))]"
               ]
             },
             {
@@ -1421,25 +1428,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}-table', parameters('storageName')), 'st-table-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "st-table-dns",
+                    "name": "[variables('tableZone')]",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.table.core.windows.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.table.core.windows.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', variables('tableZone'))]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-table', parameters('storageName')))]"
               ]
             },
             {
@@ -1462,25 +1472,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('acrName')), 'acr-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "acr-dns",
+                    "name": "privatelink.azurecr.io",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.azurecr.io",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('acrName')))]"
               ]
             },
             {
@@ -1707,7 +1720,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "12778404877038317963"
+              "templateHash": "7962063222152834301"
             }
           },
           "parameters": {
@@ -1768,6 +1781,7 @@
             }
           },
           "variables": {
+            "ossrdbmsResource": "https://ossrdbms-aad.database.windows.net",
             "serverHost": "[format('{0}.postgres.database.azure.com', parameters('psqlName'))]"
           },
           "resources": [
@@ -1825,7 +1839,7 @@
                 "forceUpdateTag": "[guid(subscription().id, resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('psqlName')), 'psql-create-roles')]",
                 "retentionInterval": "PT1H",
                 "azCliVersion": "2.61.0",
-                "scriptContent": "#!/usr/bin/env bash\nset -euo pipefail\nSERVER=\"${SERVER_HOST}\"\nLOGIN_USER=\"${UAMI_CLIENT_ID}\"\n\necho \"Acquiring AAD token for Postgres...\"\nACCESS_TOKEN=$(az account get-access-token --resource https://ossrdbms-aad.database.windows.net --query accessToken -o tsv)\nexport PGPASSWORD=\"$ACCESS_TOKEN\"\n\necho \"Creating roles vd_dbo and vd_reader if missing, and granting vd_dbo to UAMI...\"\npsql \"host=${SERVER} user=${LOGIN_USER} dbname=postgres sslmode=require\" <<'SQL'\nDO $$\nBEGIN\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_dbo') THEN\n    CREATE ROLE \"vd_dbo\";\n  END IF;\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_reader') THEN\n    CREATE ROLE \"vd_reader\";\n  END IF;\nEND$$;\nGRANT \"vd_dbo\" TO \"${LOGIN_USER}\";\nSQL\n",
+                "scriptContent": "#!/usr/bin/env bash\nset -euo pipefail\nSERVER=\"${SERVER_HOST}\"\nLOGIN_USER=\"${UAMI_CLIENT_ID}\"\n\necho \"Acquiring AAD token for Postgres...\"\nACCESS_TOKEN=$(az account get-access-token --resource ${RESOURCE_URI} --query accessToken -o tsv)\nexport PGPASSWORD=\"$ACCESS_TOKEN\"\n\necho \"Creating roles vd_dbo and vd_reader if missing, and granting vd_dbo to UAMI...\"\npsql \"host=${SERVER} user=${LOGIN_USER} dbname=postgres sslmode=require\" <<'SQL'\nDO $$\nBEGIN\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_dbo') THEN\n    CREATE ROLE \"vd_dbo\";\n  END IF;\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_reader') THEN\n    CREATE ROLE \"vd_reader\";\n  END IF;\nEND$$;\nGRANT \"vd_dbo\" TO \"${LOGIN_USER}\";\nSQL\n",
                 "supportingScriptUris": [],
                 "timeout": "PT10M",
                 "environmentVariables": [
@@ -1836,6 +1850,10 @@
                   {
                     "name": "UAMI_CLIENT_ID",
                     "value": "[parameters('uamiClientId')]"
+                  },
+                  {
+                    "name": "RESOURCE_URI",
+                    "value": "[variables('ossrdbmsResource')]"
                   }
                 ]
               },
@@ -1952,7 +1970,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "16358448100634783557"
+              "templateHash": "6344336659152981551"
             }
           },
           "parameters": {
@@ -2031,8 +2049,9 @@
             }
           },
           "variables": {
-            "storageBlobUri": "[format('https://{0}.blob.core.windows.net', parameters('storageAccountName'))]",
-            "storageQueueUri": "[format('https://{0}.queue.core.windows.net', parameters('storageAccountName'))]",
+            "storageSuffix": "[environment().suffixes.storage]",
+            "storageBlobUri": "[format('https://{0}.blob.{1}', parameters('storageAccountName'), variables('storageSuffix'))]",
+            "storageQueueUri": "[format('https://{0}.queue.{1}', parameters('storageAccountName'), variables('storageSuffix'))]",
             "defaultContainer": "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
           },
           "resources": [
@@ -2198,25 +2217,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Web/sites', parameters('appApiName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('appApiName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('appApiName')), 'appapi-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "appapi-dns",
+                    "name": "privatelink.azurewebsites.net",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.azurewebsites.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('appApiName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('appApiName')))]"
               ]
             },
             {
@@ -2239,25 +2261,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Web/sites', parameters('appUiName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('appUiName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('appUiName')), 'appui-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "appui-dns",
+                    "name": "privatelink.azurewebsites.net",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.azurewebsites.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('appUiName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('appUiName')))]"
               ]
             },
             {
@@ -2280,25 +2305,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Web/sites', parameters('funcName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('funcName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('funcName')), 'func-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "func-dns",
+                    "name": "privatelink.azurewebsites.net",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.azurewebsites.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('funcName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('funcName')))]"
               ]
             },
             {
@@ -2456,7 +2484,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "12692417095527786685"
+              "templateHash": "15631126837977633469"
             }
           },
           "parameters": {
@@ -2568,19 +2596,15 @@
             },
             {
               "type": "Microsoft.Network/applicationGateways",
-              "apiVersion": "2023-04-01",
+              "apiVersion": "2021-08-01",
               "name": "[parameters('agwName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
-              "sku": {
-                "name": "WAF_v2",
-                "tier": "WAF_v2",
-                "capacity": 1
-              },
               "properties": {
-                "autoscaleConfiguration": {
-                  "minCapacity": 1,
-                  "maxCapacity": 1
+                "sku": {
+                  "name": "WAF_v2",
+                  "tier": "WAF_v2",
+                  "capacity": 1
                 },
                 "enableHttp2": true,
                 "gatewayIPConfigurations": [
@@ -2630,12 +2654,17 @@
                 "httpListeners": [],
                 "requestRoutingRules": [],
                 "probes": [],
-                "wafConfiguration": {
+                "webApplicationFirewallConfiguration": {
                   "enabled": true,
                   "firewallMode": "Prevention",
                   "ruleSetType": "OWASP",
                   "ruleSetVersion": "3.2",
-                  "customRules": "[variables('wafCustomRules')]"
+                  "customRules": "[variables('wafCustomRules')]",
+                  "sslPolicy": {
+                    "policyType": "Predefined",
+                    "policyName": "AppGwSslPolicy20220101S",
+                    "minProtocolVersion": "TLSv1_2"
+                  }
                 }
               },
               "dependsOn": [
@@ -2729,7 +2758,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "9714712435888736736"
+              "templateHash": "1885456839513703499"
             }
           },
           "parameters": {
@@ -2828,25 +2857,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Search/searchServices', parameters('searchName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', parameters('searchName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('searchName')), 'search-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "search-dns",
+                    "name": "privatelink.search.windows.net",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.search.windows.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Search/searchServices', parameters('searchName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('searchName')))]"
               ]
             },
             {
@@ -2869,25 +2901,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('aiName')), 'ai-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "ai-dns",
+                    "name": "privatelink.cognitiveservices.azure.com",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.cognitiveservices.azure.com",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('aiName')))]"
               ]
             },
             {
@@ -3000,7 +3035,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "16194723432162770885"
+              "templateHash": "14235595345351103913"
             }
           },
           "parameters": {
@@ -3062,7 +3097,7 @@
           "resources": [
             {
               "type": "Microsoft.Automation/automationAccounts",
-              "apiVersion": "2023-11-01",
+              "apiVersion": "2021-06-22",
               "name": "[parameters('automationName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
@@ -3073,11 +3108,8 @@
                 }
               },
               "properties": {
-                "publicNetworkAccess": "Disabled",
+                "publicNetworkAccess": false,
                 "disableLocalAuth": true
-              },
-              "sku": {
-                "name": "Basic"
               }
             },
             {
@@ -3100,25 +3132,28 @@
                       "privateLinkServiceId": "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationName'))]"
                     }
                   }
-                ],
-                "privateDnsZoneGroups": [
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', format('pe-{0}', parameters('automationName')), 'automation-dns')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
                   {
-                    "name": "automation-dns",
+                    "name": "privatelink.azure-automation.net",
                     "properties": {
-                      "privateDnsZoneConfigs": [
-                        {
-                          "name": "privatelink.azure-automation.net",
-                          "properties": {
-                            "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')]"
-                          }
-                        }
-                      ]
+                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationName'))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('automationName')))]"
               ]
             },
             {

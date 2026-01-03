@@ -130,18 +130,18 @@ resource peKv 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peKv
+  name: 'kv-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'kv-dns'
+        name: 'privatelink.vaultcore.azure.net'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.vaultcore.azure.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')
         }
       }
     ]
@@ -167,18 +167,18 @@ resource peStBlob 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peStBlob
+  name: 'st-blob-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'st-blob-dns'
+        name: blobZone
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.blob.core.windows.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.blob.core.windows.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', blobZone)
         }
       }
     ]
@@ -204,18 +204,18 @@ resource peStQueue 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peStQueue
+  name: 'st-queue-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'st-queue-dns'
+        name: queueZone
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.queue.core.windows.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.queue.core.windows.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', queueZone)
         }
       }
     ]
@@ -241,18 +241,18 @@ resource peStTable 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peStTable
+  name: 'st-table-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'st-table-dns'
+        name: tableZone
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.table.core.windows.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.table.core.windows.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', tableZone)
         }
       }
     ]
@@ -278,18 +278,18 @@ resource peAcr 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peAcr
+  name: 'acr-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'acr-dns'
+        name: 'privatelink.azurecr.io'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.azurecr.io'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')
         }
       }
     ]
@@ -425,3 +425,7 @@ resource acrDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
 }
 
 // TODO: deploy Key Vault, Storage, and Container Registry with private access.
+var storageSuffix = environment().suffixes.storage
+var blobZone = 'privatelink.blob.${storageSuffix}'
+var queueZone = 'privatelink.queue.${storageSuffix}'
+var tableZone = 'privatelink.table.${storageSuffix}'

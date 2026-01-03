@@ -1,8 +1,5 @@
 targetScope = 'resourceGroup'
 
-@description('Deployment location.')
-param location string
-
 @description('Name of the Services VNet to link.')
 param vnetName string
 
@@ -13,12 +10,13 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' existing = {
   name: vnetName
 }
 
+var storageSuffix = environment().suffixes.storage
 var zones = [
   'privatelink.vaultcore.azure.net'
   'privatelink.postgres.database.azure.com'
-  'privatelink.blob.core.windows.net'
-  'privatelink.queue.core.windows.net'
-  'privatelink.table.core.windows.net'
+  'privatelink.blob.${storageSuffix}'
+  'privatelink.queue.${storageSuffix}'
+  'privatelink.table.${storageSuffix}'
   'privatelink.azurecr.io'
   'privatelink.azurewebsites.net'
   'privatelink.search.windows.net'

@@ -28,7 +28,7 @@ param lawId string
 @description('Optional tags to apply.')
 param tags object = {}
 
-resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
+resource automation 'Microsoft.Automation/automationAccounts@2021-06-22' = {
   name: automationName
   location: location
   tags: tags
@@ -39,11 +39,8 @@ resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
     }
   }
   properties: {
-    publicNetworkAccess: 'Disabled'
+    publicNetworkAccess: false
     disableLocalAuth: true
-  }
-  sku: {
-    name: 'Basic'
   }
 }
 
@@ -68,18 +65,18 @@ resource peAutomation 'Microsoft.Network/privateEndpoints@2023-05-01' = {
         }
       }
     ]
-    privateDnsZoneGroups: [
+  }
+}
+
+resource peAutomationDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peAutomation
+  name: 'automation-dns'
+  properties: {
+    privateDnsZoneConfigs: [
       {
-        name: 'automation-dns'
+        name: 'privatelink.azure-automation.net'
         properties: {
-          privateDnsZoneConfigs: [
-            {
-              name: 'privatelink.azure-automation.net'
-              properties: {
-                privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')
-              }
-            }
-          ]
+          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')
         }
       }
     ]

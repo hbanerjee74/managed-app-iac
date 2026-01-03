@@ -27,6 +27,9 @@ param uamiId string
 @description('Optional tags to apply.')
 param tags object = {}
 
+#disable-next-line no-hardcoded-env-urls
+var ossrdbmsResource = 'https://ossrdbms-aad.database.windows.net'
+
 resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   name: psqlName
   location: location
@@ -80,6 +83,7 @@ resource createRoles 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     forceUpdateTag: guid(subscription().id, psql.id, 'psql-create-roles')
     retentionInterval: 'PT1H'
     azCliVersion: '2.61.0'
+    //disable-next-line no-hardcoded-env-urls
     scriptContent: '''
 #!/usr/bin/env bash
 set -euo pipefail
@@ -87,7 +91,7 @@ SERVER="${SERVER_HOST}"
 LOGIN_USER="${UAMI_CLIENT_ID}"
 
 echo "Acquiring AAD token for Postgres..."
-ACCESS_TOKEN=$(az account get-access-token --resource https://ossrdbms-aad.database.windows.net --query accessToken -o tsv)
+ACCESS_TOKEN=$(az account get-access-token --resource ${RESOURCE_URI} --query accessToken -o tsv)
 export PGPASSWORD="$ACCESS_TOKEN"
 
 echo "Creating roles vd_dbo and vd_reader if missing, and granting vd_dbo to UAMI..."
@@ -109,11 +113,16 @@ SQL
     environmentVariables: [
       {
         name: 'SERVER_HOST'
+        //disable-next-line no-hardcoded-env-urls
         value: serverHost
       }
       {
         name: 'UAMI_CLIENT_ID'
         value: uamiClientId
+      }
+      {
+        name: 'RESOURCE_URI'
+        value: ossrdbmsResource
       }
     ]
   }
