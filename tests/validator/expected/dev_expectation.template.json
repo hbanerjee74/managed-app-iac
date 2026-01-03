@@ -4,7 +4,7 @@
   "names": {
     "vnet": "vd-vnet-platform-<16>",
     "kv": "vd-kv-platform-<16>",
-    "storage": "vdstephemeral<8>",
+    "storage": "vdstplatform<8>",
     "acr": "vd-acr-platform-<16>",
     "psql": "vd-psql-platform-<16>",
     "law": "vd-law-platform-<16>",
@@ -17,7 +17,11 @@
     "funcOps": "vd-func-ops-<16>",
     "automation": "vd-aa-platform-<16>",
     "search": "vd-search-platform-<16>",
-    "ai": "vd-ai-platform-<16>"
+    "ai": "vd-ai-platform-<16>",
+    "nsgAppgw": "vd-nsg-appgw-<16>",
+    "nsgAks": "vd-nsg-aks-<16>",
+    "nsgAppsvc": "vd-nsg-appsvc-<16>",
+    "nsgPe": "vd-nsg-pe-<16>"
   },
   "network": {
     "vnetCidr": "10.20.0.0/20",
@@ -47,5 +51,798 @@
     "environment": "dev",
     "owner": "ci",
     "purpose": "ephemeral"
-  }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "vd-vnet-platform-<16>",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": ["10.20.0.0/20"]
+        },
+        "subnets": {
+          "snet-appgw": "10.20.0.0/27",
+          "snet-aks": "10.20.0.32/25",
+          "snet-appsvc": "10.20.0.160/28",
+          "snet-private-endpoints": "10.20.0.176/28",
+          "snet-psql": "10.20.0.192/28"
+        },
+        "subnetsDetailed": [
+          { "name": "snet-appgw", "addressPrefix": "10.20.0.0/27", "networkSecurityGroupId": "__ANY__" },
+          { "name": "snet-aks", "addressPrefix": "10.20.0.32/25", "networkSecurityGroupId": "__ANY__" },
+          { "name": "snet-appsvc", "addressPrefix": "10.20.0.160/28", "networkSecurityGroupId": "__ANY__", "delegations": [ { "serviceName": "Microsoft.Web/serverFarms" } ] },
+          { "name": "snet-private-endpoints", "addressPrefix": "10.20.0.176/28", "networkSecurityGroupId": "__ANY__" },
+          { "name": "snet-psql", "addressPrefix": "10.20.0.192/28", "delegations": [ { "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers" } ], "privateEndpointNetworkPolicies": "Disabled", "privateLinkServiceNetworkPolicies": "Disabled" }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "vd-nsg-appgw-<16>",
+      "properties": {
+        "securityRules": [
+          { "name": "Allow-443-Internet", "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "Internet", "destinationAddressPrefix": "*", "destinationPortRange": "443", "sourcePortRange": "*", "priority": 100 },
+          { "name": "Allow-GatewayManager", "direction": "Inbound", "access": "Allow", "protocol": "Tcp", "sourceAddressPrefix": "GatewayManager", "destinationAddressPrefix": "*", "destinationPortRange": "65200-65535", "sourcePortRange": "*", "priority": 110 },
+          { "name": "Allow-AzureLoadBalancer", "direction": "Inbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "AzureLoadBalancer", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 120 },
+          { "name": "Allow-VNet-Inbound", "direction": "Inbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "VirtualNetwork", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 130 },
+          { "name": "Deny-All-Inbound", "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 200 },
+          { "name": "Allow-All-Outbound", "direction": "Outbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "*", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 100 }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "vd-nsg-aks-<16>",
+      "properties": {
+        "securityRules": [
+          { "name": "Allow-VNet-Inbound", "direction": "Inbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "VirtualNetwork", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 100 },
+          { "name": "Deny-Internet-Inbound", "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "Internet", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 110 },
+          { "name": "Allow-All-Outbound", "direction": "Outbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "*", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 100 }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "vd-nsg-appsvc-<16>",
+      "properties": {
+        "securityRules": [
+          { "name": "Allow-VNet-Inbound", "direction": "Inbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "VirtualNetwork", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 100 },
+          { "name": "Deny-Internet-Inbound", "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "Internet", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 110 },
+          { "name": "Allow-All-Outbound", "direction": "Outbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "*", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 100 }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "vd-nsg-pe-<16>",
+      "properties": {
+        "securityRules": [
+          { "name": "Allow-VNet-Inbound", "direction": "Inbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "VirtualNetwork", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 100 },
+          { "name": "Deny-Internet-Inbound", "direction": "Inbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "Internet", "destinationAddressPrefix": "*", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 110 },
+          { "name": "Allow-VNet-Outbound", "direction": "Outbound", "access": "Allow", "protocol": "*", "sourceAddressPrefix": "VirtualNetwork", "destinationAddressPrefix": "VirtualNetwork", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 100 },
+          { "name": "Deny-Internet-Outbound", "direction": "Outbound", "access": "Deny", "protocol": "*", "sourceAddressPrefix": "*", "destinationAddressPrefix": "Internet", "destinationPortRange": "*", "sourcePortRange": "*", "priority": 110 }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "vd-uami-platform-<16>",
+      "properties": {
+        "clientId": "<guid>",
+        "principalId": "<guid>"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "vd-pip-agw-<16>",
+      "sku": { "name": "Standard", "tier": "Regional" },
+      "properties": { "publicIPAllocationMethod": "Static" }
+    },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.vaultcore.azure.net", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.postgres.database.azure.com", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.blob.core.windows.net", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.queue.core.windows.net", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.table.core.windows.net", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.azurecr.io", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.azurewebsites.net", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.search.windows.net", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.cognitiveservices.azure.com", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "privatelink.azure-automation.net", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones", "name": "vibedata.internal", "location": "global" },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.vaultcore.azure.net", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.postgres.database.azure.com", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.blob.core.windows.net", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.queue.core.windows.net", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.table.core.windows.net", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.azurecr.io", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.azurewebsites.net", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.search.windows.net", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.cognitiveservices.azure.com", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "privatelink.azure-automation.net", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    { "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks", "name": "link-vd-vnet-platform-<16>", "zone": "vibedata.internal", "properties": { "registrationEnabled": false, "virtualNetworkId": "__ANY__" } },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "name": "vd-kv-platform-<16>",
+      "properties": {
+        "tenantId": "__ANY__",
+        "enableRbacAuthorization": true,
+        "enablePurgeProtection": true,
+        "enableSoftDelete": true,
+        "softDeleteRetentionInDays": 90,
+        "publicNetworkAccess": "Disabled",
+        "sku": { "family": "A", "name": "standard" },
+        "networkAcls": {
+          "defaultAction": "Deny",
+          "bypass": "AzureServices"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "vdstplatform<8>",
+      "sku": { "name": "Standard_LRS" },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "allowSharedKeyAccess": false,
+        "publicNetworkAccess": "Disabled",
+        "defaultToOAuthAuthentication": true
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "name": "vdstplatform<8>/default/artifacts",
+      "accountName": "vdstplatform<8>",
+      "containerName": "artifacts",
+      "properties": {
+        "publicAccess": "None",
+        "defaultEncryptionScope": "$account-encryption-key",
+        "denyEncryptionScopeOverride": false
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
+      "name": "vdstplatform<8>/default/health-notifications-queue",
+      "accountName": "vdstplatform<8>",
+      "queueName": "health-notifications-queue",
+      "properties": { "metadata": {} }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
+      "name": "vdstplatform<8>/default/update-notifications-queue",
+      "accountName": "vdstplatform<8>",
+      "queueName": "update-notifications-queue",
+      "properties": { "metadata": {} }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
+      "name": "vdstplatform<8>/default/monitor-alerts-queue",
+      "accountName": "vdstplatform<8>",
+      "queueName": "monitor-alerts-queue",
+      "properties": { "metadata": {} }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
+      "name": "vdstplatform<8>/default/engineHistory",
+      "accountName": "vdstplatform<8>",
+      "tableName": "engineHistory"
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
+      "name": "vdstplatform<8>/default/engineDlq",
+      "accountName": "vdstplatform<8>",
+      "tableName": "engineDlq"
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "name": "vd-acr-platform-<16>",
+      "sku": { "name": "Premium" },
+      "properties": {
+        "adminUserEnabled": false,
+        "publicNetworkAccess": "Disabled",
+        "dataEndpointEnabled": false,
+        "zoneRedundancy": "Disabled"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "name": "vd-law-platform-<16>",
+      "sku": { "name": "PerGB2018" },
+      "properties": {
+        "retentionInDays": 30,
+        "features": { "enableLogAccessUsingOnlyResourcePermissions": true }
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "name": "vd-law-platform-<16>/VibeData_Operations_CL",
+      "workspaceName": "vd-law-platform-<16>",
+      "tableName": "VibeData_Operations_CL",
+      "properties": {
+        "retentionInDays": 30,
+        "totalRetentionInDays": 30,
+        "schema": {
+          "name": "VibeData_Operations_CL",
+          "columns": [
+            { "name": "TimeGenerated", "type": "datetime" },
+            { "name": "Category", "type": "string" },
+            { "name": "CorrelationId", "type": "string" },
+            { "name": "InstanceId", "type": "string" },
+            { "name": "ComponentId", "type": "string" },
+            { "name": "Operation", "type": "string" },
+            { "name": "Status", "type": "string" },
+            { "name": "DurationMs", "type": "long" },
+            { "name": "Message", "type": "string" },
+            { "name": "Details", "type": "dynamic" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/applicationGateways",
+      "name": "vd-agw-platform-<16>",
+      "properties": {
+        "enableHttp2": true,
+        "gatewayIPConfigurations": [
+          {
+            "name": "appgw-ipconfig",
+            "properties": { "subnet": { "id": "__ANY__" } }
+          }
+        ],
+        "frontendIPConfigurations": [
+          {
+            "name": "appgw-feip",
+            "properties": { "publicIPAddress": { "id": "__ANY__" } }
+          }
+        ],
+        "frontendPorts": [
+          { "name": "https-port", "properties": { "port": 443 } }
+        ],
+        "backendHttpSettingsCollection": [
+          {
+            "name": "default-setting",
+            "properties": {
+              "protocol": "Https",
+              "port": 443,
+              "pickHostNameFromBackendAddress": true,
+              "requestTimeout": 60,
+              "connectionDraining": { "enabled": true, "drainTimeoutInSec": 60 }
+            }
+          }
+        ],
+        "webApplicationFirewallConfiguration": {
+          "enabled": true,
+          "firewallMode": "Prevention",
+          "ruleSetVersion": "3.2",
+          "customRules": [
+            { "name": "Allow-Customer", "priority": 100, "action": "Allow", "matchConditions": [ { "matchValues": ["203.0.113.0/24"] } ] },
+            { "name": "Allow-Publisher", "priority": 200, "action": "Allow", "matchConditions": [ { "matchValues": ["198.51.100.0/24"] } ] },
+            { "name": "Deny-All", "priority": 1000, "action": "Block" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "name": "vd-psql-platform-<16>",
+      "sku": { "name": "GP_Standard_D2s_v3", "tier": "GeneralPurpose" },
+      "properties": {
+        "version": "16",
+        "storage": { "storageSizeGB": 128, "autoGrow": "Enabled" },
+        "backup": { "backupRetentionDays": 7, "geoRedundantBackup": "Disabled" },
+        "network": {
+          "delegatedSubnetResourceId": "__ANY__",
+          "privateDnsZoneArmResourceId": "__ANY__",
+          "publicNetworkAccess": "Disabled"
+        },
+        "authConfig": { "activeDirectoryAuth": "Enabled", "passwordAuth": "Disabled" },
+        "highAvailability": { "mode": "Disabled" }
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "name": "vd-asp-platform-<16>",
+      "kind": "linux",
+      "sku": { "name": "P1v3", "tier": "PremiumV3" },
+      "properties": { "reserved": true, "zoneRedundant": false }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "name": "vd-app-api-<16>",
+      "kind": "app,linux,container",
+      "identityType": "UserAssigned",
+      "identityIds": ["/subscriptions/<guid>/resourceGroups/rg-vibedata-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/vd-uami-platform-<16>"],
+      "properties": {
+        "httpsOnly": true,
+        "publicNetworkAccess": "Disabled",
+        "virtualNetworkSubnetId": "__ANY__",
+        "siteConfig": {
+          "linuxFxVersion": "DOCKER|mcr.microsoft.com/azuredocs/aci-helloworld:latest",
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "alwaysOn": true,
+          "vnetRouteAllEnabled": true,
+          "scmIpSecurityRestrictionsDefaultAction": "Deny",
+          "ipSecurityRestrictionsDefaultAction": "Deny"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "name": "vd-app-ui-<16>",
+      "kind": "app,linux,container",
+      "identityType": "UserAssigned",
+      "identityIds": ["/subscriptions/<guid>/resourceGroups/rg-vibedata-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/vd-uami-platform-<16>"],
+      "properties": {
+        "httpsOnly": true,
+        "publicNetworkAccess": "Disabled",
+        "virtualNetworkSubnetId": "__ANY__",
+        "siteConfig": {
+          "linuxFxVersion": "DOCKER|mcr.microsoft.com/azuredocs/aci-helloworld:latest",
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "alwaysOn": true,
+          "vnetRouteAllEnabled": true,
+          "scmIpSecurityRestrictionsDefaultAction": "Deny",
+          "ipSecurityRestrictionsDefaultAction": "Deny"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "name": "vd-func-ops-<16>",
+      "kind": "functionapp,linux,container",
+      "identityType": "UserAssigned",
+      "identityIds": ["/subscriptions/<guid>/resourceGroups/rg-vibedata-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/vd-uami-platform-<16>"],
+      "properties": {
+        "httpsOnly": true,
+        "publicNetworkAccess": "Disabled",
+        "virtualNetworkSubnetId": "__ANY__",
+        "siteConfig": {
+          "linuxFxVersion": "DOCKER|mcr.microsoft.com/azuredocs/aci-helloworld:latest",
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "alwaysOn": true,
+          "vnetRouteAllEnabled": true,
+          "scmIpSecurityRestrictionsDefaultAction": "Deny",
+          "ipSecurityRestrictionsDefaultAction": "Deny",
+          "appSettings": [
+            { "name": "AzureWebJobsStorage__accountName", "value": "vdstplatform<8>" },
+            { "name": "AzureWebJobsStorage__blobServiceUri", "value": "https://vdstplatform<8>.blob.core.windows.net" },
+            { "name": "AzureWebJobsStorage__queueServiceUri", "value": "https://vdstplatform<8>.queue.core.windows.net" },
+            { "name": "AzureWebJobsStorage__credential", "value": "ManagedIdentity" },
+            { "name": "FUNCTIONS_EXTENSION_VERSION", "value": "~4" },
+            { "name": "FUNCTIONS_WORKER_RUNTIME", "value": "custom" },
+            { "name": "WEBSITE_CONTENTOVERVNET", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Search/searchServices",
+      "name": "vd-search-platform-<16>",
+      "sku": { "name": "S1" },
+      "properties": {
+        "publicNetworkAccess": "disabled",
+        "replicaCount": 1,
+        "partitionCount": 1,
+        "hostingMode": "default"
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "name": "vd-ai-platform-<16>",
+      "kind": "CognitiveServices",
+      "sku": { "name": "S0" },
+      "properties": { "publicNetworkAccess": "disabled" }
+    },
+    {
+      "type": "Microsoft.Automation/automationAccounts",
+      "name": "vd-aa-platform-<16>",
+      "identityType": "UserAssigned",
+      "identityIds": ["/subscriptions/<guid>/resourceGroups/rg-vibedata-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/vd-uami-platform-<16>"],
+      "properties": {
+        "publicNetworkAccess": false,
+        "disableLocalAuth": true
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-kv-platform-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["vault"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vdstplatform<8>-blob",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["blob"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vdstplatform<8>-queue",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["queue"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vdstplatform<8>-table",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["table"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-acr-platform-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["registry"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-app-api-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["sites"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-app-ui-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["sites"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-func-ops-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["sites"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-aa-platform-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["AzureAutomation"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-search-platform-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["searchService"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "name": "pe-vd-ai-platform-<16>",
+      "properties": {
+        "subnet": "__ANY__",
+        "privateLinkServiceConnections": [ { "groupIds": ["account"] } ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "kv-dns",
+      "endpointName": "pe-vd-kv-platform-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.vaultcore.azure.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "st-blob-dns",
+      "endpointName": "pe-vdstplatform<8>-blob",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.blob.core.windows.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "st-queue-dns",
+      "endpointName": "pe-vdstplatform<8>-queue",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.queue.core.windows.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "st-table-dns",
+      "endpointName": "pe-vdstplatform<8>-table",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.table.core.windows.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "acr-dns",
+      "endpointName": "pe-vd-acr-platform-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.azurecr.io", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "appapi-dns",
+      "endpointName": "pe-vd-app-api-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.azurewebsites.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "appui-dns",
+      "endpointName": "pe-vd-app-ui-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.azurewebsites.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "func-dns",
+      "endpointName": "pe-vd-func-ops-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.azurewebsites.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "automation-dns",
+      "endpointName": "pe-vd-aa-platform-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.azure-automation.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "search-dns",
+      "endpointName": "pe-vd-search-platform-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.search.windows.net", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "name": "ai-dns",
+      "endpointName": "pe-vd-ai-platform-<16>",
+      "properties": { "privateDnsZoneConfigs": [ { "name": "privatelink.cognitiveservices.azure.com", "privateDnsZoneId": "__ANY__" } ] }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-kv",
+      "scopeType": "Microsoft.KeyVault/vaults",
+      "scopeName": "vd-kv-platform-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [ { "category": "AuditEvent", "enabled": true } ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-st",
+      "scopeType": "Microsoft.Storage/storageAccounts",
+      "scopeName": "vdstplatform<8>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [
+          { "category": "StorageRead", "enabled": true },
+          { "category": "StorageWrite", "enabled": true },
+          { "category": "StorageDelete", "enabled": true }
+        ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-acr",
+      "scopeType": "Microsoft.ContainerRegistry/registries",
+      "scopeName": "vd-acr-platform-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [
+          { "category": "ContainerRegistryRepositoryEvents", "enabled": true },
+          { "category": "ContainerRegistryLoginEvents", "enabled": true }
+        ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-psql",
+      "scopeType": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "scopeName": "vd-psql-platform-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [ { "category": "PostgreSQLLogs", "enabled": true } ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-agw",
+      "scopeType": "Microsoft.Network/applicationGateways",
+      "scopeName": "vd-agw-platform-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [
+          { "category": "ApplicationGatewayAccessLog", "enabled": true },
+          { "category": "ApplicationGatewayPerformanceLog", "enabled": true },
+          { "category": "ApplicationGatewayFirewallLog", "enabled": true }
+        ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-appapi",
+      "scopeType": "Microsoft.Web/sites",
+      "scopeName": "vd-app-api-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [
+          { "category": "AppServiceHTTPLogs", "enabled": true },
+          { "category": "AppServiceConsoleLogs", "enabled": true },
+          { "category": "AppServiceAppLogs", "enabled": true }
+        ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-appui",
+      "scopeType": "Microsoft.Web/sites",
+      "scopeName": "vd-app-ui-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [
+          { "category": "AppServiceHTTPLogs", "enabled": true },
+          { "category": "AppServiceConsoleLogs", "enabled": true },
+          { "category": "AppServiceAppLogs", "enabled": true }
+        ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-func",
+      "scopeType": "Microsoft.Web/sites",
+      "scopeName": "vd-func-ops-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [ { "category": "FunctionAppLogs", "enabled": true } ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-search",
+      "scopeType": "Microsoft.Search/searchServices",
+      "scopeName": "vd-search-platform-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [ { "category": "AllMetrics", "enabled": true } ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-ai",
+      "scopeType": "Microsoft.CognitiveServices/accounts",
+      "scopeName": "vd-ai-platform-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [ { "category": "AuditEvent", "enabled": true } ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "name": "diag-law-automation",
+      "scopeType": "Microsoft.Automation/automationAccounts",
+      "scopeName": "vd-aa-platform-<16>",
+      "properties": {
+        "workspaceId": "__ANY__",
+        "logs": [
+          { "category": "JobLogs", "enabled": true },
+          { "category": "JobStreams", "enabled": true }
+        ],
+        "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.Resources/resourceGroups",
+      "scopeName": "rg-vibedata-dev",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.Resources/resourceGroups",
+      "scopeName": "rg-vibedata-dev",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7",
+        "principalId": "<guid>",
+        "principalType": "User"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.KeyVault/vaults",
+      "scopeName": "vd-kv-platform-<16>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/b86a8fe4-44ce-4948-aee5-eccb2c155cd7",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.Storage/storageAccounts",
+      "scopeName": "vdstplatform<8>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.Storage/storageAccounts",
+      "scopeName": "vdstplatform<8>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/19e7f393-1728-4e7a-9c12-054fda5c492f",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.ContainerRegistry/registries",
+      "scopeName": "vd-acr-platform-<16>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.ContainerRegistry/registries",
+      "scopeName": "vd-acr-platform-<16>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/8311e382-0749-4cb8-b61a-304f252e45ec",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "scopeName": "vd-psql-platform-<16>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/1f21df41-19d2-41e1-8a5e-3cbb7a0c2bd2",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.Automation/automationAccounts",
+      "scopeName": "vd-aa-platform-<16>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/4fe576fe-1146-4730-92eb-48519fa6bf9f",
+        "principalId": "<guid>",
+        "principalType": "User"
+      }
+    }
+  ]
 }
