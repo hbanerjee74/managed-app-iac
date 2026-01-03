@@ -22,11 +22,23 @@ For a dry run without changes:
 az deployment sub what-if -f iac/main.bicep -l eastus -p @iac/params.dev.json
 ```
 
-## Dev/test strict enforcement (RG scope)
-Use RG-scope deployment with Complete mode for drift enforcement in dev/test.
-Prereq: target RG must have tag `IAC=true` (guardrail to avoid accidental deletions).
+## Dev/test state check
+To verify the live RG matches the Bicep in dev/test:
+```bash
+./tests/state_check/what_if.sh eastus iac/params.dev.json
+python tests/state_check/diff_report.py tests/state_check/what-if.json
+```
 
-What-if (CI gate):
+## Dev/test strict enforcement (RG scope, Complete mode)
+Use the RG entrypoint (`iac/main.rg.bicep`) with Complete mode for drift enforcement. RG only.
+
+Prereqs (one-time per RG):
+```bash
+az group create -n rg-vibedata-dev -l eastus
+az group update -n rg-vibedata-dev --set tags.IAC=true
+```
+
+What-if (CI gate or manual):
 ```bash
 ./scripts/deploy/what_if_rg.sh rg-vibedata-dev eastus iac/params.dev.json
 python tests/state_check/diff_report.py tests/state_check/what-if.json
@@ -35,13 +47,6 @@ python tests/state_check/diff_report.py tests/state_check/what-if.json
 Apply (CD / manual):
 ```bash
 ./scripts/deploy/apply_rg.sh rg-vibedata-dev eastus iac/params.dev.json
-```
-
-## Dev/test state check
-To verify the live RG matches the Bicep in dev/test:
-```bash
-./tests/state_check/what_if.sh eastus iac/params.dev.json
-python tests/state_check/diff_report.py tests/state_check/what-if.json
 ```
 
 Keep parameter names and casing aligned with RFC-64 to match the eventual Marketplace handoff.
