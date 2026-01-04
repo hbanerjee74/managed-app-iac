@@ -18,6 +18,12 @@ param subnetPeId string
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
+@description('DNS zone resource IDs map (from dns module).')
+param zoneIds object
+
+@description('Principal ID of the UAMI for RBAC (optional).')
+param uamiPrincipalId string = ''
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -79,7 +85,7 @@ resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
       {
         name: 'privatelink.search.windows.net'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')
+          privateDnsZoneId: zoneIds.search
         }
       }
     ]
@@ -116,7 +122,7 @@ resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
       {
         name: 'privatelink.cognitiveservices.azure.com'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')
+          privateDnsZoneId: zoneIds.ai
         }
       }
     ]
@@ -165,4 +171,24 @@ resource aiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
     ]
   }
 }
-// TODO: deploy AI Search and AI Foundry with private endpoints.
+
+// RBAC assignments
+resource aiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(uamiPrincipalId)) {
+  name: guid(ai.id, uamiPrincipalId, 'ai-contrib')
+  scope: ai
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908') // Cognitive Services Contributor
+    principalId: uamiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource searchContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(uamiPrincipalId)) {
+  name: guid(search.id, uamiPrincipalId, 'search-contrib')
+  scope: search
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772') // Search Service Contributor
+    principalId: uamiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}

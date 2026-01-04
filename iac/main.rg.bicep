@@ -1,13 +1,16 @@
 targetScope = 'resourceGroup'
 
-@description('Resource group name used for deterministic naming seed.')
-param resourceGroupName string = resourceGroup().name
+@description('Resource group name used for deterministic naming seed (RFC-64: resourceGroup).')
+param resourceGroup string = resourceGroup().name
 
 @description('Azure region for deployment.')
 param location string
 
 @description('Customer admin Entra object ID (RFC-64).')
 param adminObjectId string
+
+@description('Contact email for notifications (RFC-64).')
+param contactEmail string
 
 @description('Principal type for adminObjectId (User or Group).')
 @allowed([
@@ -25,17 +28,29 @@ param customerIpRanges array
 @description('Publisher IP ranges for WAF allowlist (RFC-64).')
 param publisherIpRanges array
 
-@description('App Service Plan SKU (RFC-64).')
-param appServicePlanSku string
+@description('App Service Plan SKU (RFC-64 sku).')
+param sku string
 
-@description('PostgreSQL compute tier (RFC-64).')
-param postgresComputeTier string
+@description('PostgreSQL compute tier (RFC-64 computeTier).')
+param computeTier string
 
 @description('AI Services tier (RFC-64).')
 param aiServicesTier string
 
-@description('Log Analytics retention in days.')
-param lawRetentionDays int
+@description('Log Analytics retention in days (RFC-64 retentionDays display).')
+param retentionDays int
+
+@description('Application Gateway capacity (RFC-64 appGwCapacity display).')
+param appGwCapacity int = 1
+
+@description('Application Gateway SKU (RFC-64 appGwSku display).')
+param appGwSku string = 'WAF_v2'
+
+@description('PostgreSQL storage in GB (RFC-64 storageGB display).')
+param storageGB int = 128
+
+@description('PostgreSQL backup retention days (RFC-64 backupRetentionDays display).')
+param backupRetentionDays int = 7
 
 @description('Optional tags: environment (dev/release/prod), owner, purpose, created (ISO8601).')
 param environment string = ''
@@ -48,7 +63,7 @@ module naming 'lib/naming.bicep' = {
   name: 'naming'
   scope: subscription()
   params: {
-    resourceGroupName: resourceGroupName
+    resourceGroupName: resourceGroup
     purpose: 'platform'
   }
 }
@@ -57,14 +72,15 @@ var tags = union(
   empty(environment) ? {} : { environment: environment },
   empty(owner) ? {} : { owner: owner },
   empty(purpose) ? {} : { purpose: purpose },
-  empty(created) ? {} : { created: created }
+  empty(created) ? {} : { created: created },
+  empty(contactEmail) ? {} : { contactEmail: contactEmail }
 )
 
 module diagnostics 'modules/diagnostics.bicep' = {
   name: 'diagnostics'
   params: {
     location: location
-    lawRetentionDays: lawRetentionDays
+    retentionDays: retentionDays
     lawName: naming.outputs.names.law
     tags: tags
   }
@@ -77,6 +93,7 @@ module identity 'modules/identity.bicep' = {
     uamiName: naming.outputs.names.uami
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
+    lawId: diagnostics.outputs.lawId
     tags: tags
   }
 }
@@ -99,6 +116,7 @@ module dns 'modules/dns.bicep' = {
   name: 'dns'
   params: {
     vnetName: naming.outputs.names.vnet
+    zoneIds: dns.outputs.zoneIds
     tags: tags
   }
 }
@@ -113,6 +131,7 @@ module security 'modules/security.bicep' = {
     subnetPeId: network.outputs.subnetPeId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
+    zoneIds: dns.outputs.zoneIds
     tags: tags
   }
 }
@@ -122,12 +141,15 @@ module data 'modules/data.bicep' = {
   params: {
     location: location
     psqlName: naming.outputs.names.psql
-    postgresComputeTier: postgresComputeTier
+    computeTier: computeTier
+    backupRetentionDays: backupRetentionDays
+    storageGB: storageGB
     subnetPsqlId: network.outputs.subnetPsqlId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     uamiClientId: identity.outputs.uamiClientId
     uamiId: identity.outputs.uamiId
+    zoneIds: dns.outputs.zoneIds
     tags: tags
   }
 }
@@ -136,7 +158,7 @@ module compute 'modules/compute.bicep' = {
   name: 'compute'
   params: {
     location: location
-    appServicePlanSku: appServicePlanSku
+    sku: sku
     aspName: naming.outputs.names.asp
     appApiName: naming.outputs.names.appApi
     appUiName: naming.outputs.names.appUi
@@ -146,6 +168,7 @@ module compute 'modules/compute.bicep' = {
     uamiId: identity.outputs.uamiId
     storageAccountName: naming.outputs.names.storage
     lawId: diagnostics.outputs.lawId
+    zoneIds: dns.outputs.zoneIds
     tags: tags
   }
 }
@@ -160,6 +183,8 @@ module gateway 'modules/gateway.bicep' = {
     publisherIpRanges: publisherIpRanges
     subnetAppgwId: network.outputs.subnetAppgwId
     lawId: diagnostics.outputs.lawId
+    appGwCapacity: appGwCapacity
+    appGwSku: appGwSku
     tags: tags
   }
 }
@@ -173,6 +198,8 @@ module ai 'modules/ai.bicep' = {
     aiName: naming.outputs.names.ai
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    zoneIds: dns.outputs.zoneIds
     tags: tags
   }
 }
@@ -183,9 +210,22 @@ module automation 'modules/automation.bicep' = {
     location: location
     automationName: naming.outputs.names.automation
     uamiId: identity.outputs.uamiId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
     subnetPeId: network.outputs.subnetPeId
+    lawId: diagnostics.outputs.lawId
+    zoneIds: dns.outputs.zoneIds
+    tags: tags
+  }
+}
+
+module logic 'modules/logic.bicep' = {
+  name: 'logic'
+  params: {
+    location: location
+    logicName: naming.outputs.names.logic
+    uamiId: identity.outputs.uamiId
     lawId: diagnostics.outputs.lawId
     tags: tags
   }

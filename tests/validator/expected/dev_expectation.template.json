@@ -18,6 +18,8 @@
     "automation": "vd-aa-platform-<16>",
     "search": "vd-search-platform-<16>",
     "ai": "vd-ai-platform-<16>",
+    "logic": "vd-logic-platform-<16>",
+    "logic": "vd-logic-platform-<16>",
     "nsgAppgw": "vd-nsg-appgw-<16>",
     "nsgAks": "vd-nsg-aks-<16>",
     "nsgAppsvc": "vd-nsg-appsvc-<16>",
@@ -199,7 +201,8 @@
       "properties": {
         "publicAccess": "None",
         "defaultEncryptionScope": "$account-encryption-key",
-        "denyEncryptionScopeOverride": false
+        "denyEncryptionScopeOverride": false,
+        "metadata": { "tier": "Cool" }
       }
     },
     {
@@ -284,6 +287,7 @@
       "type": "Microsoft.Network/applicationGateways",
       "name": "vd-agw-platform-<16>",
       "properties": {
+        "sku": { "name": "WAF_v2", "tier": "WAF_v2", "capacity": 1 },
         "enableHttp2": true,
         "gatewayIPConfigurations": [
           {
@@ -312,16 +316,20 @@
             }
           }
         ],
-        "webApplicationFirewallConfiguration": {
-          "enabled": true,
-          "firewallMode": "Prevention",
-          "ruleSetVersion": "3.2",
-          "customRules": [
-            { "name": "Allow-Customer", "priority": 100, "action": "Allow", "matchConditions": [ { "matchValues": ["203.0.113.0/24"] } ] },
-            { "name": "Allow-Publisher", "priority": 200, "action": "Allow", "matchConditions": [ { "matchValues": ["198.51.100.0/24"] } ] },
-            { "name": "Deny-All", "priority": 1000, "action": "Block" }
-          ]
-        }
+        "firewallPolicy": { "id": "__ANY__" }
+      }
+    },
+    {
+      "type": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
+      "name": "vd-agw-platform-<16>-waf",
+      "location": "eastus",
+      "properties": {
+        "customRules": [
+          { "name": "Allow-Customer", "priority": 100, "ruleType": "MatchRule" },
+          { "name": "Allow-Publisher", "priority": 200, "ruleType": "MatchRule" },
+          { "name": "Deny-All", "priority": 1000, "ruleType": "MatchRule" }
+        ],
+        "managedRules": { "managedRuleSets": [ { "ruleSetType": "OWASP", "ruleSetVersion": "3.2" } ] }
       }
     },
     {
@@ -447,6 +455,11 @@
         "publicNetworkAccess": false,
         "disableLocalAuth": true
       }
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "name": "vd-logic-platform-<16>",
+      "location": "eastus"
     },
     {
       "type": "Microsoft.Network/privateEndpoints",
@@ -842,6 +855,28 @@
         "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/4fe576fe-1146-4730-92eb-48519fa6bf9f",
         "principalId": "<guid>",
         "principalType": "User"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.Resources/subscriptions",
+      "scopeName": "<guid>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/72fafb9e-0641-4937-9268-5baf55e7ff7f",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.OperationalInsights/workspaces",
+      "scopeName": "vd-law-platform-<16>",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/73c42c96-874c-492b-b04d-ab87d138a893",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
       }
     }
   ]

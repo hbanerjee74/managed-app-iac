@@ -4,7 +4,7 @@ targetScope = 'resourceGroup'
 param location string
 
 @description('Log Analytics retention in days.')
-param lawRetentionDays int
+param retentionDays int
 
 @description('Log Analytics Workspace name.')
 param lawName string
@@ -20,7 +20,7 @@ resource law 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
     sku: {
       name: 'PerGB2018'
     }
-    retentionInDays: lawRetentionDays
+    retentionInDays: retentionDays
     features: {
       enableLogAccessUsingOnlyResourcePermissions: true
     }

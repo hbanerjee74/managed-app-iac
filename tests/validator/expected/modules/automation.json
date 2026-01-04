@@ -1,0 +1,7 @@
+{
+  "resourceGroup": "rg-vibedata-dev",
+  "resources": [
+    { "type": "Microsoft.Automation/automationAccounts", "name": "vd-aa-platform-<16>" }
+  ]
+}
+

@@ -1,0 +1,8 @@
+{
+  "resourceGroup": "rg-vibedata-dev",
+  "resources": [
+    { "type": "Microsoft.Network/applicationGateways", "name": "vd-agw-platform-<16>" },
+    { "type": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies", "name": "vd-agw-platform-<16>-waf" }
+  ]
+}
+

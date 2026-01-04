@@ -9,9 +9,74 @@ The output now includes a resource-level array with key properties captured
 per resource to validate against Bicep-defined settings.
 """
 
+import argparse
 import json
 import subprocess
 import sys
+
+MODULE_FILTERS = {
+    "diagnostics": {
+        "types": {
+            "microsoft.operationalinsights/workspaces",
+            "microsoft.operationalinsights/workspaces/tables",
+        }
+    },
+    "identity": {
+        "types": {
+            "microsoft.managedidentity/userassignedidentities",
+            "microsoft.authorization/roleassignments",
+        }
+    },
+    "network": {
+        "types": {
+            "microsoft.network/virtualnetworks",
+            "microsoft.network/networksecuritygroups",
+        }
+    },
+    "security": {
+        "types": {
+            "microsoft.keyvault/vaults",
+            "microsoft.storage/storageaccounts",
+            "microsoft.containerregistry/registries",
+        }
+    },
+    "data": {
+        "types": {
+            "microsoft.dbforpostgresql/flexibleservers",
+        }
+    },
+    "compute": {
+        "types": {
+            "microsoft.web/serverfarms",
+            "microsoft.web/sites",
+        }
+    },
+    "automation": {
+        "types": {
+            "microsoft.automation/automationaccounts",
+        }
+    },
+    "ai": {
+        "types": {
+            "microsoft.search/searchservices",
+            "microsoft.cognitiveservices/accounts",
+        }
+    },
+    "gateway": {
+        "types": {
+            "microsoft.network/applicationgateways",
+            "microsoft.network/applicationgatewaywebapplicationfirewallpolicies",
+        }
+    },
+}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Collect actual state JSON for validator")
+    parser.add_argument("resource_group", help="Target resource group")
+    parser.add_argument("--module", choices=MODULE_FILTERS.keys(), help="Filter output to a single module")
+    parser.add_argument("--output", help="Write JSON to file instead of stdout")
+    return parser.parse_args()
 
 
 def az(cmd: list[str]) -> dict:
@@ -20,10 +85,8 @@ def az(cmd: list[str]) -> dict:
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python collect_actual_state.py <resource_group>", file=sys.stderr)
-        sys.exit(1)
-    rg = sys.argv[1]
+    args = parse_args()
+    rg = args.resource_group
 
     out: dict = {"resourceGroup": rg, "names": {}, "network": {}, "tags": {}, "resources": []}
 
@@ -34,6 +97,17 @@ def main():
 
     # Resources by type (single list pass)
     resources = az(["resource", "list", "-g", rg])
+
+    module_filter = None
+    if args.module:
+        module_filter = {t.lower() for t in MODULE_FILTERS[args.module]["types"]}
+
+    def passes_module_filter(rtype: str) -> bool:
+        if not module_filter:
+            return True
+        return rtype.lower() in module_filter
+
+    resources = [r for r in resources if passes_module_filter(r.get("type", ""))]
 
     resource_index = {r["id"]: {"type": r["type"], "name": r["name"]} for r in resources if r.get("id")}
     resource_full = {r["id"]: r for r in resources if r.get("id")}
@@ -692,7 +766,11 @@ def main():
             }
         )
 
-    print(json.dumps(out, indent=2))
+    output_json = json.dumps(out, indent=2)
+    if args.output:
+        Path(args.output).write_text(output_json)
+    else:
+        print(output_json)
 
 
 if __name__ == "__main__":

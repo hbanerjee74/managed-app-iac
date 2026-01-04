@@ -20,6 +20,9 @@ param uamiPrincipalId string
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string
+
+@description('DNS zone resource IDs map (from dns module).')
+param zoneIds object
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -70,6 +73,9 @@ resource artifactsContainer 'Microsoft.Storage/storageAccounts/blobServices/cont
     publicAccess: 'None'
     defaultEncryptionScope: '$account-encryption-key'
     denyEncryptionScopeOverride: false
+    metadata: {
+      tier: 'Cool'
+    }
   }
 }
 
@@ -141,7 +147,7 @@ resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
       {
         name: 'privatelink.vaultcore.azure.net'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')
+          privateDnsZoneId: zoneIds.vault
         }
       }
     ]
@@ -178,7 +184,7 @@ resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
       {
         name: blobZone
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', blobZone)
+          privateDnsZoneId: zoneIds.blob
         }
       }
     ]
@@ -215,7 +221,7 @@ resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
       {
         name: queueZone
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', queueZone)
+          privateDnsZoneId: zoneIds.queue
         }
       }
     ]
@@ -252,7 +258,7 @@ resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
       {
         name: tableZone
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', tableZone)
+          privateDnsZoneId: zoneIds.table
         }
       }
     ]
@@ -289,7 +295,7 @@ resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-
       {
         name: 'privatelink.azurecr.io'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')
+          privateDnsZoneId: zoneIds.acr
         }
       }
     ]

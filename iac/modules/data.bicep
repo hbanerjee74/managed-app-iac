@@ -4,7 +4,7 @@ targetScope = 'resourceGroup'
 param location string
 
 @description('PostgreSQL compute tier SKU.')
-param postgresComputeTier string
+param computeTier string
 
 @description('PostgreSQL server name.')
 param psqlName string
@@ -24,6 +24,15 @@ param uamiClientId string
 @description('User-assigned managed identity resource ID.')
 param uamiId string
 
+@description('PostgreSQL storage size (GB).')
+param storageGB int = 128
+
+@description('PostgreSQL backup retention days.')
+param backupRetentionDays int = 7
+
+@description('DNS zone resource IDs map (from dns module).')
+param zoneIds object
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -35,7 +44,7 @@ resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   location: location
   tags: tags
   sku: {
-    name: postgresComputeTier
+    name: computeTier
     tier: 'GeneralPurpose'
   }
   properties: {
@@ -43,16 +52,16 @@ resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
     administratorLoginPassword: null
     version: '16'
     storage: {
-      storageSizeGB: 128
+      storageSizeGB: storageGB
       autoGrow: 'Enabled'
     }
     backup: {
-      backupRetentionDays: 7
+      backupRetentionDays: backupRetentionDays
       geoRedundantBackup: 'Disabled'
     }
     network: {
       delegatedSubnetResourceId: subnetPsqlId
-      privateDnsZoneArmResourceId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')
+      privateDnsZoneArmResourceId: zoneIds.postgres
       publicNetworkAccess: 'Disabled'
     }
     authConfig: {

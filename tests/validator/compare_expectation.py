@@ -70,9 +70,12 @@ def _match_value(expected, actual) -> bool:
     return expected == actual
 
 
-def compare_expected_actual(expected_path: Path, actual_path: Path):
+def compare_expected_actual(expected_path: Path, actual_path):
     expected = json.loads(expected_path.read_text())
-    actual = json.loads(actual_path.read_text())
+    if isinstance(actual_path, Path):
+        actual = json.loads(actual_path.read_text())
+    else:
+        actual = actual_path
     mismatches = []
 
     def check(field, exp, act):

@@ -3,8 +3,8 @@ targetScope = 'resourceGroup'
 @description('Deployment location.')
 param location string
 
-@description('App Service Plan SKU.')
-param appServicePlanSku string
+@description('App Service Plan SKU (RFC-64 sku).')
+param sku string
 
 @description('App Service Plan name.')
 param aspName string
@@ -32,6 +32,9 @@ param storageAccountName string
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string
+
+@description('DNS zone resource IDs map (from dns module).')
+param zoneIds object
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -45,7 +48,7 @@ resource asp 'Microsoft.Web/serverfarms@2023-12-01' = {
   kind: 'linux'
   tags: tags
   sku: {
-    name: appServicePlanSku
+    name: sku
     tier: 'PremiumV3'
   }
   properties: {
@@ -201,7 +204,7 @@ resource peAppApiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
       {
         name: 'privatelink.azurewebsites.net'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
+          privateDnsZoneId: zoneIds.appsvc
         }
       }
     ]
@@ -238,7 +241,7 @@ resource peAppUiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@202
       {
         name: 'privatelink.azurewebsites.net'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
+          privateDnsZoneId: zoneIds.appsvc
         }
       }
     ]
@@ -275,7 +278,7 @@ resource peFuncDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023
       {
         name: 'privatelink.azurewebsites.net'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')
+          privateDnsZoneId: zoneIds.appsvc
         }
       }
     ]

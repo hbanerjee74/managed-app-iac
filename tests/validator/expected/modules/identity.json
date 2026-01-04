@@ -1,0 +1,21 @@
+{
+  "resourceGroup": "rg-vibedata-dev",
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "vd-uami-platform-<16>"
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "name": "<guid>",
+      "scopeType": "Microsoft.Resources/resourceGroups",
+      "scopeName": "rg-vibedata-dev",
+      "properties": {
+        "roleDefinitionId": "/subscriptions/<guid>/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+        "principalId": "<guid>",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ]
+}
+

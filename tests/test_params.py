@@ -10,16 +10,21 @@ def test_params_dev_has_required_keys():
     values = data.get("parameters", {})
 
     required = {
-        "resourceGroupName",
+        "resourceGroup",
         "location",
+        "contactEmail",
         "adminObjectId",
         "servicesVnetCidr",
         "customerIpRanges",
         "publisherIpRanges",
-        "appServicePlanSku",
-        "postgresComputeTier",
+        "sku",
+        "computeTier",
         "aiServicesTier",
-        "lawRetentionDays",
+        "retentionDays",
+        "appGwCapacity",
+        "appGwSku",
+        "storageGB",
+        "backupRetentionDays",
     }
 
     missing = sorted(required - values.keys())

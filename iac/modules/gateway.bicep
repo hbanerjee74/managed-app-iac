@@ -21,6 +21,12 @@ param subnetAppgwId string
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
+@description('Application Gateway capacity (from RFC-64 appGwCapacity display).')
+param appGwCapacity int = 1
+
+@description('Application Gateway SKU (from RFC-64 appGwSku display).')
+param appGwSku string = 'WAF_v2'
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -96,15 +102,40 @@ var wafCustomRules = concat(wafAllowRules, [
   }
 ])
 
+var wafPolicyName = '${agwName}-waf'
+
+resource agwPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2022-09-01' = {
+  name: wafPolicyName
+  location: location
+  tags: tags
+  properties: {
+    policySettings: {
+      enabledState: 'Enabled'
+      mode: 'Prevention'
+      state: 'Enabled'
+      requestBodyCheck: 'Enabled'
+    }
+    customRules: wafCustomRules
+    managedRules: {
+      managedRuleSets: [
+        {
+          ruleSetType: 'OWASP'
+          ruleSetVersion: '3.2'
+        }
+      ]
+    }
+  }
+}
+
 resource appGw 'Microsoft.Network/applicationGateways@2021-08-01' = {
   name: agwName
   location: location
   tags: tags
   properties: {
     sku: {
-      name: 'WAF_v2'
+      name: appGwSku
       tier: 'WAF_v2'
-      capacity: 1
+      capacity: appGwCapacity
     }
     enableHttp2: true
     gatewayIPConfigurations: [
@@ -154,18 +185,9 @@ resource appGw 'Microsoft.Network/applicationGateways@2021-08-01' = {
     httpListeners: []
     requestRoutingRules: []
     probes: []
-    webApplicationFirewallConfiguration: any({
-      enabled: true
-      firewallMode: 'Prevention'
-      ruleSetType: 'OWASP'
-      ruleSetVersion: '3.2'
-      customRules: wafCustomRules
-      sslPolicy: {
-        policyType: 'Predefined'
-        policyName: 'AppGwSslPolicy20220101S'
-        minProtocolVersion: 'TLSv1_2'
-      }
-    })
+    firewallPolicy: {
+      id: agwPolicy.id
+    }
   }
 }
 

@@ -25,6 +25,9 @@ param subnetPeId string
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
+@description('DNS zone resource IDs map (from dns module).')
+param zoneIds object
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -76,7 +79,7 @@ resource peAutomationDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroup
       {
         name: 'privatelink.azure-automation.net'
         properties: {
-          privateDnsZoneId: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')
+          privateDnsZoneId: zoneIds.automation
         }
       }
     ]
@@ -117,5 +120,3 @@ resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@202
     principalType: adminPrincipalType
   }
 }
-
-// TODO: deploy Automation Account with UAMI and disable local auth.

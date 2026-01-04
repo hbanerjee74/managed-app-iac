@@ -33,6 +33,7 @@ var names = {
   search: 'vd-search-${purpose}-${nano16(seedPrefix, 'search')}'
   ai: 'vd-ai-${purpose}-${nano16(seedPrefix, 'ai')}'
   automation: 'vd-aa-${purpose}-${nano16(seedPrefix, 'aa')}'
+  logic: 'vd-logic-${purpose}-${nano16(seedPrefix, 'logic')}'
 }
 
 output names object = names

@@ -1,0 +1,14 @@
+{
+  "resourceGroup": "rg-vibedata-dev",
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "vd-vnet-platform-<16>"
+    },
+    { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-appgw-<16>" },
+    { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-aks-<16>" },
+    { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-appsvc-<16>" },
+    { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-pe-<16>" }
+  ]
+}
+

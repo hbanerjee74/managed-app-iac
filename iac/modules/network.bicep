@@ -3,7 +3,7 @@ targetScope = 'resourceGroup'
 @description('Deployment location.')
 param location string
 
-@description('Services VNet CIDR block.')
+@description('Services VNet CIDR block. Must be /16-/24 per RFC-64.')
 param servicesVnetCidr string
 
 @description('Name for the VNet.')
@@ -32,8 +32,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-appgw'
         properties: {
-          // /27 from the base CIDR
-          addressPrefix: cidrSubnet(servicesVnetCidr, 7, 0)
+          // /27 derived from base
+          addressPrefix: cidrSubnet(servicesVnetCidr, 27 - int(split(servicesVnetCidr, '/')[1]), 0)
           networkSecurityGroup: {
             id: nsgAppgw.id
           }
@@ -42,8 +42,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-aks'
         properties: {
-          // /25 from the base CIDR
-          addressPrefix: cidrSubnet(servicesVnetCidr, 5, 1)
+          // /25 next block after appgw
+          addressPrefix: cidrSubnet(servicesVnetCidr, 25 - int(split(servicesVnetCidr, '/')[1]), 1)
           networkSecurityGroup: {
             id: nsgAks.id
           }
@@ -52,8 +52,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-appsvc'
         properties: {
-          // /28 from the base CIDR
-          addressPrefix: cidrSubnet(servicesVnetCidr, 8, 2)
+          // /28 app service delegated
+          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 2)
           delegations: [
             {
               name: 'Microsoft.Web/serverFarms'
@@ -70,8 +70,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-private-endpoints'
         properties: {
-          // /28 from the base CIDR
-          addressPrefix: cidrSubnet(servicesVnetCidr, 8, 3)
+          // /28 for PEs
+          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 3)
           networkSecurityGroup: {
             id: nsgPe.id
           }
@@ -80,8 +80,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-psql'
         properties: {
-          // /28 from the base CIDR reserved for PostgreSQL
-          addressPrefix: cidrSubnet(servicesVnetCidr, 8, 4)
+          // /28 delegated to PostgreSQL flexible server
+          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 4)
           delegations: [
             {
               name: 'Microsoft.DBforPostgreSQL/flexibleServers'

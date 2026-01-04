@@ -3,8 +3,6 @@
 .dotnet_bundle/
 .venv/
 .DS_Store
-docs/PRD*.md
-docs/RFC*.md
 venv/
 __pycache__/
 *.pyc
