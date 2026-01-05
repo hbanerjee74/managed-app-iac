@@ -3,6 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "resourceGroup": { "value": "rg-vibedata-dev" },
+    "mrgName": { "value": "vd-rg-dev-abc12345" },
     "location": { "value": "eastus" },
     "contactEmail": { "value": "dev@example.com" },
     "adminObjectId": { "value": "00000000-0000-0000-0000-000000000000" },
@@ -10,6 +11,7 @@
     "customerIpRanges": { "value": ["203.0.113.0/24"] },
     "publisherIpRanges": { "value": ["198.51.100.0/24"] },
     "sku": { "value": "P1v3" },
+    "nodeSize": { "value": "Standard_D4s_v3" },
     "computeTier": { "value": "GP_Standard_D2s_v3" },
     "aiServicesTier": { "value": "S1" },
     "retentionDays": { "value": 30 },

@@ -11,6 +11,7 @@ def test_params_dev_has_required_keys():
 
     required = {
         "resourceGroup",
+        "mrgName",
         "location",
         "contactEmail",
         "adminObjectId",
@@ -18,6 +19,7 @@ def test_params_dev_has_required_keys():
         "customerIpRanges",
         "publisherIpRanges",
         "sku",
+        "nodeSize",
         "computeTier",
         "aiServicesTier",
         "retentionDays",
