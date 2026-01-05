@@ -33,6 +33,9 @@ param backupRetentionDays int = 7
 @description('DNS zone resource IDs map (from dns module).')
 param zoneIds object
 
+@description('Diagnostic setting name from naming helper.')
+param diagPsqlName string
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -150,7 +153,7 @@ resource psqlAdminRole 'Microsoft.Authorization/roleAssignments@2020-04-01-previ
 output psqlId string = psql.id
 
 resource psqlDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-psql'
+  name: diagPsqlName
   scope: psql
   properties: {
     workspaceId: lawId

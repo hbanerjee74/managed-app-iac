@@ -28,6 +28,15 @@ param lawId string
 @description('DNS zone resource IDs map (from dns module).')
 param zoneIds object
 
+@description('Private endpoint name from naming helper.')
+param peAutomationName string
+
+@description('Private DNS zone group name from naming helper.')
+param peAutomationDnsName string
+
+@description('Diagnostic setting name from naming helper.')
+param diagAutomationName string
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -50,7 +59,7 @@ resource automation 'Microsoft.Automation/automationAccounts@2021-06-22' = {
 output automationId string = automation.id
 
 resource peAutomation 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${automation.name}'
+  name: peAutomationName
   location: location
   tags: tags
   properties: {
@@ -73,7 +82,7 @@ resource peAutomation 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peAutomationDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peAutomation
-  name: 'automation-dns'
+  name: peAutomationDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -87,7 +96,7 @@ resource peAutomationDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroup
 }
 
 resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-automation'
+  name: diagAutomationName
   scope: automation
   properties: {
     workspaceId: lawId

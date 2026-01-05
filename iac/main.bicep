@@ -187,6 +187,19 @@ module security 'modules/security.bicep' = {
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
+    peKvName: naming.outputs.names.peKv
+    peStBlobName: naming.outputs.names.peStBlob
+    peStQueueName: naming.outputs.names.peStQueue
+    peStTableName: naming.outputs.names.peStTable
+    peAcrName: naming.outputs.names.peAcr
+    peKvDnsName: naming.outputs.names.peKvDns
+    peStBlobDnsName: naming.outputs.names.peStBlobDns
+    peStQueueDnsName: naming.outputs.names.peStQueueDns
+    peStTableDnsName: naming.outputs.names.peStTableDns
+    peAcrDnsName: naming.outputs.names.peAcrDns
+    diagKvName: naming.outputs.names.diagKv
+    diagStName: naming.outputs.names.diagSt
+    diagAcrName: naming.outputs.names.diagAcr
     tags: tags
   }
 }
@@ -206,6 +219,7 @@ module data 'modules/data.bicep' = {
     uamiClientId: identity.outputs.uamiClientId
     uamiId: identity.outputs.uamiId
     zoneIds: dns.outputs.zoneIds
+    diagPsqlName: naming.outputs.names.diagPsql
     tags: tags
   }
 }
@@ -226,6 +240,15 @@ module compute 'modules/compute.bicep' = {
     storageAccountName: naming.outputs.names.storage
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
+    peAppApiName: naming.outputs.names.peAppApi
+    peAppUiName: naming.outputs.names.peAppUi
+    peFuncName: naming.outputs.names.peFunc
+    peAppApiDnsName: naming.outputs.names.peAppApiDns
+    peAppUiDnsName: naming.outputs.names.peAppUiDns
+    peFuncDnsName: naming.outputs.names.peFuncDns
+    diagAppApiName: naming.outputs.names.diagAppApi
+    diagAppUiName: naming.outputs.names.diagAppUi
+    diagFuncName: naming.outputs.names.diagFunc
     tags: tags
   }
 }
@@ -243,6 +266,7 @@ module gateway 'modules/gateway.bicep' = {
     lawId: diagnostics.outputs.lawId
     appGwCapacity: appGwCapacity
     appGwSku: appGwSku
+    diagAgwName: naming.outputs.names.diagAgw
     tags: tags
   }
 }
@@ -259,6 +283,12 @@ module ai 'modules/ai.bicep' = {
     lawId: diagnostics.outputs.lawId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     zoneIds: dns.outputs.zoneIds
+    peSearchName: naming.outputs.names.peSearch
+    peAiName: naming.outputs.names.peAi
+    peSearchDnsName: naming.outputs.names.peSearchDns
+    peAiDnsName: naming.outputs.names.peAiDns
+    diagSearchName: naming.outputs.names.diagSearch
+    diagAiName: naming.outputs.names.diagAi
     tags: tags
   }
 }
@@ -275,6 +305,9 @@ module automation 'modules/automation.bicep' = {
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
+    peAutomationName: naming.outputs.names.peAutomation
+    peAutomationDnsName: naming.outputs.names.peAutomationDns
+    diagAutomationName: naming.outputs.names.diagAutomation
     tags: tags
   }
 }
@@ -287,6 +320,7 @@ module logic 'modules/logic.bicep' = {
     logicName: naming.outputs.names.logic
     uamiId: identity.outputs.uamiId
     lawId: diagnostics.outputs.lawId
+    diagLogicName: naming.outputs.names.diagLogic
     tags: tags
   }
 }

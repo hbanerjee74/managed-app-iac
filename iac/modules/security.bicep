@@ -23,6 +23,26 @@ param lawId string
 
 @description('DNS zone resource IDs map (from dns module).')
 param zoneIds object
+
+@description('Private endpoint names from naming helper.')
+param peKvName string
+param peStBlobName string
+param peStQueueName string
+param peStTableName string
+param peAcrName string
+
+@description('Private DNS zone group names from naming helper.')
+param peKvDnsName string
+param peStBlobDnsName string
+param peStQueueDnsName string
+param peStTableDnsName string
+param peAcrDnsName string
+
+@description('Diagnostic setting names from naming helper.')
+param diagKvName string
+param diagStName string
+param diagAcrName string
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -118,7 +138,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-06-01-preview' = {
 
 // Private Endpoints
 resource peKv 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${kv.name}'
+  name: peKvName
   location: location
   tags: tags
   properties: {
@@ -141,7 +161,7 @@ resource peKv 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peKv
-  name: 'kv-dns'
+  name: peKvDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -155,7 +175,7 @@ resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
 }
 
 resource peStBlob 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${st.name}-blob'
+  name: peStBlobName
   location: location
   tags: tags
   properties: {
@@ -178,7 +198,7 @@ resource peStBlob 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peStBlob
-  name: 'st-blob-dns'
+  name: peStBlobDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -192,7 +212,7 @@ resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
 }
 
 resource peStQueue 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${st.name}-queue'
+  name: peStQueueName
   location: location
   tags: tags
   properties: {
@@ -215,7 +235,7 @@ resource peStQueue 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peStQueue
-  name: 'st-queue-dns'
+  name: peStQueueDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -229,7 +249,7 @@ resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
 }
 
 resource peStTable 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${st.name}-table'
+  name: peStTableName
   location: location
   tags: tags
   properties: {
@@ -252,7 +272,7 @@ resource peStTable 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peStTable
-  name: 'st-table-dns'
+  name: peStTableDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -266,7 +286,7 @@ resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
 }
 
 resource peAcr 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${acr.name}'
+  name: peAcrName
   location: location
   tags: tags
   properties: {
@@ -289,7 +309,7 @@ resource peAcr 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peAcr
-  name: 'acr-dns'
+  name: peAcrDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -359,7 +379,7 @@ output acrId string = acr.id
 
 // Diagnostic settings
 resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-kv'
+  name: diagKvName
   scope: kv
   properties: {
     workspaceId: lawId
@@ -379,7 +399,7 @@ resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
 }
 
 resource stDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-st'
+  name: diagStName
   scope: st
   properties: {
     workspaceId: lawId
@@ -407,7 +427,7 @@ resource stDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
 }
 
 resource acrDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-acr'
+  name: diagAcrName
   scope: acr
   properties: {
     workspaceId: lawId
