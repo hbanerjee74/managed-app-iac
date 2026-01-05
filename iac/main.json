@@ -5,14 +5,20 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "10591131123152025905"
+      "templateHash": "4438027171907693447"
     }
   },
   "parameters": {
-    "resourceGroupName": {
+    "resourceGroup": {
       "type": "string",
       "metadata": {
-        "description": "Existing resource group where all resources will be deployed."
+        "description": "Existing resource group where all resources will be deployed (RFC-64: resourceGroup)."
+      }
+    },
+    "mrgName": {
+      "type": "string",
+      "metadata": {
+        "description": "Managed Resource Group name (RFC-64 mrgName)."
       }
     },
     "location": {
@@ -25,6 +31,12 @@
       "type": "string",
       "metadata": {
         "description": "Customer admin Entra object ID (RFC-64)."
+      }
+    },
+    "contactEmail": {
+      "type": "string",
+      "metadata": {
+        "description": "Contact email for notifications (RFC-64)."
       }
     },
     "adminPrincipalType": {
@@ -40,44 +52,116 @@
     },
     "servicesVnetCidr": {
       "type": "string",
+      "defaultValue": "10.100.0.0/24",
       "metadata": {
         "description": "Services VNet CIDR block (RFC-64)."
       }
     },
     "customerIpRanges": {
       "type": "array",
+      "minLength": 1,
       "metadata": {
         "description": "Customer IP ranges for WAF allowlist (RFC-64)."
       }
     },
     "publisherIpRanges": {
       "type": "array",
+      "minLength": 1,
       "metadata": {
         "description": "Publisher IP ranges for WAF allowlist (RFC-64)."
       }
     },
-    "appServicePlanSku": {
+    "sku": {
       "type": "string",
+      "defaultValue": "P1v3",
+      "allowedValues": [
+        "P1v3",
+        "P2v3",
+        "P3v3"
+      ],
       "metadata": {
-        "description": "App Service Plan SKU (RFC-64)."
+        "description": "App Service Plan SKU (RFC-64 sku)."
       }
     },
-    "postgresComputeTier": {
+    "nodeSize": {
       "type": "string",
+      "defaultValue": "Standard_D4s_v3",
+      "allowedValues": [
+        "Standard_D4s_v3",
+        "Standard_D8s_v3",
+        "Standard_D16s_v3"
+      ],
       "metadata": {
-        "description": "PostgreSQL compute tier (RFC-64)."
+        "description": "AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30."
+      }
+    },
+    "computeTier": {
+      "type": "string",
+      "defaultValue": "GP_Standard_D2s_v3",
+      "allowedValues": [
+        "GP_Standard_D2s_v3",
+        "GP_Standard_D4s_v3"
+      ],
+      "metadata": {
+        "description": "PostgreSQL compute tier (RFC-64 computeTier)."
       }
     },
     "aiServicesTier": {
       "type": "string",
+      "defaultValue": "S1",
+      "allowedValues": [
+        "S1",
+        "S2",
+        "S3"
+      ],
       "metadata": {
         "description": "AI Services tier (RFC-64)."
       }
     },
-    "lawRetentionDays": {
+    "retentionDays": {
       "type": "int",
+      "defaultValue": 30,
+      "minValue": 30,
+      "maxValue": 730,
       "metadata": {
-        "description": "Log Analytics retention in days."
+        "description": "Log Analytics retention in days (RFC-64 retentionDays display)."
+      }
+    },
+    "appGwCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "maxValue": 10,
+      "metadata": {
+        "description": "Application Gateway capacity (RFC-64 appGwCapacity display)."
+      }
+    },
+    "appGwSku": {
+      "type": "string",
+      "defaultValue": "WAF_v2",
+      "allowedValues": [
+        "WAF_v2"
+      ],
+      "metadata": {
+        "description": "Application Gateway SKU (RFC-64 appGwSku display)."
+      }
+    },
+    "storageGB": {
+      "type": "int",
+      "defaultValue": 128,
+      "minValue": 32,
+      "maxValue": 16384,
+      "metadata": {
+        "description": "PostgreSQL storage in GB (RFC-64 storageGB display)."
+      }
+    },
+    "backupRetentionDays": {
+      "type": "int",
+      "defaultValue": 7,
+      "minValue": 7,
+      "maxValue": 35,
+      "metadata": {
+        "description": "PostgreSQL backup retention days (RFC-64 backupRetentionDays display)."
       }
     },
     "environment": {
@@ -101,7 +185,7 @@
     }
   },
   "variables": {
-    "tags": "[union(if(empty(parameters('environment')), createObject(), createObject('environment', parameters('environment'))), if(empty(parameters('owner')), createObject(), createObject('owner', parameters('owner'))), if(empty(parameters('purpose')), createObject(), createObject('purpose', parameters('purpose'))), if(empty(parameters('created')), createObject(), createObject('created', parameters('created'))))]"
+    "tags": "[union(if(empty(parameters('environment')), createObject(), createObject('environment', parameters('environment'))), if(empty(parameters('owner')), createObject(), createObject('owner', parameters('owner'))), if(empty(parameters('purpose')), createObject(), createObject('purpose', parameters('purpose'))), if(empty(parameters('created')), createObject(), createObject('created', parameters('created'))), if(empty(parameters('contactEmail')), createObject(), createObject('contactEmail', parameters('contactEmail'))))]"
   },
   "resources": [
     {
@@ -116,7 +200,7 @@
         "mode": "Incremental",
         "parameters": {
           "resourceGroupName": {
-            "value": "[parameters('resourceGroupName')]"
+            "value": "[parameters('mrgName')]"
           },
           "purpose": {
             "value": "platform"
@@ -130,7 +214,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "9846166121230043199"
+              "templateHash": "6611002162306895913"
             }
           },
           "functions": [
@@ -212,7 +296,42 @@
               "psql": "[format('vd-psql-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'psql'))]",
               "search": "[format('vd-search-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'search'))]",
               "ai": "[format('vd-ai-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'ai'))]",
-              "automation": "[format('vd-aa-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'aa'))]"
+              "automation": "[format('vd-aa-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'aa'))]",
+              "logic": "[format('vd-logic-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'logic'))]",
+              "peKv": "[format('vd-pe-kv-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pekv'))]",
+              "peStBlob": "[format('vd-pe-st-blob-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pestblob'))]",
+              "peStQueue": "[format('vd-pe-st-queue-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pestqueue'))]",
+              "peStTable": "[format('vd-pe-st-table-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pesttable'))]",
+              "peAcr": "[format('vd-pe-acr-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'peacr'))]",
+              "peAppApi": "[format('vd-pe-app-api-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'peappapi'))]",
+              "peAppUi": "[format('vd-pe-app-ui-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'peappui'))]",
+              "peFunc": "[format('vd-pe-func-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pefunc'))]",
+              "peSearch": "[format('vd-pe-search-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pesearch'))]",
+              "peAi": "[format('vd-pe-ai-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'peai'))]",
+              "peAutomation": "[format('vd-pe-aa-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'peaa'))]",
+              "peKvDns": "[format('vd-pdns-kv-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnskv'))]",
+              "peStBlobDns": "[format('vd-pdns-st-blob-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsstblob'))]",
+              "peStQueueDns": "[format('vd-pdns-st-queue-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsstqueue'))]",
+              "peStTableDns": "[format('vd-pdns-st-table-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnssttable'))]",
+              "peAcrDns": "[format('vd-pdns-acr-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsacr'))]",
+              "peAppApiDns": "[format('vd-pdns-app-api-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsappapi'))]",
+              "peAppUiDns": "[format('vd-pdns-app-ui-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsappui'))]",
+              "peFuncDns": "[format('vd-pdns-func-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsfunc'))]",
+              "peSearchDns": "[format('vd-pdns-search-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnssearch'))]",
+              "peAiDns": "[format('vd-pdns-ai-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsai'))]",
+              "peAutomationDns": "[format('vd-pdns-aa-{0}-{1}', parameters('purpose'), __bicep.nano16(parameters('seedPrefix'), 'pdnsaa'))]",
+              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagkv'))]",
+              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagst'))]",
+              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagacr'))]",
+              "diagAppApi": "[format('vd-diag-app-api-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagappapi'))]",
+              "diagAppUi": "[format('vd-diag-app-ui-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagappui'))]",
+              "diagFunc": "[format('vd-diag-func-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagfunc'))]",
+              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagagw'))]",
+              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagpsql'))]",
+              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagsearch'))]",
+              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagai'))]",
+              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagaa'))]",
+              "diagLogic": "[format('vd-diag-logic-{0}', __bicep.nano16(parameters('seedPrefix'), 'diaglogic'))]"
             }
           },
           "resources": {},
@@ -229,7 +348,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "diagnostics",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -239,8 +358,8 @@
           "location": {
             "value": "[parameters('location')]"
           },
-          "lawRetentionDays": {
-            "value": "[parameters('lawRetentionDays')]"
+          "retentionDays": {
+            "value": "[parameters('retentionDays')]"
           },
           "lawName": {
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.law]"
@@ -256,7 +375,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "710814057626619281"
+              "templateHash": "15439014609761763743"
             }
           },
           "parameters": {
@@ -266,7 +385,7 @@
                 "description": "Deployment location."
               }
             },
-            "lawRetentionDays": {
+            "retentionDays": {
               "type": "int",
               "metadata": {
                 "description": "Log Analytics retention in days."
@@ -297,7 +416,7 @@
                 "sku": {
                   "name": "PerGB2018"
                 },
-                "retentionInDays": "[parameters('lawRetentionDays')]",
+                "retentionInDays": "[parameters('retentionDays')]",
                 "features": {
                   "enableLogAccessUsingOnlyResourcePermissions": true
                 }
@@ -377,7 +496,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "identity",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -396,6 +515,9 @@
           "adminPrincipalType": {
             "value": "[parameters('adminPrincipalType')]"
           },
+          "lawName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.law]"
+          },
           "tags": {
             "value": "[variables('tags')]"
           }
@@ -407,7 +529,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "16650387907239105290"
+              "templateHash": "11063243419334071298"
             }
           },
           "parameters": {
@@ -446,6 +568,13 @@
               "metadata": {
                 "description": "Optional tags to apply."
               }
+            },
+            "lawName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional Log Analytics Workspace name for RBAC wiring."
+              }
             }
           },
           "resources": [
@@ -478,6 +607,21 @@
                 "principalId": "[parameters('adminObjectId')]",
                 "principalType": "[parameters('adminPrincipalType')]"
               }
+            },
+            {
+              "condition": "[not(empty(parameters('lawName')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('lawName'))]",
+              "name": "[guid(resourceId('Microsoft.OperationalInsights/workspaces', parameters('lawName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), 'LAW-Contrib')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '73c42c96-874c-492b-b04d-ab87d138a893')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -503,8 +647,59 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
+      "name": "identity-subscription",
+      "location": "[deployment().location]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "uamiPrincipalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiPrincipalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "7982684788310957108"
+            }
+          },
+          "parameters": {
+            "uamiPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the UAMI for subscription-scope RBAC."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(subscription().id, parameters('uamiPrincipalId'), 'CostReader')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '72fafb9e-0641-4937-9268-5baf55e7ff7f')]",
+                "principalId": "[parameters('uamiPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
       "name": "network",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -543,7 +738,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "17893065460259279550"
+              "templateHash": "10277759043657963622"
             }
           },
           "parameters": {
@@ -556,7 +751,7 @@
             "servicesVnetCidr": {
               "type": "string",
               "metadata": {
-                "description": "Services VNet CIDR block."
+                "description": "Services VNet CIDR block. Must be /16-/24 per RFC-64."
               }
             },
             "vnetName": {
@@ -605,7 +800,7 @@
                   {
                     "name": "snet-appgw",
                     "properties": {
-                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), 7, 0)]",
+                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), sub(27, int(split(parameters('servicesVnetCidr'), '/')[1])), 0)]",
                       "networkSecurityGroup": {
                         "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAppgwName'))]"
                       }
@@ -614,7 +809,7 @@
                   {
                     "name": "snet-aks",
                     "properties": {
-                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), 5, 1)]",
+                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), sub(25, int(split(parameters('servicesVnetCidr'), '/')[1])), 1)]",
                       "networkSecurityGroup": {
                         "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAksName'))]"
                       }
@@ -623,7 +818,7 @@
                   {
                     "name": "snet-appsvc",
                     "properties": {
-                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), 8, 2)]",
+                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), sub(28, int(split(parameters('servicesVnetCidr'), '/')[1])), 2)]",
                       "delegations": [
                         {
                           "name": "Microsoft.Web/serverFarms",
@@ -640,7 +835,7 @@
                   {
                     "name": "snet-private-endpoints",
                     "properties": {
-                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), 8, 3)]",
+                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), sub(28, int(split(parameters('servicesVnetCidr'), '/')[1])), 3)]",
                       "networkSecurityGroup": {
                         "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgPeName'))]"
                       }
@@ -649,7 +844,7 @@
                   {
                     "name": "snet-psql",
                     "properties": {
-                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), 8, 4)]",
+                      "addressPrefix": "[cidrSubnet(parameters('servicesVnetCidr'), sub(28, int(split(parameters('servicesVnetCidr'), '/')[1])), 4)]",
                       "delegations": [
                         {
                           "name": "Microsoft.DBforPostgreSQL/flexibleServers",
@@ -980,7 +1175,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "dns",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1001,7 +1196,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "15310903631767225448"
+              "templateHash": "1629336975056086037"
             }
           },
           "parameters": {
@@ -1067,7 +1262,25 @@
                 "[resourceId('Microsoft.Network/privateDnsZones', variables('zones')[copyIndex()])]"
               ]
             }
-          ]
+          ],
+          "outputs": {
+            "zoneIds": {
+              "type": "object",
+              "value": {
+                "vault": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]",
+                "postgres": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]",
+                "blob": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', variables('storageSuffix')))]",
+                "queue": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', format('privatelink.queue.{0}', variables('storageSuffix')))]",
+                "table": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', format('privatelink.table.{0}', variables('storageSuffix')))]",
+                "acr": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')]",
+                "appsvc": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]",
+                "search": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]",
+                "ai": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]",
+                "automation": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')]",
+                "internal": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'vibedata.internal')]"
+              }
+            }
+          }
         }
       },
       "dependsOn": [
@@ -1078,7 +1291,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "security",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1098,13 +1311,55 @@
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.acr]"
           },
           "subnetPeId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
           },
           "uamiPrincipalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiPrincipalId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiPrincipalId.value]"
           },
           "lawId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+          },
+          "zoneIds": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns'), '2025-04-01').outputs.zoneIds.value]"
+          },
+          "peKvName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peKv]"
+          },
+          "peStBlobName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peStBlob]"
+          },
+          "peStQueueName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peStQueue]"
+          },
+          "peStTableName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peStTable]"
+          },
+          "peAcrName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAcr]"
+          },
+          "peKvDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peKvDns]"
+          },
+          "peStBlobDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peStBlobDns]"
+          },
+          "peStQueueDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peStQueueDns]"
+          },
+          "peStTableDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peStTableDns]"
+          },
+          "peAcrDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAcrDns]"
+          },
+          "diagKvName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagKv]"
+          },
+          "diagStName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagSt]"
+          },
+          "diagAcrName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagAcr]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -1117,7 +1372,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "453352995575157440"
+              "templateHash": "1986632093217677148"
             }
           },
           "parameters": {
@@ -1162,6 +1417,60 @@
               "metadata": {
                 "description": "Log Analytics Workspace resource ID."
               }
+            },
+            "zoneIds": {
+              "type": "object",
+              "metadata": {
+                "description": "DNS zone resource IDs map (from dns module)."
+              }
+            },
+            "peKvName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private endpoint names from naming helper."
+              }
+            },
+            "peStBlobName": {
+              "type": "string"
+            },
+            "peStQueueName": {
+              "type": "string"
+            },
+            "peStTableName": {
+              "type": "string"
+            },
+            "peAcrName": {
+              "type": "string"
+            },
+            "peKvDnsName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private DNS zone group names from naming helper."
+              }
+            },
+            "peStBlobDnsName": {
+              "type": "string"
+            },
+            "peStQueueDnsName": {
+              "type": "string"
+            },
+            "peStTableDnsName": {
+              "type": "string"
+            },
+            "peAcrDnsName": {
+              "type": "string"
+            },
+            "diagKvName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting names from naming helper."
+              }
+            },
+            "diagStName": {
+              "type": "string"
+            },
+            "diagAcrName": {
+              "type": "string"
             },
             "tags": {
               "type": "object",
@@ -1227,7 +1536,10 @@
               "properties": {
                 "publicAccess": "None",
                 "defaultEncryptionScope": "$account-encryption-key",
-                "denyEncryptionScopeOverride": false
+                "denyEncryptionScopeOverride": false,
+                "metadata": {
+                  "tier": "Cool"
+                }
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]"
@@ -1279,7 +1591,7 @@
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('kvName'))]",
+              "name": "[parameters('peKvName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -1305,25 +1617,25 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('kvName')), 'kv-dns')]",
+              "name": "[format('{0}/{1}', parameters('peKvName'), parameters('peKvDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.vaultcore.azure.net",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').vault]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('kvName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peKvName'))]"
               ]
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}-blob', parameters('storageName'))]",
+              "name": "[parameters('peStBlobName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -1349,25 +1661,25 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}-blob', parameters('storageName')), 'st-blob-dns')]",
+              "name": "[format('{0}/{1}', parameters('peStBlobName'), parameters('peStBlobDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "[variables('blobZone')]",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', variables('blobZone'))]"
+                      "privateDnsZoneId": "[parameters('zoneIds').blob]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-blob', parameters('storageName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peStBlobName'))]"
               ]
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}-queue', parameters('storageName'))]",
+              "name": "[parameters('peStQueueName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -1393,25 +1705,25 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}-queue', parameters('storageName')), 'st-queue-dns')]",
+              "name": "[format('{0}/{1}', parameters('peStQueueName'), parameters('peStQueueDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "[variables('queueZone')]",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', variables('queueZone'))]"
+                      "privateDnsZoneId": "[parameters('zoneIds').queue]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-queue', parameters('storageName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peStQueueName'))]"
               ]
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}-table', parameters('storageName'))]",
+              "name": "[parameters('peStTableName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -1437,25 +1749,25 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}-table', parameters('storageName')), 'st-table-dns')]",
+              "name": "[format('{0}/{1}', parameters('peStTableName'), parameters('peStTableDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "[variables('tableZone')]",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', variables('tableZone'))]"
+                      "privateDnsZoneId": "[parameters('zoneIds').table]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-table', parameters('storageName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peStTableName'))]"
               ]
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('acrName'))]",
+              "name": "[parameters('peAcrName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -1481,19 +1793,19 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('acrName')), 'acr-dns')]",
+              "name": "[format('{0}/{1}', parameters('peAcrName'), parameters('peAcrDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.azurecr.io",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').acr]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('acrName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peAcrName'))]"
               ]
             },
             {
@@ -1570,7 +1882,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('kvName'))]",
-              "name": "diag-law-kv",
+              "name": "[parameters('diagKvName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -1594,7 +1906,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageName'))]",
-              "name": "diag-law-st",
+              "name": "[parameters('diagStName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -1626,7 +1938,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.ContainerRegistry/registries/{0}', parameters('acrName'))]",
-              "name": "diag-law-acr",
+              "name": "[parameters('diagAcrName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -1668,17 +1980,18 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity')]",
         "[subscriptionResourceId('Microsoft.Resources/deployments', 'naming')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "data",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1691,23 +2004,35 @@
           "psqlName": {
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.psql]"
           },
-          "postgresComputeTier": {
-            "value": "[parameters('postgresComputeTier')]"
+          "computeTier": {
+            "value": "[parameters('computeTier')]"
+          },
+          "backupRetentionDays": {
+            "value": "[parameters('backupRetentionDays')]"
+          },
+          "storageGB": {
+            "value": "[parameters('storageGB')]"
           },
           "subnetPsqlId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPsqlId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPsqlId.value]"
           },
           "uamiPrincipalId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiPrincipalId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiPrincipalId.value]"
           },
           "lawId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
           },
           "uamiClientId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiClientId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiClientId.value]"
           },
           "uamiId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiId.value]"
+          },
+          "zoneIds": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns'), '2025-04-01').outputs.zoneIds.value]"
+          },
+          "diagPsqlName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagPsql]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -1720,7 +2045,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "7962063222152834301"
+              "templateHash": "1894303447333964321"
             }
           },
           "parameters": {
@@ -1730,7 +2055,7 @@
                 "description": "Deployment location."
               }
             },
-            "postgresComputeTier": {
+            "computeTier": {
               "type": "string",
               "metadata": {
                 "description": "PostgreSQL compute tier SKU."
@@ -1772,6 +2097,32 @@
                 "description": "User-assigned managed identity resource ID."
               }
             },
+            "storageGB": {
+              "type": "int",
+              "defaultValue": 128,
+              "metadata": {
+                "description": "PostgreSQL storage size (GB)."
+              }
+            },
+            "backupRetentionDays": {
+              "type": "int",
+              "defaultValue": 7,
+              "metadata": {
+                "description": "PostgreSQL backup retention days."
+              }
+            },
+            "zoneIds": {
+              "type": "object",
+              "metadata": {
+                "description": "DNS zone resource IDs map (from dns module)."
+              }
+            },
+            "diagPsqlName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
+              }
+            },
             "tags": {
               "type": "object",
               "defaultValue": {},
@@ -1792,7 +2143,7 @@
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "sku": {
-                "name": "[parameters('postgresComputeTier')]",
+                "name": "[parameters('computeTier')]",
                 "tier": "GeneralPurpose"
               },
               "properties": {
@@ -1800,16 +2151,16 @@
                 "administratorLoginPassword": null,
                 "version": "16",
                 "storage": {
-                  "storageSizeGB": 128,
+                  "storageSizeGB": "[parameters('storageGB')]",
                   "autoGrow": "Enabled"
                 },
                 "backup": {
-                  "backupRetentionDays": 7,
+                  "backupRetentionDays": "[parameters('backupRetentionDays')]",
                   "geoRedundantBackup": "Disabled"
                 },
                 "network": {
                   "delegatedSubnetResourceId": "[parameters('subnetPsqlId')]",
-                  "privateDnsZoneArmResourceId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]",
+                  "privateDnsZoneArmResourceId": "[parameters('zoneIds').postgres]",
                   "publicNetworkAccess": "Disabled"
                 },
                 "authConfig": {
@@ -1879,7 +2230,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.DBforPostgreSQL/flexibleServers/{0}', parameters('psqlName'))]",
-              "name": "diag-law-psql",
+              "name": "[parameters('diagPsqlName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -1909,17 +2260,18 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity')]",
         "[subscriptionResourceId('Microsoft.Resources/deployments', 'naming')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "compute",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1929,8 +2281,8 @@
           "location": {
             "value": "[parameters('location')]"
           },
-          "appServicePlanSku": {
-            "value": "[parameters('appServicePlanSku')]"
+          "sku": {
+            "value": "[parameters('sku')]"
           },
           "aspName": {
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.asp]"
@@ -1945,19 +2297,49 @@
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.funcOps]"
           },
           "subnetAppsvcId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetAppsvcId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetAppsvcId.value]"
           },
           "subnetPeId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
           },
           "uamiId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiId.value]"
           },
           "storageAccountName": {
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.storage]"
           },
           "lawId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+          },
+          "zoneIds": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns'), '2025-04-01').outputs.zoneIds.value]"
+          },
+          "peAppApiName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAppApi]"
+          },
+          "peAppUiName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAppUi]"
+          },
+          "peFuncName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peFunc]"
+          },
+          "peAppApiDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAppApiDns]"
+          },
+          "peAppUiDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAppUiDns]"
+          },
+          "peFuncDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peFuncDns]"
+          },
+          "diagAppApiName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagAppApi]"
+          },
+          "diagAppUiName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagAppUi]"
+          },
+          "diagFuncName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagFunc]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -1970,7 +2352,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "6344336659152981551"
+              "templateHash": "14870609158994185526"
             }
           },
           "parameters": {
@@ -1980,10 +2362,10 @@
                 "description": "Deployment location."
               }
             },
-            "appServicePlanSku": {
+            "sku": {
               "type": "string",
               "metadata": {
-                "description": "App Service Plan SKU."
+                "description": "App Service Plan SKU (RFC-64 sku)."
               }
             },
             "aspName": {
@@ -2040,6 +2422,48 @@
                 "description": "Log Analytics Workspace resource ID."
               }
             },
+            "zoneIds": {
+              "type": "object",
+              "metadata": {
+                "description": "DNS zone resource IDs map (from dns module)."
+              }
+            },
+            "peAppApiName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private endpoint names from naming helper."
+              }
+            },
+            "peAppUiName": {
+              "type": "string"
+            },
+            "peFuncName": {
+              "type": "string"
+            },
+            "peAppApiDnsName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private DNS zone group names from naming helper."
+              }
+            },
+            "peAppUiDnsName": {
+              "type": "string"
+            },
+            "peFuncDnsName": {
+              "type": "string"
+            },
+            "diagAppApiName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting names from naming helper."
+              }
+            },
+            "diagAppUiName": {
+              "type": "string"
+            },
+            "diagFuncName": {
+              "type": "string"
+            },
             "tags": {
               "type": "object",
               "defaultValue": {},
@@ -2063,7 +2487,7 @@
               "kind": "linux",
               "tags": "[parameters('tags')]",
               "sku": {
-                "name": "[parameters('appServicePlanSku')]",
+                "name": "[parameters('sku')]",
                 "tier": "PremiumV3"
               },
               "properties": {
@@ -2200,7 +2624,7 @@
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('appApiName'))]",
+              "name": "[parameters('peAppApiName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -2226,25 +2650,25 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('appApiName')), 'appapi-dns')]",
+              "name": "[format('{0}/{1}', parameters('peAppApiName'), parameters('peAppApiDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.azurewebsites.net",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').appsvc]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('appApiName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peAppApiName'))]"
               ]
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('appUiName'))]",
+              "name": "[parameters('peAppUiName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -2270,25 +2694,25 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('appUiName')), 'appui-dns')]",
+              "name": "[format('{0}/{1}', parameters('peAppUiName'), parameters('peAppUiDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.azurewebsites.net",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').appsvc]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('appUiName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peAppUiName'))]"
               ]
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('funcName'))]",
+              "name": "[parameters('peFuncName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -2314,26 +2738,26 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('funcName')), 'func-dns')]",
+              "name": "[format('{0}/{1}', parameters('peFuncName'), parameters('peFuncDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.azurewebsites.net",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').appsvc]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('funcName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peFuncName'))]"
               ]
             },
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.Web/sites/{0}', parameters('appApiName'))]",
-              "name": "diag-law-appapi",
+              "name": "[parameters('diagAppApiName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -2365,7 +2789,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.Web/sites/{0}', parameters('appUiName'))]",
-              "name": "diag-law-appui",
+              "name": "[parameters('diagAppUiName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -2397,7 +2821,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.Web/sites/{0}', parameters('funcName'))]",
-              "name": "diag-law-func",
+              "name": "[parameters('diagFuncName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -2435,17 +2859,18 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity')]",
         "[subscriptionResourceId('Microsoft.Resources/deployments', 'naming')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "gateway",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -2468,10 +2893,19 @@
             "value": "[parameters('publisherIpRanges')]"
           },
           "subnetAppgwId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetAppgwId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetAppgwId.value]"
           },
           "lawId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+          },
+          "appGwCapacity": {
+            "value": "[parameters('appGwCapacity')]"
+          },
+          "appGwSku": {
+            "value": "[parameters('appGwSku')]"
+          },
+          "diagAgwName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagAgw]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -2484,7 +2918,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "15631126837977633469"
+              "templateHash": "11120080547031917859"
             }
           },
           "parameters": {
@@ -2528,6 +2962,26 @@
               "type": "string",
               "metadata": {
                 "description": "Log Analytics Workspace resource ID."
+              }
+            },
+            "appGwCapacity": {
+              "type": "int",
+              "defaultValue": 1,
+              "metadata": {
+                "description": "Application Gateway capacity (from RFC-64 appGwCapacity display)."
+              }
+            },
+            "appGwSku": {
+              "type": "string",
+              "defaultValue": "WAF_v2",
+              "metadata": {
+                "description": "Application Gateway SKU (from RFC-64 appGwSku display)."
+              }
+            },
+            "diagAgwName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
               }
             },
             "tags": {
@@ -2577,7 +3031,8 @@
                 "cidrs": "[parameters('publisherIpRanges')]"
               }
             ],
-            "wafCustomRules": "[concat(variables('wafAllowRules'), createArray(createObject('name', 'Deny-All', 'priority', 1000, 'ruleType', 'MatchRule', 'action', 'Block', 'matchConditions', createArray(createObject('matchVariables', createArray(createObject('variableName', 'RemoteAddr')), 'operator', 'IPMatch', 'negationCondition', false(), 'matchValues', createArray('0.0.0.0/0'))))))]"
+            "wafCustomRules": "[concat(variables('wafAllowRules'), createArray(createObject('name', 'Deny-All', 'priority', 1000, 'ruleType', 'MatchRule', 'action', 'Block', 'matchConditions', createArray(createObject('matchVariables', createArray(createObject('variableName', 'RemoteAddr')), 'operator', 'IPMatch', 'negationCondition', false(), 'matchValues', createArray('0.0.0.0/0'))))))]",
+            "wafPolicyName": "[format('{0}-waf', parameters('agwName'))]"
           },
           "resources": [
             {
@@ -2595,6 +3050,29 @@
               }
             },
             {
+              "type": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
+              "apiVersion": "2022-09-01",
+              "name": "[variables('wafPolicyName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "policySettings": {
+                  "mode": "Prevention",
+                  "state": "Enabled",
+                  "requestBodyCheck": true
+                },
+                "customRules": "[variables('wafCustomRules')]",
+                "managedRules": {
+                  "managedRuleSets": [
+                    {
+                      "ruleSetType": "OWASP",
+                      "ruleSetVersion": "3.2"
+                    }
+                  ]
+                }
+              }
+            },
+            {
               "type": "Microsoft.Network/applicationGateways",
               "apiVersion": "2021-08-01",
               "name": "[parameters('agwName')]",
@@ -2602,9 +3080,9 @@
               "tags": "[parameters('tags')]",
               "properties": {
                 "sku": {
-                  "name": "WAF_v2",
+                  "name": "[parameters('appGwSku')]",
                   "tier": "WAF_v2",
-                  "capacity": 1
+                  "capacity": "[parameters('appGwCapacity')]"
                 },
                 "enableHttp2": true,
                 "gatewayIPConfigurations": [
@@ -2654,20 +3132,12 @@
                 "httpListeners": [],
                 "requestRoutingRules": [],
                 "probes": [],
-                "webApplicationFirewallConfiguration": {
-                  "enabled": true,
-                  "firewallMode": "Prevention",
-                  "ruleSetType": "OWASP",
-                  "ruleSetVersion": "3.2",
-                  "customRules": "[variables('wafCustomRules')]",
-                  "sslPolicy": {
-                    "policyType": "Predefined",
-                    "policyName": "AppGwSslPolicy20220101S",
-                    "minProtocolVersion": "TLSv1_2"
-                  }
+                "firewallPolicy": {
+                  "id": "[resourceId('Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies', variables('wafPolicyName'))]"
                 }
               },
               "dependsOn": [
+                "[resourceId('Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies', variables('wafPolicyName'))]",
                 "[resourceId('Microsoft.Network/publicIPAddresses', parameters('pipName'))]"
               ]
             },
@@ -2675,7 +3145,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.Network/applicationGateways/{0}', parameters('agwName'))]",
-              "name": "diag-law-agw",
+              "name": "[parameters('diagAgwName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -2713,16 +3183,16 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics')]",
         "[subscriptionResourceId('Microsoft.Resources/deployments', 'naming')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "ai",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -2742,10 +3212,34 @@
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.ai]"
           },
           "subnetPeId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
           },
           "lawId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+          },
+          "uamiPrincipalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiPrincipalId.value]"
+          },
+          "zoneIds": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns'), '2025-04-01').outputs.zoneIds.value]"
+          },
+          "peSearchName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peSearch]"
+          },
+          "peAiName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAi]"
+          },
+          "peSearchDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peSearchDns]"
+          },
+          "peAiDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAiDns]"
+          },
+          "diagSearchName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagSearch]"
+          },
+          "diagAiName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagAi]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -2758,7 +3252,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "1885456839513703499"
+              "templateHash": "7999979219340543305"
             }
           },
           "parameters": {
@@ -2797,6 +3291,46 @@
               "metadata": {
                 "description": "Log Analytics Workspace resource ID."
               }
+            },
+            "zoneIds": {
+              "type": "object",
+              "metadata": {
+                "description": "DNS zone resource IDs map (from dns module)."
+              }
+            },
+            "uamiPrincipalId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Principal ID of the UAMI for RBAC (optional)."
+              }
+            },
+            "peSearchName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private endpoint names from naming helper."
+              }
+            },
+            "peAiName": {
+              "type": "string"
+            },
+            "peSearchDnsName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private DNS zone group names from naming helper."
+              }
+            },
+            "peAiDnsName": {
+              "type": "string"
+            },
+            "diagSearchName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting names from naming helper."
+              }
+            },
+            "diagAiName": {
+              "type": "string"
             },
             "tags": {
               "type": "object",
@@ -2840,7 +3374,7 @@
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('searchName'))]",
+              "name": "[parameters('peSearchName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -2866,25 +3400,25 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('searchName')), 'search-dns')]",
+              "name": "[format('{0}/{1}', parameters('peSearchName'), parameters('peSearchDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.search.windows.net",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').search]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('searchName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peSearchName'))]"
               ]
             },
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('aiName'))]",
+              "name": "[parameters('peAiName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -2910,26 +3444,26 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('aiName')), 'ai-dns')]",
+              "name": "[format('{0}/{1}', parameters('peAiName'), parameters('peAiDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.cognitiveservices.azure.com",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').ai]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('aiName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peAiName'))]"
               ]
             },
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.Search/searchServices/{0}', parameters('searchName'))]",
-              "name": "diag-law-search",
+              "name": "[parameters('diagSearchName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -2953,7 +3487,7 @@
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('aiName'))]",
-              "name": "diag-law-ai",
+              "name": "[parameters('diagAiName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -2972,6 +3506,36 @@
               "dependsOn": [
                 "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiName'))]"
               ]
+            },
+            {
+              "condition": "[not(empty(parameters('uamiPrincipalId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', parameters('aiName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiName')), parameters('uamiPrincipalId'), 'ai-contrib')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')]",
+                "principalId": "[parameters('uamiPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('uamiPrincipalId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "scope": "[format('Microsoft.Search/searchServices/{0}', parameters('searchName'))]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', parameters('searchName')), parameters('uamiPrincipalId'), 'search-contrib')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')]",
+                "principalId": "[parameters('uamiPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', parameters('searchName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -2987,16 +3551,18 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity')]",
         "[subscriptionResourceId('Microsoft.Resources/deployments', 'naming')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "automation",
-      "resourceGroup": "[parameters('resourceGroupName')]",
+      "resourceGroup": "[parameters('resourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -3010,7 +3576,7 @@
             "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.automation]"
           },
           "uamiId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiId.value]"
           },
           "adminObjectId": {
             "value": "[parameters('adminObjectId')]"
@@ -3019,10 +3585,22 @@
             "value": "[parameters('adminPrincipalType')]"
           },
           "subnetPeId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network'), '2025-04-01').outputs.subnetPeId.value]"
           },
           "lawId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+          },
+          "zoneIds": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns'), '2025-04-01').outputs.zoneIds.value]"
+          },
+          "peAutomationName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAutomation]"
+          },
+          "peAutomationDnsName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.peAutomationDns]"
+          },
+          "diagAutomationName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagAutomation]"
           },
           "tags": {
             "value": "[variables('tags')]"
@@ -3035,7 +3613,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "14235595345351103913"
+              "templateHash": "12877304489203540352"
             }
           },
           "parameters": {
@@ -3086,6 +3664,30 @@
                 "description": "Log Analytics Workspace resource ID."
               }
             },
+            "zoneIds": {
+              "type": "object",
+              "metadata": {
+                "description": "DNS zone resource IDs map (from dns module)."
+              }
+            },
+            "peAutomationName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private endpoint name from naming helper."
+              }
+            },
+            "peAutomationDnsName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private DNS zone group name from naming helper."
+              }
+            },
+            "diagAutomationName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
+              }
+            },
             "tags": {
               "type": "object",
               "defaultValue": {},
@@ -3115,7 +3717,7 @@
             {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2023-05-01",
-              "name": "[format('pe-{0}', parameters('automationName'))]",
+              "name": "[parameters('peAutomationName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
@@ -3141,26 +3743,26 @@
             {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2023-05-01",
-              "name": "[format('{0}/{1}', format('pe-{0}', parameters('automationName')), 'automation-dns')]",
+              "name": "[format('{0}/{1}', parameters('peAutomationName'), parameters('peAutomationDnsName'))]",
               "properties": {
                 "privateDnsZoneConfigs": [
                   {
                     "name": "privatelink.azure-automation.net",
                     "properties": {
-                      "privateDnsZoneId": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')]"
+                      "privateDnsZoneId": "[parameters('zoneIds').automation]"
                     }
                   }
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('automationName')))]"
+                "[resourceId('Microsoft.Network/privateEndpoints', parameters('peAutomationName'))]"
               ]
             },
             {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
               "scope": "[format('Microsoft.Automation/automationAccounts/{0}', parameters('automationName'))]",
-              "name": "diag-law-automation",
+              "name": "[parameters('diagAutomationName')]",
               "properties": {
                 "workspaceId": "[parameters('lawId')]",
                 "logs": [
@@ -3208,10 +3810,146 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'diagnostics')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'identity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'dns')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity')]",
         "[subscriptionResourceId('Microsoft.Resources/deployments', 'naming')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'network')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'network')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "logic",
+      "resourceGroup": "[parameters('resourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "logicName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.logic]"
+          },
+          "uamiId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity'), '2025-04-01').outputs.uamiId.value]"
+          },
+          "lawId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics'), '2025-04-01').outputs.lawId.value]"
+          },
+          "diagLogicName": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/deployments', 'naming'), '2025-04-01').outputs.names.value.diagLogic]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "128747929723273104"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "logicName": {
+              "type": "string",
+              "metadata": {
+                "description": "Logic App name (Consumption)."
+              }
+            },
+            "uamiId": {
+              "type": "string",
+              "metadata": {
+                "description": "User-assigned managed identity resource id."
+              }
+            },
+            "lawId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace resource ID."
+              }
+            },
+            "diagLogicName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Logic/workflows",
+              "apiVersion": "2019-05-01",
+              "name": "[parameters('logicName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('uamiId'))]": {}
+                }
+              },
+              "properties": {
+                "state": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.Logic/workflows/{0}', parameters('logicName'))]",
+              "name": "[parameters('diagLogicName')]",
+              "properties": {
+                "workspaceId": "[parameters('lawId')]",
+                "logs": [
+                  {
+                    "category": "WorkflowRuntime",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Logic/workflows', parameters('logicName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "logicId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Logic/workflows', parameters('logicName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'diagnostics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroup')), 'Microsoft.Resources/deployments', 'identity')]",
+        "[subscriptionResourceId('Microsoft.Resources/deployments', 'naming')]"
       ]
     }
   ],
