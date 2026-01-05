@@ -24,6 +24,18 @@ param zoneIds object
 @description('Principal ID of the UAMI for RBAC (optional).')
 param uamiPrincipalId string = ''
 
+@description('Private endpoint names from naming helper.')
+param peSearchName string
+param peAiName string
+
+@description('Private DNS zone group names from naming helper.')
+param peSearchDnsName string
+param peAiDnsName string
+
+@description('Diagnostic setting names from naming helper.')
+param diagSearchName string
+param diagAiName string
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -56,7 +68,7 @@ resource ai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
 }
 
 resource peSearch 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${search.name}'
+  name: peSearchName
   location: location
   tags: tags
   properties: {
@@ -79,7 +91,7 @@ resource peSearch 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peSearch
-  name: 'search-dns'
+  name: peSearchDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -93,7 +105,7 @@ resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
 }
 
 resource peAi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${ai.name}'
+  name: peAiName
   location: location
   tags: tags
   properties: {
@@ -116,7 +128,7 @@ resource peAi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peAi
-  name: 'ai-dns'
+  name: peAiDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -133,7 +145,7 @@ output searchId string = search.id
 output aiId string = ai.id
 
 resource searchDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-search'
+  name: diagSearchName
   scope: search
   properties: {
     workspaceId: lawId
@@ -153,7 +165,7 @@ resource searchDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' =
 }
 
 resource aiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-ai'
+  name: diagAiName
   scope: ai
   properties: {
     workspaceId: lawId

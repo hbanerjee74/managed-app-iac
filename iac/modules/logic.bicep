@@ -12,6 +12,9 @@ param uamiId string
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
+@description('Diagnostic setting name from naming helper.')
+param diagLogicName string
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -31,7 +34,7 @@ resource logicApp 'Microsoft.Logic/workflows@2019-05-01' = {
 }
 
 resource logicDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-logic'
+  name: diagLogicName
   scope: logicApp
   properties: {
     workspaceId: lawId

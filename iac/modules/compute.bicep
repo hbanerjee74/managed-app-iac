@@ -35,6 +35,22 @@ param lawId string
 
 @description('DNS zone resource IDs map (from dns module).')
 param zoneIds object
+
+@description('Private endpoint names from naming helper.')
+param peAppApiName string
+param peAppUiName string
+param peFuncName string
+
+@description('Private DNS zone group names from naming helper.')
+param peAppApiDnsName string
+param peAppUiDnsName string
+param peFuncDnsName string
+
+@description('Diagnostic setting names from naming helper.')
+param diagAppApiName string
+param diagAppUiName string
+param diagFuncName string
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -175,7 +191,7 @@ resource func 'Microsoft.Web/sites@2023-12-01' = {
 
 // Private Endpoints for inbound
 resource peAppApi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${appApi.name}'
+  name: peAppApiName
   location: location
   tags: tags
   properties: {
@@ -198,7 +214,7 @@ resource peAppApi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peAppApiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peAppApi
-  name: 'appapi-dns'
+  name: peAppApiDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -212,7 +228,7 @@ resource peAppApiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
 }
 
 resource peAppUi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${appUi.name}'
+  name: peAppUiName
   location: location
   tags: tags
   properties: {
@@ -235,7 +251,7 @@ resource peAppUi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peAppUiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peAppUi
-  name: 'appui-dns'
+  name: peAppUiDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -249,7 +265,7 @@ resource peAppUiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@202
 }
 
 resource peFunc 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: 'pe-${func.name}'
+  name: peFuncName
   location: location
   tags: tags
   properties: {
@@ -272,7 +288,7 @@ resource peFunc 'Microsoft.Network/privateEndpoints@2023-05-01' = {
 
 resource peFuncDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
   parent: peFunc
-  name: 'func-dns'
+  name: peFuncDnsName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -290,7 +306,7 @@ output appUiId string = appUi.id
 output funcId string = func.id
 
 resource appApiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-appapi'
+  name: diagAppApiName
   scope: appApi
   properties: {
     workspaceId: lawId
@@ -318,7 +334,7 @@ resource appApiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' =
 }
 
 resource appUiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-appui'
+  name: diagAppUiName
   scope: appUi
   properties: {
     workspaceId: lawId
@@ -346,7 +362,7 @@ resource appUiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = 
 }
 
 resource funcDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-func'
+  name: diagFuncName
   scope: func
   properties: {
     workspaceId: lawId

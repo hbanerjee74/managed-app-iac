@@ -27,6 +27,9 @@ param appGwCapacity int = 1
 @description('Application Gateway SKU (from RFC-64 appGwSku display).')
 param appGwSku string = 'WAF_v2'
 
+@description('Diagnostic setting name from naming helper.')
+param diagAgwName string
+
 @description('Optional tags to apply.')
 param tags object = {}
 
@@ -193,7 +196,7 @@ resource appGw 'Microsoft.Network/applicationGateways@2021-08-01' = {
 output appGwId string = appGw.id
 
 resource appGwDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
-  name: 'diag-law-agw'
+  name: diagAgwName
   scope: appGw
   properties: {
     workspaceId: lawId
