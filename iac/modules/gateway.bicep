@@ -110,10 +110,9 @@ resource agwPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPo
   tags: tags
   properties: {
     policySettings: {
-      enabledState: 'Enabled'
       mode: 'Prevention'
       state: 'Enabled'
-      requestBodyCheck: 'Enabled'
+      requestBodyCheck: true
     }
     customRules: wafCustomRules
     managedRules: {

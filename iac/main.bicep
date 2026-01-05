@@ -41,7 +41,7 @@ param publisherIpRanges array
 ])
 param sku string = 'P1v3'
 
-@description('AKS node size (RFC-64 nodeSize).')
+@description('AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30.')
 @allowed([
   'Standard_D4s_v3'
   'Standard_D8s_v3'
