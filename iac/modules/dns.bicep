@@ -3,9 +3,6 @@ targetScope = 'resourceGroup'
 @description('Name of the Services VNet to link.')
 param vnetName string
 
-@description('Private DNS zone resource IDs map (created once for reuse).')
-param zoneIds object
-
 @description('Optional tags to apply.')
 param tags object = {}
 

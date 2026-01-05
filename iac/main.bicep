@@ -138,8 +138,16 @@ module identity 'modules/identity.bicep' = {
     uamiName: naming.outputs.names.uami
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
-    lawId: diagnostics.outputs.lawId
+    lawName: naming.outputs.names.law
     tags: tags
+  }
+}
+
+module identitySubscription 'modules/identity.subscription.bicep' = {
+  name: 'identity-subscription'
+  scope: subscription()
+  params: {
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
   }
 }
 
@@ -163,7 +171,6 @@ module dns 'modules/dns.bicep' = {
   scope: deploymentRg
   params: {
     vnetName: naming.outputs.names.vnet
-    zoneIds: dns.outputs.zoneIds
     tags: tags
   }
 }
@@ -263,7 +270,6 @@ module automation 'modules/automation.bicep' = {
     location: location
     automationName: naming.outputs.names.automation
     uamiId: identity.outputs.uamiId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
     subnetPeId: network.outputs.subnetPeId
