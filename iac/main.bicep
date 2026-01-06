@@ -133,6 +133,7 @@ module diagnostics 'modules/diagnostics.bicep' = {
 module identity 'modules/identity.bicep' = {
   name: 'identity'
   scope: deploymentRg
+  dependsOn: [diagnostics]
   params: {
     location: location
     uamiName: naming.outputs.names.uami
@@ -326,3 +327,5 @@ module logic 'modules/logic.bicep' = {
 }
 
 output names object = naming.outputs.names
+output lawId string = diagnostics.outputs.lawId
+output lawWorkspaceId string = diagnostics.outputs.lawWorkspaceId

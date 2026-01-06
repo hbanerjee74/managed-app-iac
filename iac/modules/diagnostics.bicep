@@ -32,8 +32,8 @@ resource customTable 'Microsoft.OperationalInsights/workspaces/tables@2021-12-01
   parent: law
   name: 'VibeData_Operations_CL'
   properties: {
-    retentionInDays: 30
-    totalRetentionInDays: 30
+    retentionInDays: retentionDays
+    totalRetentionInDays: retentionDays
     schema: {
       name: 'VibeData_Operations_CL'
       columns: [
@@ -53,5 +53,4 @@ resource customTable 'Microsoft.OperationalInsights/workspaces/tables@2021-12-01
 }
 
 output lawId string = law.id
-
-// TODO: deploy Log Analytics Workspace, custom table, and diagnostic settings.
+output lawWorkspaceId string = law.properties.customerId
