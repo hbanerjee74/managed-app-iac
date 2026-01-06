@@ -146,6 +146,7 @@ module identitySubscription 'modules/identity.subscription.bicep' = {
 
 module network 'modules/network.bicep' = {
   name: 'network'
+  dependsOn: [diagnostics]
   params: {
     location: location
     servicesVnetCidr: servicesVnetCidr
@@ -160,8 +161,31 @@ module network 'modules/network.bicep' = {
 
 module dns 'modules/dns.bicep' = {
   name: 'dns'
+  dependsOn: [network]
   params: {
     vnetName: naming.outputs.names.vnet
+    tags: tags
+  }
+}
+
+// Enable NSG flow logs + Traffic Analytics (LAW) via Network Watcher.
+module networkFlowLogs 'modules/network.flowlogs.bicep' = {
+  name: 'network-flowlogs'
+  dependsOn: [security]
+  params: {
+    location: location
+    networkWatcherName: naming.outputs.names.networkWatcher
+    lawWorkspaceId: diagnostics.outputs.lawWorkspaceId
+    lawId: diagnostics.outputs.lawId
+    storageId: resourceId('Microsoft.Storage/storageAccounts', naming.outputs.names.storage)
+    nsgAppgwId: resourceId('Microsoft.Network/networkSecurityGroups', naming.outputs.names.nsgAppgw)
+    nsgAksId: resourceId('Microsoft.Network/networkSecurityGroups', naming.outputs.names.nsgAks)
+    nsgAppsvcId: resourceId('Microsoft.Network/networkSecurityGroups', naming.outputs.names.nsgAppsvc)
+    nsgPeId: resourceId('Microsoft.Network/networkSecurityGroups', naming.outputs.names.nsgPe)
+    flowLogAppgwName: naming.outputs.names.flowLogAppgw
+    flowLogAksName: naming.outputs.names.flowLogAks
+    flowLogAppsvcName: naming.outputs.names.flowLogAppsvc
+    flowLogPeName: naming.outputs.names.flowLogPe
     tags: tags
   }
 }
@@ -310,3 +334,9 @@ module logic 'modules/logic.bicep' = {
 }
 
 output names object = naming.outputs.names
+output vnetId string = network.outputs.vnetId
+output subnetAppgwId string = network.outputs.subnetAppgwId
+output subnetAksId string = network.outputs.subnetAksId
+output subnetAppsvcId string = network.outputs.subnetAppsvcId
+output subnetPeId string = network.outputs.subnetPeId
+output subnetPsqlId string = network.outputs.subnetPsqlId

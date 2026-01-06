@@ -18,6 +18,8 @@ param nsgPeName string
 @description('Optional tags to apply.')
 param tags object = {}
 
+var vnetPrefix = int(split(servicesVnetCidr, '/')[1])
+
 resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
   name: vnetName
   location: location
@@ -33,7 +35,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
         name: 'snet-appgw'
         properties: {
           // /27 derived from base
-          addressPrefix: cidrSubnet(servicesVnetCidr, 27 - int(split(servicesVnetCidr, '/')[1]), 0)
+          addressPrefix: cidrSubnet(servicesVnetCidr, 27 - vnetPrefix, 0)
           networkSecurityGroup: {
             id: nsgAppgw.id
           }
@@ -43,7 +45,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
         name: 'snet-aks'
         properties: {
           // /25 next block after appgw
-          addressPrefix: cidrSubnet(servicesVnetCidr, 25 - int(split(servicesVnetCidr, '/')[1]), 1)
+          addressPrefix: cidrSubnet(servicesVnetCidr, 25 - vnetPrefix, 1)
           networkSecurityGroup: {
             id: nsgAks.id
           }
@@ -53,7 +55,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
         name: 'snet-appsvc'
         properties: {
           // /28 app service delegated
-          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 2)
+          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - vnetPrefix, 2)
           delegations: [
             {
               name: 'Microsoft.Web/serverFarms'
@@ -71,7 +73,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
         name: 'snet-private-endpoints'
         properties: {
           // /28 for PEs
-          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 3)
+          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - vnetPrefix, 3)
           networkSecurityGroup: {
             id: nsgPe.id
           }
@@ -81,7 +83,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
         name: 'snet-psql'
         properties: {
           // /28 delegated to PostgreSQL flexible server
-          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 4)
+          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - vnetPrefix, 4)
           delegations: [
             {
               name: 'Microsoft.DBforPostgreSQL/flexibleServers'
@@ -304,9 +306,22 @@ resource nsgPe 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
         }
       }
       {
+        name: 'Deny-All-Inbound'
+        properties: {
+          priority: 200
+          direction: 'Inbound'
+          access: 'Deny'
+          protocol: '*'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '*'
+          sourcePortRange: '*'
+        }
+      }
+      {
         name: 'Deny-Internet-Inbound'
         properties: {
-          priority: 110
+          priority: 210
           direction: 'Inbound'
           access: 'Deny'
           protocol: '*'

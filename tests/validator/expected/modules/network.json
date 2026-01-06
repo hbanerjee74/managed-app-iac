@@ -8,7 +8,12 @@
     { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-appgw-<16>" },
     { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-aks-<16>" },
     { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-appsvc-<16>" },
-    { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-pe-<16>" }
+    { "type": "Microsoft.Network/networkSecurityGroups", "name": "vd-nsg-pe-<16>" },
+    { "type": "Microsoft.Network/networkWatchers", "name": "vd-nw-platform-<16>" },
+    { "type": "Microsoft.Network/networkWatchers/flowLogs", "name": "vd-nw-platform-<16>/vd-flow-nsg-appgw-platform-<16>" },
+    { "type": "Microsoft.Network/networkWatchers/flowLogs", "name": "vd-nw-platform-<16>/vd-flow-nsg-aks-platform-<16>" },
+    { "type": "Microsoft.Network/networkWatchers/flowLogs", "name": "vd-nw-platform-<16>/vd-flow-nsg-appsvc-platform-<16>" },
+    { "type": "Microsoft.Network/networkWatchers/flowLogs", "name": "vd-nw-platform-<16>/vd-flow-nsg-pe-platform-<16>" }
   ]
 }
 
