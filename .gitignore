@@ -2,10 +2,12 @@
 .azure/
 .dotnet_bundle/
 .venv/
+.vscode/
 .DS_Store
 venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 output/
 
 # Bicep build artifacts (compiled JSON from .bicep files)
