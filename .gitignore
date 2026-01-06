@@ -12,3 +12,6 @@ output/
 iac/**/*.json
 !iac/params*.json
 !tests/**/*.json
+
+# plan files create by Codex 
+.vibedata/
