@@ -1,6 +1,11 @@
 """Unit tests for gateway module."""
-import pytest
+import sys
 from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+import pytest
 from tests.unit.helpers.test_utils import (
     run_bicep_build,
     run_what_if,
@@ -11,7 +16,6 @@ from tests.unit.helpers.test_utils import (
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
 BICEP_FILE = FIXTURES_DIR / 'test-gateway.bicep'
 PARAMS_FILE = FIXTURES_DIR / 'params-gateway.json'
-TEST_RG = 'test-rg'
 
 
 class TestGatewayModule:
@@ -36,7 +40,8 @@ class TestGatewayModule:
 
     def test_what_if_succeeds(self):
         """Test that what-if execution succeeds."""
-        success, output = run_what_if(BICEP_FILE, PARAMS_FILE, TEST_RG)
+        # resourceGroupName extracted from params file automatically
+        success, output = run_what_if(BICEP_FILE, PARAMS_FILE)
         if not success and "not logged in" in output.lower():
             pytest.skip("Azure CLI not configured - skipping what-if test")
         assert success, f"What-if failed: {output}"

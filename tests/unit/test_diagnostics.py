@@ -1,6 +1,11 @@
 """Unit tests for diagnostics module."""
-import pytest
+import sys
 from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+import pytest
 from tests.unit.helpers.test_utils import (
     run_bicep_build,
     run_what_if,
@@ -12,7 +17,6 @@ from tests.unit.helpers.test_utils import (
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
 BICEP_FILE = FIXTURES_DIR / 'test-diagnostics.bicep'
 PARAMS_FILE = FIXTURES_DIR / 'params-diagnostics.json'
-TEST_RG = 'test-rg-managed-app'  # Use existing RG for testing
 
 
 class TestDiagnosticsModule:
@@ -37,7 +41,8 @@ class TestDiagnosticsModule:
 
     def test_what_if_succeeds(self):
         """Test that what-if execution succeeds."""
-        success, output = run_what_if(BICEP_FILE, PARAMS_FILE, TEST_RG)
+        # resourceGroupName extracted from params file automatically
+        success, output = run_what_if(BICEP_FILE, PARAMS_FILE)
         # Note: This may fail if Azure CLI is not configured, which is OK for unit tests
         # In CI, this would be skipped if credentials are not available
         if not success and "not logged in" in output.lower():

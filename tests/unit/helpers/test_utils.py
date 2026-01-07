@@ -1,9 +1,46 @@
 """Utility functions for Bicep module tests."""
 import json
 import subprocess
-import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
+
+
+def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tuple[bool, str]:
+    """Ensure resource group exists, creating it if necessary.
+    
+    Args:
+        rg_name: Name of the resource group
+        location: Azure region (default: eastus)
+    
+    Returns:
+        Tuple of (success: bool, message: str)
+    """
+    try:
+        # Check if RG exists
+        check_result = subprocess.run(
+            ['az', 'group', 'exists', '--name', rg_name],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if check_result.stdout.strip().lower() == 'true':
+            return True, f"Resource group {rg_name} already exists"
+        
+        # Create RG if it doesn't exist
+        print(f"Resource group {rg_name} does not exist. Creating...")
+        create_result = subprocess.run(
+            ['az', 'group', 'create', '--name', rg_name, '--location', location],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return True, f"Resource group {rg_name} created successfully"
+        
+    except subprocess.CalledProcessError as e:
+        return False, f"Failed to create resource group: {e.stderr}"
+    except FileNotFoundError:
+        return False, "Azure CLI not found. Please install Azure CLI."
 
 
 def run_bicep_build(bicep_file: Path) -> tuple[bool, str]:
@@ -22,17 +59,98 @@ def run_bicep_build(bicep_file: Path) -> tuple[bool, str]:
         return False, "Azure CLI not found. Please install Azure CLI."
 
 
+def get_location_from_params(params_file: Path, default: str = 'eastus') -> str:
+    """Extract location from params file if available.
+    
+    Args:
+        params_file: Path to parameters JSON file
+        default: Default location if not found in params
+    
+    Returns:
+        Location string
+    """
+    try:
+        params_data = load_json_file(params_file)
+        # Try parameters.location.value first
+        location = params_data.get('parameters', {}).get('location', {}).get('value', '')
+        if location:
+            return location
+        # Try metadata.location as fallback
+        location = params_data.get('metadata', {}).get('location', '')
+        if location:
+            return location
+    except Exception:
+        pass
+    return default
+
+
+def get_resource_group_from_params(params_file: Path, default: str = None) -> str:
+    """Extract resource group name from params file if available.
+    
+    Args:
+        params_file: Path to parameters JSON file
+        default: Default resource group name if not found in params (raises error if None)
+    
+    Returns:
+        Resource group name string
+    
+    Raises:
+        ValueError: If resource group name not found and no default provided
+    """
+    try:
+        params_data = load_json_file(params_file)
+        # Try parameters.resourceGroupName.value first
+        rg_name = params_data.get('parameters', {}).get('resourceGroupName', {}).get('value', '')
+        if rg_name:
+            return rg_name
+        # Try metadata.resourceGroupName as fallback
+        rg_name = params_data.get('metadata', {}).get('resourceGroupName', '')
+        if rg_name:
+            return rg_name
+    except Exception:
+        pass
+    
+    if default is None:
+        raise ValueError(f"Resource group name not found in {params_file} and no default provided")
+    return default
+
+
 def run_what_if(
     bicep_file: Path,
     params_file: Path,
-    resource_group: str,
-    location: str = 'eastus'  # Not used for RG deployments, kept for API compatibility
+    resource_group: str = None,  # Auto-extracted from params if None
+    ensure_rg_exists: bool = True  # Auto-create RG if it doesn't exist
 ) -> tuple[bool, str]:
     """Run Azure what-if for a Bicep deployment.
     
-    Returns JSON output with full resource payloads for parsing and validation.
-    Note: --location is not used for resource group-scoped deployments.
+    Args:
+        bicep_file: Path to Bicep template file
+        params_file: Path to parameters JSON file
+        resource_group: Name of the resource group (extracted from params file if None)
+        ensure_rg_exists: If True, create RG if it doesn't exist (location extracted from params file)
+    
+    Returns:
+        Tuple of (success: bool, output: str)
+        Returns JSON output with full resource payloads for parsing and validation.
+        Note: --location is not used for resource group-scoped deployments.
+        Location and resource group name are extracted from params file.
     """
+    # Extract resource group name from params file if not provided
+    if resource_group is None:
+        try:
+            resource_group = get_resource_group_from_params(params_file)
+        except ValueError as e:
+            return False, str(e)
+    
+    # Extract location from params file for RG creation if needed
+    location = get_location_from_params(params_file)
+    
+    # Ensure resource group exists if requested
+    if ensure_rg_exists:
+        rg_success, rg_message = ensure_resource_group_exists(resource_group, location)
+        if not rg_success:
+            return False, f"Resource group check failed: {rg_message}"
+    
     try:
         result = subprocess.run(
             [
@@ -103,4 +221,3 @@ def get_module_outputs(module_name: str) -> Dict[str, Any]:
         }
     }
     return outputs.get(module_name, {})
-

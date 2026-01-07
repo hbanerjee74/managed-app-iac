@@ -21,11 +21,11 @@ def summarize(changes):
     return summary
 
 
-FIXTURES_DIR = Path(__file__).parent / 'fixtures'
+# Use tests/fixtures/params.dev.json (not e2e/fixtures)
+FIXTURES_DIR = Path(__file__).parent.parent / 'fixtures'
 MAIN_BICEP = Path(__file__).parent.parent.parent / 'iac' / 'main.bicep'
 PARAMS_FILE = FIXTURES_DIR / 'params.dev.json'
-TEST_RG = 'test-rg'
-TEST_LOCATION = 'eastus'
+TEST_RG = 'test-rg'  # Fallback only - should come from params file
 WHAT_IF_OUTPUT = Path(__file__).parent / 'what-if-output.json'
 RG_CREATE_TIMEOUT = 300  # 5 minutes
 RG_DELETE_TIMEOUT = 600  # 10 minutes
@@ -57,9 +57,13 @@ def get_location_from_params():
         if location:
             return location
         # Fallback to parameters (backward compatibility)
-        return params_data.get('parameters', {}).get('location', {}).get('value', TEST_LOCATION)
+        location = params_data.get('parameters', {}).get('location', {}).get('value', '')
+        if location:
+            return location
     except Exception:
-        return TEST_LOCATION
+        pass
+    # Default fallback if not found in params file
+    return 'eastus'
 
 
 def get_subscription_id_from_params():

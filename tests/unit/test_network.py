@@ -1,7 +1,11 @@
 """Unit tests for network module."""
-import pytest
-import json
+import sys
 from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+import pytest
 from tests.unit.helpers.test_utils import (
     run_bicep_build,
     run_what_if,
@@ -18,7 +22,6 @@ from tests.unit.helpers.what_if_parser import (
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
 BICEP_FILE = FIXTURES_DIR / 'test-network.bicep'
 PARAMS_FILE = FIXTURES_DIR / 'params-network.json'
-TEST_RG = 'test-rg'
 
 # Expected resources for network module
 EXPECTED_RESOURCES = [
@@ -50,7 +53,8 @@ class TestNetworkModule:
 
     def test_what_if_succeeds(self):
         """Test that what-if execution succeeds and returns valid output."""
-        success, output = run_what_if(BICEP_FILE, PARAMS_FILE, TEST_RG)
+        # resourceGroupName extracted from params file automatically
+        success, output = run_what_if(BICEP_FILE, PARAMS_FILE)
         if not success and "not logged in" in output.lower():
             pytest.skip("Azure CLI not configured - skipping what-if test")
         assert success, f"What-if failed: {output}"
@@ -61,7 +65,8 @@ class TestNetworkModule:
 
     def test_what_if_creates_expected_resources(self):
         """Test that what-if shows expected resources would be created."""
-        success, output = run_what_if(BICEP_FILE, PARAMS_FILE, TEST_RG)
+        # resourceGroupName extracted from params file automatically
+        success, output = run_what_if(BICEP_FILE, PARAMS_FILE)
         if not success and "not logged in" in output.lower():
             pytest.skip("Azure CLI not configured - skipping what-if test")
         
@@ -78,7 +83,8 @@ class TestNetworkModule:
 
     def test_what_if_no_unexpected_changes(self):
         """Test that what-if doesn't show unexpected resource changes."""
-        success, output = run_what_if(BICEP_FILE, PARAMS_FILE, TEST_RG)
+        # resourceGroupName extracted from params file automatically
+        success, output = run_what_if(BICEP_FILE, PARAMS_FILE)
         if not success and "not logged in" in output.lower():
             pytest.skip("Azure CLI not configured - skipping what-if test")
         
@@ -90,7 +96,8 @@ class TestNetworkModule:
 
     def test_what_if_no_deletions(self):
         """Test that what-if doesn't show any resource deletions."""
-        success, output = run_what_if(BICEP_FILE, PARAMS_FILE, TEST_RG)
+        # resourceGroupName extracted from params file automatically
+        success, output = run_what_if(BICEP_FILE, PARAMS_FILE)
         if not success and "not logged in" in output.lower():
             pytest.skip("Azure CLI not configured - skipping what-if test")
         
@@ -99,4 +106,3 @@ class TestNetworkModule:
         
         deletions = validate_no_deletions(resource_changes)
         assert len(deletions) == 0, f"Unexpected resource deletions: {deletions}"
-
