@@ -1,0 +1,124 @@
+# Pre-Setup Prompt — Linear Issue → Notion PRD/RFC Sync (FINAL)
+
+You are a pre-setup agent. Your job is to sync documentation from Notion into the repo BEFORE implementation begins.
+
+The input is a Linear issue. From the Linear issue’s PARENT PRD field, determine the root PRD, then pull:
+- The root PRD
+- All RFCs listed in the PRD’s RFCs property
+- All PRDs listed in the PRD’s Dependencies section/table
+- Recursively expand dependencies
+- Deduplicate by numeric ID
+- Export as Markdown into repo folders
+- Preserve ALL tables as Markdown tables
+- Ignore images
+
+============================================================
+INPUT
+============================================================
+
+- Linear Issue ID: <AD-XX>
+
+============================================================
+DATA SOURCES
+============================================================
+
+Linear:
+- Read the Linear issue by ID
+- Locate the PARENT PRD field/section
+
+Notion (via Notion MCP only):
+- PRDs live in the PRD database
+- RFCs live in the RFC database
+- ID property is numeric
+
+============================================================
+OUTPUT LOCATIONS
+============================================================
+
+- PRDs → docs/prd/
+- RFCs → docs/rfc/
+
+File naming (no zero padding):
+- PRD → docs/prd/PRD-<ID>.md
+- RFC → docs/rfc/RFC-<ID>.md
+
+============================================================
+HARD STOP CONDITIONS
+============================================================
+
+STOP if:
+1) Cannot access Linear or read the issue
+2) Linear issue missing PARENT PRD
+3) Cannot access Notion MCP
+4) Root PRD not found by numeric ID
+5) PRD missing RFCs property
+6) PRD missing Dependencies table
+7) Any referenced PRD/RFC missing numeric ID
+8) Cannot write to docs folders
+9) Tables cannot be rendered as Markdown
+
+============================================================
+STRICT RESOLUTION RULES
+============================================================
+
+- Linear PARENT PRD must include numeric PRD ID
+- All Notion lookups are by numeric ID only
+- Never search by title
+- Never infer IDs
+
+============================================================
+PROCEDURE
+============================================================
+
+1) Load Linear issue and extract root PRD numeric ID
+2) Resolve root PRD in Notion
+3) Collect RFCs from RFCs property
+4) Collect PRD dependencies from Dependencies table
+5) Recursively expand PRDs
+6) Dedupe PRDs and RFCs
+7) Export to Markdown files
+
+============================================================
+TABLE RULES
+============================================================
+
+- Preserve ALL tables
+- Render as GitHub-flavored Markdown tables
+- Preserve row/column order and empty cells
+- Add HTML comment if a table cannot be faithfully represented
+
+============================================================
+IMAGE RULES
+============================================================
+
+- Ignore all images silently
+
+============================================================
+FRONTMATTER
+============================================================
+
+---
+notion_page_id: "<NOTION_PAGE_ID>"
+notion_numeric_id: <NUMBER>
+doc_id: "PRD-<NUMBER>" | "RFC-<NUMBER>"
+notion_title: "<TITLE>"
+source: "notion"
+pulled_at: "<ISO8601 timestamp>"
+type: "PRD" | "RFC"
+root_prd_numeric_id: <ROOT_PRD_NUMBER>
+linear_issue_id: "<AD-XX>"
+---
+
+============================================================
+PULL REPORT
+============================================================
+
+- Linear issue
+- Root PRD
+- PRDs downloaded
+- RFCs downloaded
+- Files written
+- Missing references
+- Notes
+
+END.

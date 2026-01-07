@@ -1,0 +1,179 @@
+VERSION: v5
+PURPOSE: Read-only orientation prompt that derives all execution context from a single Linear issue and emits a reusable plan file that can guide frontend, backend, infrastructure, marketplace, or agent-building work.
+
+============================================================
+CODEX ORIENTATION PROMPT — READ-ONLY RECONNAISSANCE
+============================================================
+
+You are a coding agent working across frontend, backend, infrastructure (IaaC/Marketplace), and agent-build domains.
+
+Your task is to orient yourself on EXACTLY ONE Linear issue before any implementation.
+Do NOT make changes. Do NOT stage files. Do NOT commit.
+
+------------------------------------------------------------
+MANDATORY INPUTS (ASK FIRST)
+------------------------------------------------------------
+
+1) Linear Issue ID (exactly ONE issue, e.g. AD-82)
+
+If the input is missing:
+STOP and ask.
+Do NOT assume defaults.
+Do NOT proceed.
+
+------------------------------------------------------------
+OPERATING RULES
+------------------------------------------------------------
+
+- This is READ-ONLY reconnaissance.
+- Do NOT implement fixes.
+- Do NOT stage files.
+- Do NOT create branches.
+- Do NOT update Linear.
+- Prefer commands that do NOT modify state.
+- Writing ONE plan file is allowed.
+- The plan file MUST be written under .vibedata (gitignored).
+- If the plan file already exists, it MUST be overwritten.
+- If anything required is missing (files, issue, access), STOP and report it.
+
+------------------------------------------------------------
+PHASE 1: UNDERSTAND THE REQUIREMENTS
+------------------------------------------------------------
+
+1) Inspect repository structure:
+- pwd
+- ls -la
+- find . -maxdepth 2 -type d
+
+2) Identify relevant technical signals:
+- For infrastructure: main.bicep, modules, terraform, IaC configs
+- For backend: service entry points, API contracts, validation scripts
+- For frontend: component trees, styling/theme configs, build commands
+- For agent/build: orchestration scripts, tooling pipelines, automation checks
+
+3) Load the Linear issue.
+- Locate the PARENT PRD section in the issue.
+- Resolve the PRD reference found there.
+
+STOP if:
+- The PARENT PRD section is missing
+- The PRD reference cannot be mapped to a readable file path
+
+4) Read the PRD document from the repo from docs/prd folder
+
+5) Read RFCs referenced by the PRD.
+- If none are explicitly referenced, identify and read the most relevant or recently updated RFCs from  from docs/rfc folder
+
+------------------------------------------------------------
+PHASE 2: UNDERSTAND LINEAR CONTEXT
+------------------------------------------------------------
+
+6) Read the Linear issue fully:
+- Title and description
+- Acceptance criteria
+- Recent comments
+- Dependencies or blockers
+
+7) Identify status signals:
+- Done
+- Todo
+- In Progress
+- Evidence of in-progress work
+
+------------------------------------------------------------
+PHASE 3: UNDERSTAND CURRENT CODE STATE
+------------------------------------------------------------
+
+8) Check git state:
+- git status
+- git log -n 20 --oneline
+- git branch -vv
+- git remote -v
+
+9) Locate relevant code areas:
+- Frontend components (UI, styles, configs)
+- Backend services (handlers, APIs, workers)
+- Infrastructure artifacts (ARM/Bicep, Terraform, marketplace modules)
+- Agent build scripts or orchestration logic
+
+------------------------------------------------------------
+OPTIONAL RESUME CONTEXT (IF PRESENT)
+------------------------------------------------------------
+
+If a resume file exists at:
+
+.vibedata/resume-<LINEAR_ISSUE_ID>.md
+
+Then:
+- Read the resume file before finalizing the plan
+- Incorporate relevant blockers, failures, and next actions
+- Reconcile resume content with current repo and Linear state
+- Do NOT blindly copy the resume content
+
+------------------------------------------------------------
+FINAL ORIENTATION OUTPUT (MANDATORY)
+------------------------------------------------------------
+
+You MUST produce a plan file with the following structure and NOTHING extra.
+
+Folder:
+.vibedata
+
+File name format:
+plan-<LINEAR_ISSUE_ID>.txt
+
+============================================================
+REFERENCE CONTENT
+============================================================
+- Linear issue ID
+- PRD resolved from Linear PARENT PRD section
+- PRD document path
+- RFC document paths
+- Resume file path if one was read
+- Key repo paths relevant to the issue
+- Build or validation commands
+
+============================================================
+REQUIREMENTS BRIEF
+============================================================
+- Goals
+- Non-goals
+- Acceptance criteria
+- Constraints or invariants
+
+============================================================
+LINEAR BRIEF
+============================================================
+- Issue summary
+- Acceptance criteria
+- Dependencies
+- Status signals
+- In-progress priority if any
+
+============================================================
+CODE BRIEF
+============================================================
+- Key directories and files
+- Build commands
+- Validation commands
+- Risks or red flags
+
+============================================================
+NEXT-STEP PLAN
+============================================================
+- Ordered, executable steps
+- Limited strictly to ONE Linear issue
+- Explicit risks or unknowns
+
+------------------------------------------------------------
+STOP CONDITION
+------------------------------------------------------------
+
+After writing the plan file:
+- Print the full file path .vibedata/plan-<LINEAR_ISSUE_ID>.txt
+- STOP
+- Do NOT begin implementation
+
+============================================================
+END OF ORIENTATION PROMPT
+============================================================

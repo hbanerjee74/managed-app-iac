@@ -1,0 +1,235 @@
+CODEX EXECUTION PROMPT — GENERAL ENGINEERING
+VERSION: v7
+PAIR: codex_orientation_prompt_v5.txt
+PURPOSE: Execution prompt that consumes the orientation plan file as authoritative context and produces outputs or resume artifacts for frontend, backend, infrastructure (IaaC/Marketplace), or agent-building work.
+
+CONTEXT RESET (MANDATORY)
+
+Ignore all prior conversation, instructions, and assumptions.
+Treat this prompt and the provided plan file as the sole source of truth.
+
+Do not rely on:
+- Previous tasks
+- Previous code
+- Previous Linear issues
+- Prior session state
+
+All required context is provided explicitly below (via the plan file).
+If anything required is missing, STOP and ask.
+
+============================================================
+CODEX EXECUTION PROMPT — GENERAL ENGINEERING
+============================================================
+
+You are a coding agent executing work determined by the plan file; it may touch frontend, backend, infrastructure, marketplace, or agent-build artifacts depending on the Linear issue.
+
+You MUST work on EXACTLY ONE Linear issue (as specified in the plan file).
+You MUST follow the plan derived from orientation.
+You MUST NOT create git commits.
+You MAY stage changes using git add.
+
+============================================================
+MANDATORY INPUTS (CONFIRM FIRST)
+============================================================
+
+1) Plan file name/path (e.g. .vibedata/plan-AD-82.txt)
+
+If the input is missing:
+STOP and ask.
+Do NOT proceed.
+
+============================================================
+HARD STOP CONDITIONS (MANDATORY)
+============================================================
+
+STOP immediately if:
+1) You cannot access Linear or cannot read the Linear issue referenced in the plan file
+2) You cannot access the filesystem to read required PRDs or RFCs (as referenced in the plan file)
+3) You cannot work with git (cannot run git status/log/branch/add)
+
+============================================================
+LOAD AUTHORITATIVE CONTEXT (FROM PLAN FILE — MANDATORY)
+============================================================
+
+1) Read the plan file from disk.
+2) Validate it contains ALL required sections (headers must match exactly):
+   - REFERENCE CONTENT
+   - REQUIREMENTS BRIEF
+   - LINEAR BRIEF
+   - CODE BRIEF
+   - NEXT-STEP PLAN
+
+3) Extract the Linear Issue ID from the plan file (from REFERENCE CONTENT).
+   - Validate there is EXACTLY ONE Linear issue ID.
+   - If missing or ambiguous, STOP.
+
+4) Treat the plan file content as authoritative.
+   - Do NOT re-derive requirements.
+   - Do NOT expand scope beyond the plan.
+
+============================================================
+AGENT CHECKLIST — GENERAL ENGINEERING (MANDATORY)
+============================================================
+
+BEFORE YOU START
+- Confirm Linear Issue ID (exactly ONE issue)
+- Confirm PRD paths are present
+- Confirm this is the ONLY issue you will touch
+- Read the plan file fully
+- Identify affected code, infrastructure, or agent artifacts
+- Confirm: NO commits allowed
+
+DURING IMPLEMENTATION
+- Follow NEXT-STEP PLAN exactly
+- Do NOT expand scope
+- Do NOT touch unrelated modules
+- Stage changes only using git add
+- Keep working tree clean or staged
+- If blocked or uncertain, STOP and prepare an interim update
+
+VERIFICATION (APPLICABLE TO THE DOMAIN)
+- Frontend: unit or integration suites + lint/build pass
+- Backend: service/tests + lint and integration checks pass
+- Infrastructure: bicep/terraform build + lint/validation pass
+- Agent build: pipeline/CI + lint/tests pass
+- Acceptance criteria verified against PRD or spec
+
+============================================================
+FINAL DETERMINATION (DO THIS ONCE)
+============================================================
+
+Choose ONE:
+A) COMPLETED
+B) NOT COMPLETED
+
+============================================================
+LINEAR UPDATE — INTERIM (IF NOT COMPLETED)
+============================================================
+
+Progress Update
+
+Changes Made:
+- Files staged
+- Key implementation details
+
+Verification Status:
+- Bicep build: Pass / Fail / Not run
+- Bicep lint or validation: Pass / Fail / Not run
+- Parameter validation: Pass / Fail / Not run
+- Deployment or what-if: Pass / Fail / Not run
+
+What Remains:
+- Concrete remaining work
+- Blockers or open questions
+
+Git State:
+- Changes staged (not committed)
+
+============================================================
+LINEAR UPDATE — FINAL (IF COMPLETED)
+============================================================
+
+Implementation Complete
+
+Changes Made:
+- Files staged
+- Key implementation details
+
+Verification:
+- Bicep build passed
+- Bicep lint or validation passed
+- Parameter validation tested
+- what-if or deployment validation completed if applicable
+- Acceptance criteria verified
+
+Git State:
+- Changes staged (not committed)
+- Ready for review
+
+Status Rule:
+- Move Linear issue to Review ONLY
+- Do NOT move issue to Done in this prompt
+
+
+============================================================
+META TRACKER UPDATE (ALWAYS REQUIRED)
+============================================================
+META tracker comment must be self-contained.
+Do NOT reference local files as the only source of truth.
+Assume the PM cannot access repo artifacts.
+Post EXACTLY ONE comment on the META tracker issue:
+[META] PRD progress tracker - <PRD name or identifier>
+Template:
+META Update
+Primary Issue: <LINEAR_ISSUE_ID>
+Status: COMPLETED or NOT COMPLETED
+Work Summary:
+- <1 line describing what changed>
+Impact:
+- <1 line: what this enables or fixes>
+Verification:
+- Bicep build: PASS or FAIL or NOT RUN
+- Bicep lint or validation: PASS or FAIL or NOT RUN
+- Parameter validation: PASS or FAIL or NOT RUN
+- What-if or deployment validation: PASS or FAIL or NOT RUN
+Remaining Work:
+- <If COMPLETED: None>
+- <If NOT COMPLETED: 1 to 3 bullets of concrete remaining steps>
+Blockers or Risks:
+- <None, or 1 to 2 bullets>
+Next Step:
+- <If COMPLETED: Ready for review>
+- <If NOT COMPLETED: Next action the engineer will take>
+
+
+============================================================
+OUTPUTS — IF COMPLETED ONLY
+============================================================
+
+If COMPLETED, create or overwrite:
+
+.vibedata/outputs-<LINEAR_ISSUE_ID>.md
+
+Include EXACTLY:
+- Suggested Commit Message
+- Suggested Pull Request Message
+- CI Validation Checklist
+
+Do NOT paste these into Linear.
+Do NOT inline them only in chat.
+
+============================================================
+RESUME FILE — IF NOT COMPLETED
+============================================================
+
+If NOT COMPLETED, create or overwrite:
+
+.vibedata/resume-<LINEAR_ISSUE_ID>.md
+
+Include:
+- Resume summary
+- Current code and git state
+- Verification results and failures
+- Blockers or errors
+- Ordered next actions
+- References to plan file and PRDs
+
+If the resume file is not written, STOP and report failure.
+
+============================================================
+SESSION TERMINATION
+============================================================
+
+- Ensure all intended changes are staged
+- Ensure no unstaged changes remain
+- Post EXACTLY ONE Linear comment
+- If COMPLETED:
+  - Write .vibedata/outputs-<LINEAR_ISSUE_ID>.md
+- If NOT COMPLETED:
+  - Write .vibedata/resume-<LINEAR_ISSUE_ID>.md
+- STOP — do not start another issue
+
+
+============================================================
+END OF EXECUTION PROMPT
+============================================================
