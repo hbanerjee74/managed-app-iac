@@ -116,21 +116,23 @@ pytest tests/unit/test_modules.py -v
 ### E2E Tests (What-if mode, safe)
 
 ```bash
-# Resource group must exist (unit tests will create it, or create manually)
-az group create --name test-rg-managed-app --location eastus
-
+# Unit tests automatically create resource group if needed
 pytest tests/e2e/
 ```
 
 ### E2E Tests (Actual deployment, opt-in)
 
 ```bash
+# Deploy and validate (auto-creates/deletes resource group)
 ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+
+# Keep resource group for debugging/inspection
+ENABLE_ACTUAL_DEPLOYMENT=true KEEP_RESOURCE_GROUP=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
 ```
 
-**Warning**: Actual deployment tests create real Azure resources and incur costs. Resource groups are automatically created before each test and deleted after.
+**Warning**: Actual deployment tests create real Azure resources and incur costs. Resource groups are automatically created before each test and deleted after (unless `KEEP_RESOURCE_GROUP=true` is set).
 
-For detailed testing documentation, see [`tests/README.md`](tests/README.md).
+For comprehensive testing documentation, see [`tests/README.md`](tests/README.md).
 
 ## Documentation
 
@@ -140,6 +142,7 @@ For detailed testing documentation, see [`tests/README.md`](tests/README.md).
 
 ## Release Notes
 
+- 2026-01-08 — v0.6.0 Test harness improvements and documentation consolidation: [docs/RELEASE-NOTES-2026-01-08-v0.6.0.md](docs/RELEASE-NOTES-2026-01-08-v0.6.0.md)
 - 2026-01-05 — v0.5.0 RFC-71 deterministic naming: [docs/RELEASE-NOTES-2026-01-05-v0.5.0.md](docs/RELEASE-NOTES-2026-01-05-v0.5.0.md)
 - 2026-01-03 — v0.4.0 module validator + RFC-64 params: [docs/RELEASE-NOTES-2026-01-03-v0.4.0.md](docs/RELEASE-NOTES-2026-01-03-v0.4.0.md)
 - 2026-01-03 — v0.3.0 validator resource-level coverage: [docs/RELEASE-NOTES-2026-01-03-v0.3.0.md](docs/RELEASE-NOTES-2026-01-03-v0.3.0.md)

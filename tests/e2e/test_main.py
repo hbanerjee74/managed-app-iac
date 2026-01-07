@@ -28,6 +28,9 @@ RG_DELETE_TIMEOUT = 600  # 10 minutes
 # Check if actual deployment is enabled
 ENABLE_ACTUAL_DEPLOYMENT = os.getenv('ENABLE_ACTUAL_DEPLOYMENT', 'false').lower() == 'true'
 
+# Check if resource group should be kept after tests (for debugging/inspection)
+KEEP_RESOURCE_GROUP = os.getenv('KEEP_RESOURCE_GROUP', 'false').lower() == 'true'
+
 
 def get_resource_group_from_params():
     """Extract resource group name from params file metadata (or parameters for backward compatibility)."""
@@ -220,6 +223,8 @@ def test_resource_group():
     Only creates/deletes when ENABLE_ACTUAL_DEPLOYMENT=true.
     For what-if tests, uses existing RG from params file.
     
+    Set KEEP_RESOURCE_GROUP=true to skip cleanup (useful for debugging/inspection).
+    
     Yields:
         str: Resource group name
     """
@@ -237,6 +242,12 @@ def test_resource_group():
         create_resource_group(rg_name, location)
         yield rg_name
     finally:
+        # Skip cleanup if KEEP_RESOURCE_GROUP is set
+        if KEEP_RESOURCE_GROUP:
+            print(f"\n⚠️  KEEP_RESOURCE_GROUP=true: Resource group '{rg_name}' was NOT deleted.")
+            print(f"   Manually delete with: az group delete --name {rg_name} --yes")
+            return
+        
         # Always cleanup, even if test failed
         try:
             delete_resource_group(rg_name)
@@ -342,13 +353,19 @@ class TestMainBicep:
         reason="Actual deployment disabled. Set ENABLE_ACTUAL_DEPLOYMENT=true to enable."
     )
     def test_actual_deployment(self, test_resource_group):
-        """Test actual deployment (opt-in only).
+        """Test actual deployment and post-deployment state check (opt-in only).
         
-        Resource group is automatically created before test and deleted after.
+        This test:
+        1. Deploys main.bicep to create real resources
+        2. Runs what-if to validate deployed state (no unexpected deletions)
+        3. Resource group is automatically deleted after test completes
+        
+        Note: Both deployment and state check happen in one test because the
+        fixture tears down the resource group after each test function completes.
         """
-        # Resource group is already created by fixture
+        # Step 1: Deploy resources
         try:
-            result = subprocess.run(
+            deploy_result = subprocess.run(
                 [
                     'az', 'deployment', 'group', 'create',
                     '--resource-group', test_resource_group,
@@ -359,24 +376,16 @@ class TestMainBicep:
                 text=True,
                 check=True
             )
-            assert result.returncode == 0
+            assert deploy_result.returncode == 0, "Deployment failed"
         except subprocess.CalledProcessError as e:
             pytest.fail(f"Actual deployment failed: {e.stderr}")
         except FileNotFoundError:
             pytest.skip("Azure CLI not found")
-
-    @pytest.mark.skipif(
-        not ENABLE_ACTUAL_DEPLOYMENT,
-        reason="Actual deployment disabled. Set ENABLE_ACTUAL_DEPLOYMENT=true to enable."
-    )
-    def test_post_deployment_state_check(self, test_resource_group):
-        """Test post-deployment state check using what-if.
         
-        Resource group is automatically created before test and deleted after.
-        """
-        # Run what-if against deployed resources
+        # Step 2: Post-deployment state check (before fixture tears down RG)
+        # Run what-if against deployed resources to validate state
         try:
-            result = subprocess.run(
+            what_if_result = subprocess.run(
                 [
                     'az', 'deployment', 'group', 'what-if',
                     '--resource-group', test_resource_group,
@@ -392,17 +401,19 @@ class TestMainBicep:
             )
             
             # Parse and validate what-if output
-            what_if_data = json.loads(result.stdout)
+            what_if_data = json.loads(what_if_result.stdout)
             changes = what_if_data.get('changes', [])
             summary = summarize(changes)
             
             # After deployment, we expect mostly NoChange (or some Modify for idempotency)
             # Unexpected Creates or Deletes indicate drift
-            unexpected_creates = summary.get('Create', 0)
             unexpected_deletes = summary.get('Delete', 0)
             
             # Allow some Creates/Modifies for idempotency, but no Deletes
-            assert unexpected_deletes == 0, f"Unexpected resource deletions detected: {summary}"
+            assert unexpected_deletes == 0, (
+                f"Unexpected resource deletions detected after deployment: {summary}. "
+                f"This indicates drift between template and deployed state."
+            )
             
         except subprocess.CalledProcessError as e:
             pytest.fail(f"Post-deployment what-if failed: {e.stderr}")

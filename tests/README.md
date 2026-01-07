@@ -75,13 +75,36 @@ pytest tests/unit/test_modules.py -v -k "compiles"
    pytest tests/e2e/
    ```
 
+   **Verbose output options:**
+   - `-v` or `--verbose` - Show test names (default with pytest.ini)
+   - `-vv` - Extra verbose (show test names and assertions)
+   - `-rs` - Show skip reasons
+   - `-ra` - Show all test outcomes (passed, failed, skipped, etc.)
+
+   Example with skip reasons:
+
+   ```bash
+   pytest tests/e2e/ -rs
+   ```
+
 3. **Run actual deployment** (opt-in, creates real resources):
 
    ```bash
    ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
    ```
 
-**Note**: Unit tests automatically create the resource group if it doesn't exist, so you can skip manual `az group create` when running the full test suite.
+   **Keep resource group for debugging/inspection:**
+
+   ```bash
+   ENABLE_ACTUAL_DEPLOYMENT=true KEEP_RESOURCE_GROUP=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+   ```
+
+   When `KEEP_RESOURCE_GROUP=true`, the resource group is not deleted after the test completes. Useful for:
+   - Inspecting deployed resources
+   - Debugging deployment issues
+   - Manual validation
+
+   **Note**: Unit tests automatically create the resource group if it doesn't exist, so you can skip manual `az group create` when running the full test suite.
 
 ## Test Configuration
 
@@ -116,9 +139,11 @@ Unit tests use module-specific parameter files (`tests/unit/fixtures/params-<mod
 - `test_params_file_exists` - Ensures params file exists
 - `test_params_file_valid_json` - Validates JSON syntax
 - `test_what_if_succeeds` - Full-scope what-if validation
+- `test_what_if_output_valid` - Validates what-if output is valid JSON
 - `test_what_if_summary` - Validates what-if output structure
-- `test_actual_deployment` - Actual deployment (opt-in only)
-- `test_post_deployment_state_check` - Post-deployment validation (opt-in only)
+- `test_actual_deployment` - Actual deployment + post-deployment state check (opt-in only)
+  - Deploys resources, then runs what-if to validate no unexpected deletions
+  - Both steps happen in one test before fixture tears down the resource group
 
 ## Test Modes
 
@@ -181,9 +206,12 @@ pytest tests/unit/test_modules.py -v -k "what_if"
 - **Compilation**: `main.bicep` compiles successfully
 - **Parameters**: Parameter file exists and is valid JSON
 - **What-if**: Full deployment what-if succeeds
+- **What-if output**: What-if output is valid JSON
 - **What-if summary**: What-if output can be parsed and summarized
-- **Actual deployment**: (Opt-in) Creates real resources
-- **Post-deployment**: (Opt-in) Validates deployed state matches template
+- **Actual deployment**: (Opt-in) Creates real resources and validates state
+  - Deploys `main.bicep` to create resources
+  - Runs what-if against deployed resources to check for drift
+  - Validates no unexpected deletions (indicates template matches deployed state)
 
 **Usage:**
 
@@ -279,6 +307,26 @@ When `ENABLE_ACTUAL_DEPLOYMENT=true`:
 - No manual setup required
 - Cleanup guaranteed even if tests fail
 
+**Skip cleanup for debugging:**
+
+Set `KEEP_RESOURCE_GROUP=true` to keep the resource group after tests complete:
+
+```bash
+ENABLE_ACTUAL_DEPLOYMENT=true KEEP_RESOURCE_GROUP=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+```
+
+This is useful for:
+
+- Inspecting deployed resources after tests
+- Debugging deployment issues
+- Manual validation of resources
+
+**Warning**: Remember to manually delete the resource group when done:
+
+```bash
+az group delete --name <resource-group-name> --yes
+```
+
 ## Adding New Module Tests
 
 1. Create test wrapper: `tests/unit/fixtures/test-<module>.bicep`
@@ -305,6 +353,30 @@ See `tests/unit/README.md` for detailed instructions.
 - **Azure CLI** (`az`) - Required for what-if tests, optional for compilation tests
 - **Bicep CLI** (included with Azure CLI)
 - **shellcheck** (optional, for `test_shell_scripts.py`)
+
+## Test Output Options
+
+By default, pytest shows minimal output. Use these flags for more details:
+
+- **`-v` or `--verbose`** - Show test names (configured in `pytest.ini`)
+- **`-vv`** - Extra verbose (show test names and assertions)
+- **`-rs`** - Show skip reasons (why tests were skipped)
+- **`-ra`** - Show all test outcomes (passed, failed, skipped, xfailed, etc.)
+- **`--tb=short`** - Shorter tracebacks (default with pytest.ini)
+- **`--tb=long`** - Full tracebacks for debugging
+
+**Examples:**
+
+```bash
+# Show which tests passed/failed/skipped with reasons
+pytest tests/e2e/ -rs
+
+# Extra verbose output
+pytest tests/e2e/ -vv
+
+# Show all outcomes
+pytest tests/e2e/ -ra
+```
 
 ## CI/CD Integration
 
