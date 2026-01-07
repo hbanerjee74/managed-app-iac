@@ -14,6 +14,10 @@ output/
 iac/**/*.json
 !tests/**/*.json
 
+# Test output files
+tests/e2e/what-if-output.json
+tests/state_check/what-if.json
+
 # plan files create by Codex 
 .vibedata/
 
