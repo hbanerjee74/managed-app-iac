@@ -12,7 +12,6 @@ output/
 
 # Bicep build artifacts (compiled JSON from .bicep files)
 iac/**/*.json
-!iac/params*.json
 !tests/**/*.json
 
 # plan files create by Codex 

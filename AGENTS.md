@@ -8,14 +8,14 @@
 - `iac/main.bicep` — subscription-scope entrypoint wiring RFC-64 parameters to RG modules.
 - `iac/modules/` — domain modules (`identity`, `network`, `dns`, `security`, `data`, `compute`, `gateway`, `ai`, `automation`, `diagnostics`).
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
-- `iac/params.dev.json` — sample params for dev/what-if.
+- `tests/fixtures/params.dev.json` — sample params for dev/what-if.
 - `tests/test_params.py` — required param presence check.
 - `tests/state_check/` — `what_if.sh` + `diff_report.py` to compare Bicep vs. RG.
 - `tests/validator/` — placeholder for post-deploy actual/expected JSON comparison.
 
 ## Deployment & Validation
-- Create RG, then run: `az deployment sub what-if -f iac/main.bicep -l <region> -p @iac/params.dev.json` (or `az deployment sub create ...`).
-- State check: `./tests/state_check/what_if.sh <region> iac/params.dev.json && python tests/state_check/diff_report.py tests/state_check/what-if.json`.
+- Create RG, then run: `az deployment sub what-if -f iac/main.bicep -l <region> -p @tests/fixtures/params.dev.json` (or `az deployment sub create ...`).
+- State check: `./tests/state_check/what_if.sh <region> tests/fixtures/params.dev.json && python tests/state_check/diff_report.py tests/state_check/what-if.json`.
 - Diagnostics: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
 
 ## Naming & Standards
@@ -42,6 +42,6 @@
 
 ## Coding/PR Practices
 - Keep commits small, sentence-style messages.
-- When adding params/resources, update `params.dev.json`, `test_params.py`, and wiring in `main.bicep`.
+- When adding params/resources, update `tests/fixtures/params.dev.json`, `test_params.py`, and wiring in `main.bicep`.
 - Maintain deterministic names and idempotent templates; avoid random runtime names inside Bicep.
 

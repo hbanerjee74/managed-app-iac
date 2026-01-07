@@ -3,10 +3,10 @@ set -euo pipefail
 
 # Runs az what-if against the subscription-scope deployment and stores the JSON result.
 # Usage: ./tests/state_check/what_if.sh <location> [params_file]
-# Defaults: location=eastus, params_file=iac/params.dev.json
+# Defaults: location=eastus, params_file=tests/fixtures/params.dev.json
 
 LOCATION="${1:-eastus}"
-PARAMS_FILE="${2:-iac/params.dev.json}"
+PARAMS_FILE="${2:-tests/fixtures/params.dev.json}"
 OUT_FILE="tests/state_check/what-if.json"
 
 echo "Running what-if for iac/main.bicep in $LOCATION using $PARAMS_FILE"

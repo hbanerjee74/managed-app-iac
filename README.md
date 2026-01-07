@@ -1,13 +1,12 @@
 # Managed Application IaC for PRD-30
 
-This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include dev/test drift enforcement and resource-level validation tooling.
+This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include resource-level validation tooling for marketplace deployment.
 
 ## Layout
 - `main.bicep` — subscription-scope entrypoint; wires RFC-64 parameters into resource-group modules.
-- `main.rg.bicep` — resource-group-scope entrypoint for dev/test drift enforcement (Complete mode).
 - `modules/*.bicep` — per-domain modules (identity, network, security, data, compute, gateway, ai, automation, diagnostics).
 - `lib/` — shared helpers (naming per RFC-71, constants).
-- `params.dev.json` — sample parameters for local testing.
+- `tests/fixtures/params.dev.json` — sample parameters for local testing.
 
 ## Parameters (RFC-64 names)
 - `resourceGroup`, `location`, `contactEmail`, `adminObjectId`, `adminPrincipalType`
@@ -21,18 +20,18 @@ az group create -n rg-vibedata-dev -l eastus
 az deployment sub create \
   -f iac/main.bicep \
   -l eastus \
-  -p @iac/params.dev.json
+  -p @tests/fixtures/params.dev.json
 ```
 
 For a dry run without changes:
 ```bash
-az deployment sub what-if -f iac/main.bicep -l eastus -p @iac/params.dev.json
+az deployment sub what-if -f iac/main.bicep -l eastus -p @tests/fixtures/params.dev.json
 ```
 
 ## Dev/test state check
 To verify the live RG matches the Bicep in dev/test:
 ```bash
-./tests/state_check/what_if.sh eastus iac/params.dev.json
+./tests/state_check/what_if.sh eastus tests/fixtures/params.dev.json
 python tests/state_check/diff_report.py tests/state_check/what-if.json
 ```
 
@@ -53,26 +52,6 @@ ACTUAL_PATH=/tmp/network.json pytest tests/validator/test_modules.py -k network
 ./scripts/teardown/module_teardown.sh rg-vibedata-dev network --dry-run
 # execute
 ./scripts/teardown/module_teardown.sh rg-vibedata-dev network
-```
-
-## Dev/test strict enforcement (RG scope, Complete mode)
-Use the RG entrypoint (`iac/main.rg.bicep`) with Complete mode for drift enforcement. RG only.
-
-Prereqs (one-time per RG):
-```bash
-az group create -n rg-vibedata-dev -l eastus
-az group update -n rg-vibedata-dev --set tags.IAC=true
-```
-
-What-if (CI gate or manual):
-```bash
-./scripts/deploy/what_if_rg.sh rg-vibedata-dev eastus iac/params.dev.json
-python tests/state_check/diff_report.py tests/state_check/what-if.json
-```
-
-Apply (CD / manual):
-```bash
-./scripts/deploy/apply_rg.sh rg-vibedata-dev eastus iac/params.dev.json
 ```
 
 ## Validating deployed state against expectation (optional)
