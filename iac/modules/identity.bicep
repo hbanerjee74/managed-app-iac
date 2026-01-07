@@ -29,19 +29,43 @@ resource vibedataUami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-
   tags: tags
 }
 
+// Propagation delay to allow managed identity to propagate across tenants (required for Managed Apps).
+resource propagationDelay 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'propagation-delay'
+  location: location
+  kind: 'AzurePowerShell'
+  properties: {
+    azPowerShellVersion: '2.0'
+    scriptContent: 'Start-Sleep -Seconds 30'
+    timeout: 'PT1H'
+    cleanupPreference: 'OnSuccess'
+    retentionInterval: 'P1D'
+  }
+  dependsOn: [
+    vibedataUami
+  ]
+}
+
 // Assign Contributor on the Managed Resource Group to the UAMI.
 resource uamiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(resourceGroup().id, vibedataUami.id, 'Contributor')
+  scope: resourceGroup()  // Explicitly scope to MRG
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor
     principalId: vibedataUami.properties.principalId
     principalType: 'ServicePrincipal'
+    delegatedManagedIdentityResourceId: vibedataUami.id  // Required for Managed Apps (cross-tenant scenarios)
   }
+  dependsOn: [
+    vibedataUami
+    propagationDelay  // Wait for propagation
+  ]
 }
 
 // Assign Reader on the Managed Resource Group to the customer admin.
 resource customerReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(resourceGroup().id, adminObjectId, 'Reader')
+  scope: resourceGroup()  // Explicitly scope to MRG
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7') // Reader
     principalId: adminObjectId
@@ -62,7 +86,12 @@ resource uamiLawContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '73c42c96-874c-492b-b04d-ab87d138a893') // Log Analytics Contributor
     principalId: vibedataUami.properties.principalId
     principalType: 'ServicePrincipal'
+    delegatedManagedIdentityResourceId: vibedataUami.id  // Required for Managed Apps
   }
+  dependsOn: [
+    vibedataUami
+    propagationDelay
+  ]
 }
 
 output uamiPrincipalId string = vibedataUami.properties.principalId

@@ -1,10 +1,7 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
-@description('Existing resource group where all resources will be deployed (RFC-64: resourceGroup).')
-param resourceGroup string
-
-@description('Managed Resource Group name (RFC-64 mrgName).')
-param mrgName string
+@description('Resource group name used for deterministic naming (RFC-64: resourceGroupName, same as mrgName).')
+param resourceGroupName string
 
 @description('Azure region for deployment.')
 param location string
@@ -100,7 +97,7 @@ param created string = ''
 module naming 'lib/naming.bicep' = {
   name: 'naming'
   params: {
-    resourceGroupName: mrgName
+    resourceGroupName: resourceGroupName
     purpose: 'platform'
   }
 }
@@ -115,13 +112,8 @@ var tags = union(
 
 // TODO: add remaining RFC-64 parameters as modules are implemented.
 
-resource deploymentRg 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
-  name: resourceGroup
-}
-
 module diagnostics 'modules/diagnostics.bicep' = {
   name: 'diagnostics'
-  scope: deploymentRg
   params: {
     location: location
     retentionDays: retentionDays
@@ -132,7 +124,6 @@ module diagnostics 'modules/diagnostics.bicep' = {
 
 module identity 'modules/identity.bicep' = {
   name: 'identity'
-  scope: deploymentRg
   dependsOn: [diagnostics]
   params: {
     location: location
@@ -144,17 +135,8 @@ module identity 'modules/identity.bicep' = {
   }
 }
 
-module identitySubscription 'modules/identity.subscription.bicep' = {
-  name: 'identity-subscription'
-  scope: subscription()
-  params: {
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
-  }
-}
-
 module network 'modules/network.bicep' = {
   name: 'network'
-  scope: deploymentRg
   params: {
     location: location
     servicesVnetCidr: servicesVnetCidr
@@ -169,7 +151,6 @@ module network 'modules/network.bicep' = {
 
 module dns 'modules/dns.bicep' = {
   name: 'dns'
-  scope: deploymentRg
   params: {
     vnetName: naming.outputs.names.vnet
     tags: tags
@@ -178,7 +159,6 @@ module dns 'modules/dns.bicep' = {
 
 module security 'modules/security.bicep' = {
   name: 'security'
-  scope: deploymentRg
   params: {
     location: location
     kvName: naming.outputs.names.kv
@@ -207,7 +187,6 @@ module security 'modules/security.bicep' = {
 
 module data 'modules/data.bicep' = {
   name: 'data'
-  scope: deploymentRg
   params: {
     location: location
     psqlName: naming.outputs.names.psql
@@ -227,7 +206,6 @@ module data 'modules/data.bicep' = {
 
 module compute 'modules/compute.bicep' = {
   name: 'compute'
-  scope: deploymentRg
   params: {
     location: location
     sku: sku
@@ -256,7 +234,6 @@ module compute 'modules/compute.bicep' = {
 
 module gateway 'modules/gateway.bicep' = {
   name: 'gateway'
-  scope: deploymentRg
   params: {
     location: location
     agwName: naming.outputs.names.agw
@@ -274,7 +251,6 @@ module gateway 'modules/gateway.bicep' = {
 
 module ai 'modules/ai.bicep' = {
   name: 'ai'
-  scope: deploymentRg
   params: {
     location: location
     aiServicesTier: aiServicesTier
@@ -296,7 +272,6 @@ module ai 'modules/ai.bicep' = {
 
 module automation 'modules/automation.bicep' = {
   name: 'automation'
-  scope: deploymentRg
   params: {
     location: location
     automationName: naming.outputs.names.automation
@@ -315,7 +290,6 @@ module automation 'modules/automation.bicep' = {
 
 module logic 'modules/logic.bicep' = {
   name: 'logic'
-  scope: deploymentRg
   params: {
     location: location
     logicName: naming.outputs.names.logic

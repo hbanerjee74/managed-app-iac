@@ -5,7 +5,7 @@
 - IaC lives under `iac/` with Bicep modules; tests live under `tests/` (param checks, state_check, validator stubs).
 
 ## Project Structure
-- `iac/main.bicep` — subscription-scope entrypoint wiring RFC-64 parameters to RG modules.
+- `iac/main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters to RG modules.
 - `iac/modules/` — domain modules (`identity`, `network`, `dns`, `security`, `data`, `compute`, `gateway`, `ai`, `automation`, `diagnostics`).
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
 - `tests/fixtures/params.dev.json` — sample params for dev/what-if.
@@ -14,8 +14,8 @@
 - `tests/validator/` — placeholder for post-deploy actual/expected JSON comparison.
 
 ## Deployment & Validation
-- Create RG, then run: `az deployment sub what-if -f iac/main.bicep -l <region> -p @tests/fixtures/params.dev.json` (or `az deployment sub create ...`).
-- State check: `./tests/state_check/what_if.sh <region> tests/fixtures/params.dev.json && python tests/state_check/diff_report.py tests/state_check/what-if.json`.
+- Create RG, then run: `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create ...`).
+- State check: `./tests/state_check/what_if.sh tests/fixtures/params.dev.json && python tests/state_check/diff_report.py tests/state_check/what-if.json`.
 - Diagnostics: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
 
 ## Naming & Standards
@@ -26,6 +26,8 @@
 ## Identities & RBAC
 - Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push, Postgres Admin). Automation Job Operator assigned to `adminObjectId`.
 - `adminPrincipalType` param (User/Group) for RG Reader assignment.
+- **Managed Application Requirements**: All role assignments use `delegatedManagedIdentityResourceId` property for cross-tenant scenarios. Includes 30-second propagation delay after UAMI creation to allow identity propagation across tenants.
+- **Scope**: All RBAC assignments occur at resource group scope (subscription-scope roles like Cost Management Reader are not assigned).
 
 ## Postgres Roles
 - Deployment script attempts to create `vd_dbo`/`vd_reader` and grant UAMI; relies on `psql` availability in deploymentScripts runtime. If it fails, run equivalent via runbook/CI agent.

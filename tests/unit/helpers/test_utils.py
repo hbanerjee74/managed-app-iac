@@ -28,7 +28,10 @@ def run_what_if(
     resource_group: str,
     location: str = 'eastus'
 ) -> tuple[bool, str]:
-    """Run Azure what-if for a Bicep deployment."""
+    """Run Azure what-if for a Bicep deployment.
+    
+    Returns JSON output with full resource payloads for parsing and validation.
+    """
     try:
         result = subprocess.run(
             [
@@ -37,6 +40,8 @@ def run_what_if(
                 '--location', location,
                 '--template-file', str(bicep_file),
                 '--parameters', f'@{params_file}',
+                '--output', 'json',
+                '--result-format', 'FullResourcePayloads',
                 '--no-pretty-print'
             ],
             capture_output=True,

@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Runs az what-if against the subscription-scope deployment and stores the JSON result.
-# Usage: ./tests/state_check/what_if.sh <location> [params_file]
-# Defaults: location=eastus, params_file=tests/fixtures/params.dev.json
+# Runs az what-if against the resource group-scope deployment and stores the JSON result.
+# Usage: ./tests/state_check/what_if.sh [params_file]
+# Defaults: params_file=tests/fixtures/params.dev.json
+# Extracts resourceGroupName from params file
 
-LOCATION="${1:-eastus}"
-PARAMS_FILE="${2:-tests/fixtures/params.dev.json}"
+PARAMS_FILE="${1:-tests/fixtures/params.dev.json}"
 OUT_FILE="tests/state_check/what-if.json"
 
-echo "Running what-if for iac/main.bicep in $LOCATION using $PARAMS_FILE"
-az deployment sub what-if \
+# Extract resourceGroupName from params file
+RG_NAME=$(jq -r '.parameters.resourceGroupName.value' "$PARAMS_FILE")
+
+if [ -z "$RG_NAME" ] || [ "$RG_NAME" == "null" ]; then
+  echo "Error: Could not extract resourceGroupName from $PARAMS_FILE"
+  exit 1
+fi
+
+echo "Running what-if for iac/main.bicep in resource group $RG_NAME using $PARAMS_FILE"
+az deployment group what-if \
+  --resource-group "$RG_NAME" \
   -f iac/main.bicep \
-  -l "$LOCATION" \
   -p "@${PARAMS_FILE}" \
-  --result-format=Full \
+  --output json \
+  --result-format=FullResourcePayloads \
   --no-pretty-print \
   > "$OUT_FILE"
 

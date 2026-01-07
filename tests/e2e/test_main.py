@@ -38,7 +38,7 @@ def get_resource_group_from_params():
     """Extract resource group name from params file."""
     try:
         params_data = json.loads(PARAMS_FILE.read_text())
-        return params_data.get('parameters', {}).get('resourceGroup', {}).get('value', TEST_RG)
+        return params_data.get('parameters', {}).get('resourceGroupName', {}).get('value', TEST_RG)
     except Exception:
         return TEST_RG
 
@@ -228,10 +228,11 @@ class TestMainBicep:
     def test_what_if_succeeds(self):
         """Test that what-if execution succeeds (default mode)."""
         try:
+            rg_name = get_resource_group_from_params()
             result = subprocess.run(
                 [
-                    'az', 'deployment', 'sub', 'what-if',
-                    '--location', TEST_LOCATION,
+                    'az', 'deployment', 'group', 'what-if',
+                    '--resource-group', rg_name,
                     '--template-file', str(MAIN_BICEP),
                     '--parameters', f'@{PARAMS_FILE}',
                     '--output', 'json',
@@ -298,8 +299,8 @@ class TestMainBicep:
         try:
             result = subprocess.run(
                 [
-                    'az', 'deployment', 'sub', 'create',
-                    '--location', TEST_LOCATION,
+                    'az', 'deployment', 'group', 'create',
+                    '--resource-group', test_resource_group,
                     '--template-file', str(MAIN_BICEP),
                     '--parameters', f'@{PARAMS_FILE}'
                 ],
@@ -326,8 +327,8 @@ class TestMainBicep:
         try:
             result = subprocess.run(
                 [
-                    'az', 'deployment', 'sub', 'what-if',
-                    '--location', TEST_LOCATION,
+                    'az', 'deployment', 'group', 'what-if',
+                    '--resource-group', test_resource_group,
                     '--template-file', str(MAIN_BICEP),
                     '--parameters', f'@{PARAMS_FILE}',
                     '--output', 'json',

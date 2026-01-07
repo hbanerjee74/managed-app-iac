@@ -1,4 +1,4 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
 @description('Resource group name used as seed for deterministic nanoid generation.')
 param resourceGroupName string

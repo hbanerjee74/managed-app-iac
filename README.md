@@ -3,35 +3,38 @@
 This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include resource-level validation tooling for marketplace deployment.
 
 ## Layout
-- `main.bicep` — subscription-scope entrypoint; wires RFC-64 parameters into resource-group modules.
+- `main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters into resource-group modules.
 - `modules/*.bicep` — per-domain modules (identity, network, security, data, compute, gateway, ai, automation, diagnostics).
 - `lib/` — shared helpers (naming per RFC-71, constants).
 - `tests/fixtures/params.dev.json` — sample parameters for local testing.
 
 ## Parameters (RFC-64 names)
-- `resourceGroup`, `location`, `contactEmail`, `adminObjectId`, `adminPrincipalType`
+- `resourceGroupName` (replaces `resourceGroup` and `mrgName`), `location`, `contactEmail`, `adminObjectId`, `adminPrincipalType`
 - `servicesVnetCidr`, `customerIpRanges`, `publisherIpRanges`
 - `sku` (App Service Plan), `computeTier` (PostgreSQL), `aiServicesTier`
 - Defaults/display-only: `appGwSku`, `appGwCapacity`, `storageGB`, `backupRetentionDays`, `retentionDays`
 
 ## Run locally
 ```bash
-az group create -n rg-vibedata-dev -l eastus
-az deployment sub create \
+az group create -n vd-rg-dev-abc12345 -l eastus
+az deployment group create \
+  --resource-group vd-rg-dev-abc12345 \
   -f iac/main.bicep \
-  -l eastus \
   -p @tests/fixtures/params.dev.json
 ```
 
 For a dry run without changes:
 ```bash
-az deployment sub what-if -f iac/main.bicep -l eastus -p @tests/fixtures/params.dev.json
+az deployment group what-if \
+  --resource-group vd-rg-dev-abc12345 \
+  -f iac/main.bicep \
+  -p @tests/fixtures/params.dev.json
 ```
 
 ## Dev/test state check
 To verify the live RG matches the Bicep in dev/test:
 ```bash
-./tests/state_check/what_if.sh eastus tests/fixtures/params.dev.json
+./tests/state_check/what_if.sh tests/fixtures/params.dev.json
 python tests/state_check/diff_report.py tests/state_check/what-if.json
 ```
 
