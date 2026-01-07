@@ -79,6 +79,5 @@ Use actual deployment tests (`ENABLE_ACTUAL_DEPLOYMENT=true`) when you need to:
 1. **Keep what-if tests**: Fast, safe, catches syntax/API errors
 2. **Add property validation**: Parse what-if output to validate RFC-71 compliance
 3. **Use actual deployment sparingly**: Only for full-scope E2E tests, opt-in only
-4. **Add post-deployment validation**: Use `collect_actual_state.py` to validate actual resources
-5. **Test error scenarios**: Add tests for invalid inputs, missing params
+4. **Test error scenarios**: Add tests for invalid inputs, missing params
 

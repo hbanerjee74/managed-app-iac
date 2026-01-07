@@ -18,10 +18,10 @@
 4. Credit reporters if desired.
 
 ## Scope for This Repo
-- Azure IaC (Bicep modules, scripts, validator tooling) under `iac/`, `scripts/`, `tests/`.
+- Azure IaC (Bicep modules, scripts, test tooling) under `iac/`, `scripts/`, `tests/`.
 - Not in scope: downstream application code or runtime workloads.
 
 ## Secure Development Notes
 - Public network access is disabled by default for PaaS resources; validate any changes against RFC-42/64/71.
 - Managed identities and RBAC bindings are preferred over keys; avoid adding shared keys or public endpoints.
-- Run `pytest` (including validator offline tests) before releasing changes.
+- Run `pytest` before releasing changes.

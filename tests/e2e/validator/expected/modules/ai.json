@@ -1,8 +1,0 @@
-{
-  "resourceGroup": "rg-vibedata-dev",
-  "resources": [
-    { "type": "Microsoft.Search/searchServices", "name": "vd-search-platform-<16>" },
-    { "type": "Microsoft.CognitiveServices/accounts", "name": "vd-ai-platform-<16>" }
-  ]
-}
-

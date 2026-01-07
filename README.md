@@ -3,18 +3,21 @@
 This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include resource-level validation tooling for marketplace deployment.
 
 ## Layout
+
 - `main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters into resource-group modules.
 - `modules/*.bicep` — per-domain modules (identity, network, security, data, compute, gateway, ai, automation, diagnostics).
 - `lib/` — shared helpers (naming per RFC-71, constants).
 - `tests/fixtures/params.dev.json` — sample parameters for local testing.
 
 ## Parameters (RFC-64 names)
+
 - `resourceGroupName` (replaces `resourceGroup` and `mrgName`), `location`, `contactEmail`, `adminObjectId`, `adminPrincipalType`
 - `servicesVnetCidr`, `customerIpRanges`, `publisherIpRanges`
 - `sku` (App Service Plan), `computeTier` (PostgreSQL), `aiServicesTier`
 - Defaults/display-only: `appGwSku`, `appGwCapacity`, `storageGB`, `backupRetentionDays`, `retentionDays`
 
 ## Run locally
+
 ```bash
 az group create -n vd-rg-dev-abc12345 -l eastus
 az deployment group create \
@@ -24,6 +27,7 @@ az deployment group create \
 ```
 
 For a dry run without changes:
+
 ```bash
 az deployment group what-if \
   --resource-group vd-rg-dev-abc12345 \
@@ -31,46 +35,30 @@ az deployment group what-if \
   -p @tests/fixtures/params.dev.json
 ```
 
-## Dev/test state check
-To verify the live RG matches the Bicep in dev/test:
+## Testing
+
+Run unit tests:
+
 ```bash
-./tests/e2e/state_check/what_if.sh tests/fixtures/params.dev.json
-python tests/e2e/state_check/diff_report.py tests/e2e/state_check/what-if.json
+pytest tests/unit/test_modules.py -v
 ```
 
-Module-level validator (`ACTUAL_PATH` required):
+Run E2E tests (what-if mode, safe):
+
 ```bash
-python tests/e2e/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
-ACTUAL_PATH=/tmp/actual.json pytest tests/e2e/validator/test_modules.py
+pytest tests/e2e/
 ```
 
-Per-module actual + teardown:
-```bash
-# collect only one module
-python tests/e2e/validator/collect_actual_state.py rg-vibedata-dev --module network --output /tmp/network.json
-ACTUAL_PATH=/tmp/network.json pytest tests/e2e/validator/test_modules.py -k network
+Run E2E tests (actual deployment, opt-in):
 
-# tear down resources for a module (irreversible)
-# preview
-./scripts/teardown/module_teardown.sh rg-vibedata-dev network --dry-run
-# execute
-./scripts/teardown/module_teardown.sh rg-vibedata-dev network
-```
-
-## Validating deployed state against expectation (optional)
-1) Collect actual state (best-effort summary):
 ```bash
-python tests/e2e/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
+ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
 ```
-2) Compare against template:
-```bash
-ACTUAL_EXPECTATION_PATH=/tmp/actual.json pytest tests/e2e/validator/test_expectation_template.py
-```
-Edit `tests/e2e/validator/expected/dev_expectation.template.json` to tighten or expand checks (placeholders like `<16>` validate nanoid lengths; lists are matched as subsets).
 
 Keep parameter names and casing aligned with RFC-64 to match the eventual Marketplace handoff.
 
 ## Release Notes
+
 - 2026-01-05 — v0.5.0 RFC-71 deterministic naming: [docs/RELEASE-NOTES-2026-01-05-v0.5.0.md](docs/RELEASE-NOTES-2026-01-05-v0.5.0.md)
 - 2026-01-03 — v0.4.0 module validator + RFC-64 params: [docs/RELEASE-NOTES-2026-01-03-v0.4.0.md](docs/RELEASE-NOTES-2026-01-03-v0.4.0.md)
 - 2026-01-03 — v0.3.0 validator resource-level coverage: [docs/RELEASE-NOTES-2026-01-03-v0.3.0.md](docs/RELEASE-NOTES-2026-01-03-v0.3.0.md)

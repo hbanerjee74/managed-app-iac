@@ -6,14 +6,6 @@ This directory contains full-scope tests for the complete `main.bicep` deploymen
 
 ```text
 tests/e2e/
-  state_check/              # What-if drift detection utilities
-    what_if.sh             # Run what-if and save JSON output
-    diff_report.py         # Summarize what-if changes
-  validator/                # Post-deployment validation tools
-    collect_actual_state.py # Collect actual Azure resource state
-    compare_expectation.py  # Compare actual vs expected state
-    expected/              # Expected state templates
-    test_*.py              # Validation test files
   test_main.py             # Full-scope test cases
 ```
 

@@ -5,15 +5,10 @@ import pytest
 import subprocess
 import time
 from pathlib import Path
-import sys
 
-# Add state_check to path for importing utilities
-STATE_CHECK_DIR = Path(__file__).parent / 'state_check'
-sys.path.insert(0, str(STATE_CHECK_DIR.parent))
-
-# Import summarize function from diff_report
+# Summarize what-if changes helper function
 def summarize(changes):
-    """Summarize what-if changes (from e2e/state_check/diff_report.py)."""
+    """Summarize what-if changes by change type."""
     summary = {"Create": 0, "Modify": 0, "Delete": 0, "NoChange": 0}
     for change in changes:
         change_type = change.get("changeType", "Unknown")
@@ -323,7 +318,7 @@ class TestMainBicep:
             pytest.fail(f"Invalid JSON in what-if output: {e}")
 
     def test_what_if_summary(self):
-        """Test that what-if summary can be generated (using state_check utilities)."""
+        """Test that what-if summary can be generated."""
         if not WHAT_IF_OUTPUT.exists():
             pytest.skip("What-if output not available - run test_what_if_succeeds first")
         
@@ -375,7 +370,7 @@ class TestMainBicep:
         reason="Actual deployment disabled. Set ENABLE_ACTUAL_DEPLOYMENT=true to enable."
     )
     def test_post_deployment_state_check(self, test_resource_group):
-        """Test post-deployment state check using state_check utilities.
+        """Test post-deployment state check using what-if.
         
         Resource group is automatically created before test and deleted after.
         """
