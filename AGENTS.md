@@ -8,19 +8,27 @@
 ## Project Structure
 
 - `iac/main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters to RG modules.
-- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `security`, `data`, `compute`, `gateway`, `ai`, `automation`, `diagnostics`).
+- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `security`, `data`, `compute`, `gateway`, `ai`, `automation`, `diagnostics`, `logic`).
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
-- `tests/fixtures/params.dev.json` — sample params for dev/what-if.
+- `tests/fixtures/params.dev.json` — single source of truth for RG name, location, subscription ID, and all parameters.
 - `tests/test_params.py` — required param presence check.
-- `tests/unit/` — unit tests for individual modules (what-if mode).
+- `tests/test_shell_scripts.py` — shellcheck linting for deploy scripts.
+- `tests/unit/` — unit tests for individual modules (what-if mode, auto-creates RG if needed).
 - `tests/e2e/` — end-to-end tests for full deployment (what-if and actual deployment modes).
+- `pytest.ini` — pytest configuration for verbose output by default.
 
 ## Deployment & Validation
 
-- Create RG, then run: `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create ...`).
-- Unit tests: `pytest tests/unit/test_modules.py -v`
-- E2E tests: `pytest tests/e2e/` (what-if mode) or `ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment`
-- Diagnostics: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
+**Recommended approach: Use pytest tests for validation and deployment.**
+
+- **Unit tests** (what-if mode, auto-creates RG if needed): `pytest tests/unit/test_modules.py -v`
+- **E2E what-if tests** (safe, no actual deployment): `pytest tests/e2e/`
+- **E2E actual deployment** (opt-in, creates real resources): `ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment`
+- **Keep resource group for debugging**: `KEEP_RESOURCE_GROUP=true` (with `ENABLE_ACTUAL_DEPLOYMENT=true`)
+- **Manual deployment** (if needed): `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create ...`)
+- **Diagnostics**: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
+
+See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 
 ## Naming & Standards
 
@@ -41,12 +49,28 @@
 
 ## App Gateway
 
-- WAF_v2 with customer/publisher IP allowlists and deny-all; connection draining enabled. Listeners/backends/probes intentionally empty until app endpoints are ready.
+- WAF_v2 with customer/publisher IP allowlists and deny-all; connection draining enabled.
+- **Placeholder resources**: Minimal placeholder backend pool, listener, and routing rule added to satisfy Azure validation requirements (see `.vibedata/spec-changes.md` section 12). Actual app endpoints should be configured when ready.
 
 ## Tests & Quality
 
-- Minimal pytest: `pytest tests/test_params.py` (requires pytest installed).
-- What-if/diag checks are optional dev utilities; not wired into CI.
+**Test suite is the primary validation method:**
+
+- **Parameter validation**: `pytest tests/test_params.py` — validates required params are present
+- **Unit tests**: `pytest tests/unit/test_modules.py -v` — validates individual modules (what-if mode)
+- **E2E tests**: `pytest tests/e2e/` — validates full deployment (what-if mode by default)
+- **Shell script linting**: `pytest tests/test_shell_scripts.py` — runs shellcheck if available
+- **Verbose output**: Configured in `pytest.ini` (shows test names and skip reasons by default)
+- **Debugging**: Set `KEEP_RESOURCE_GROUP=true` to keep resources after E2E deployment tests
+
+**Test output options:**
+
+- `-v` or `--verbose` — Show test names (default)
+- `-rs` — Show skip reasons
+- `-ra` — Show all test outcomes
+- `-vv` — Extra verbose
+
+See [`tests/README.md`](tests/README.md) for comprehensive test documentation including CI/CD integration.
 
 ## Git & Ignore Rules
 

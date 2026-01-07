@@ -1,7 +1,0 @@
-{
-  "resourceGroup": "rg-vibedata-dev",
-  "resources": [
-    { "type": "Microsoft.DBforPostgreSQL/flexibleServers", "name": "vd-psql-platform-<16>" }
-  ]
-}
-

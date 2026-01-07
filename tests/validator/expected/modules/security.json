@@ -1,9 +1,0 @@
-{
-  "resourceGroup": "rg-vibedata-dev",
-  "resources": [
-    { "type": "Microsoft.KeyVault/vaults", "name": "vd-kv-platform-<16>" },
-    { "type": "Microsoft.Storage/storageAccounts", "name": "vdstplatform<8>" },
-    { "type": "Microsoft.ContainerRegistry/registries", "name": "vd-acr-platform-<16>" }
-  ]
-}
-
