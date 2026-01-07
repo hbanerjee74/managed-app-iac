@@ -29,10 +29,10 @@
     "vnetCidr": "10.20.0.0/20",
     "subnets": {
       "snet-appgw": "10.20.0.0/27",
-      "snet-aks": "10.20.0.32/25",
-      "snet-appsvc": "10.20.0.160/28",
-      "snet-private-endpoints": "10.20.0.176/28",
-      "snet-psql": "10.20.0.192/28"
+      "snet-aks": "10.20.0.128/25",
+      "snet-appsvc": "10.20.0.32/28",
+      "snet-private-endpoints": "10.20.0.48/28",
+      "snet-psql": "10.20.0.64/28"
     },
     "privateDnsZones": [
       "privatelink.vaultcore.azure.net",
@@ -64,17 +64,17 @@
         },
         "subnets": {
           "snet-appgw": "10.20.0.0/27",
-          "snet-aks": "10.20.0.32/25",
-          "snet-appsvc": "10.20.0.160/28",
-          "snet-private-endpoints": "10.20.0.176/28",
-          "snet-psql": "10.20.0.192/28"
+          "snet-aks": "10.20.0.128/25",
+          "snet-appsvc": "10.20.0.32/28",
+          "snet-private-endpoints": "10.20.0.48/28",
+          "snet-psql": "10.20.0.64/28"
         },
         "subnetsDetailed": [
           { "name": "snet-appgw", "addressPrefix": "10.20.0.0/27", "networkSecurityGroupId": "__ANY__" },
-          { "name": "snet-aks", "addressPrefix": "10.20.0.32/25", "networkSecurityGroupId": "__ANY__" },
-          { "name": "snet-appsvc", "addressPrefix": "10.20.0.160/28", "networkSecurityGroupId": "__ANY__", "delegations": [ { "serviceName": "Microsoft.Web/serverFarms" } ] },
-          { "name": "snet-private-endpoints", "addressPrefix": "10.20.0.176/28", "networkSecurityGroupId": "__ANY__" },
-          { "name": "snet-psql", "addressPrefix": "10.20.0.192/28", "delegations": [ { "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers" } ], "privateEndpointNetworkPolicies": "Disabled", "privateLinkServiceNetworkPolicies": "Disabled" }
+          { "name": "snet-aks", "addressPrefix": "10.20.0.128/25", "networkSecurityGroupId": "__ANY__" },
+          { "name": "snet-appsvc", "addressPrefix": "10.20.0.32/28", "networkSecurityGroupId": "__ANY__", "delegations": [ { "serviceName": "Microsoft.Web/serverFarms" } ] },
+          { "name": "snet-private-endpoints", "addressPrefix": "10.20.0.48/28", "networkSecurityGroupId": "__ANY__" },
+          { "name": "snet-psql", "addressPrefix": "10.20.0.64/28", "delegations": [ { "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers" } ], "privateEndpointNetworkPolicies": "Disabled", "privateLinkServiceNetworkPolicies": "Disabled" }
         ]
       }
     },
