@@ -11,6 +11,47 @@ tests/e2e/
   test_main.py              # Full-scope test cases
 ```
 
+## Prerequisites
+
+Before running E2E tests, you must authenticate with Azure CLI:
+
+### 1. Authenticate with Azure CLI
+```bash
+az login
+```
+
+### 2. Set Your Subscription (if you have multiple subscriptions)
+```bash
+az account set --subscription <subscription-id>
+```
+
+### 3. Verify Authentication and Check Subscription
+```bash
+az account show
+```
+
+Verify that the correct subscription is selected and authentication is active.
+
+### 4. Run E2E Tests
+```bash
+pytest tests/e2e/
+```
+
+**Note**: If you skip authentication, tests will automatically skip with a message indicating Azure CLI is not configured.
+
+### Alternative: Service Principal (for CI/CD)
+
+For CI/CD pipelines, use a service principal instead:
+
+```bash
+az login --service-principal \
+  --username <app-id> \
+  --password <password> \
+  --tenant <tenant-id>
+```
+
+Or use managed identity if running in Azure.
+
 ## Running Tests
 
 ```bash
@@ -52,10 +93,32 @@ export ENABLE_ACTUAL_DEPLOYMENT=true
 pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
 ```
 
-## Cleanup
+## Resource Group Management
 
-If you run actual deployment tests, remember to clean up resources:
+### Automatic Resource Group Management
+
+When `ENABLE_ACTUAL_DEPLOYMENT=true`, the test harness **automatically manages** the resource group:
+
+- **Before each test**: Creates a fresh resource group (deletes existing one if present)
+- **After each test**: Deletes the resource group and waits for completion
+- **On failure**: Ensures cleanup happens even if tests fail
+- **Scope**: One resource group per test function (`scope="function"`)
+
+### Resource Group Behavior
+
+1. **Delete and Recreate**: If the resource group exists, it's deleted first, then recreated
+2. **Wait for Completion**: All operations wait for Azure to complete (no `--no-wait`)
+3. **Timeout Protection**: 
+   - Creation timeout: 5 minutes
+   - Deletion timeout: 10 minutes
+4. **Failure Handling**: Cleanup always runs, even if tests fail
+
+### Manual Cleanup (if needed)
+
+If automatic cleanup fails or you need to manually clean up:
 ```bash
-az group delete --name <resource-group-name> --yes --no-wait
+az group delete --name <resource-group-name> --yes
 ```
+
+**Note**: With automatic resource group management enabled, manual cleanup should rarely be needed.
 

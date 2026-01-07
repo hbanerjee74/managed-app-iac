@@ -3,6 +3,7 @@ import os
 import json
 import pytest
 import subprocess
+import time
 from pathlib import Path
 import sys
 
@@ -26,9 +27,170 @@ PARAMS_FILE = FIXTURES_DIR / 'params.dev.json'
 TEST_RG = 'test-rg'
 TEST_LOCATION = 'eastus'
 WHAT_IF_OUTPUT = Path(__file__).parent / 'what-if-output.json'
+RG_CREATE_TIMEOUT = 300  # 5 minutes
+RG_DELETE_TIMEOUT = 600  # 10 minutes
 
 # Check if actual deployment is enabled
 ENABLE_ACTUAL_DEPLOYMENT = os.getenv('ENABLE_ACTUAL_DEPLOYMENT', 'false').lower() == 'true'
+
+
+def get_resource_group_from_params():
+    """Extract resource group name from params file."""
+    try:
+        params_data = json.loads(PARAMS_FILE.read_text())
+        return params_data.get('parameters', {}).get('resourceGroup', {}).get('value', TEST_RG)
+    except Exception:
+        return TEST_RG
+
+
+def get_location_from_params():
+    """Extract location from params file."""
+    try:
+        params_data = json.loads(PARAMS_FILE.read_text())
+        return params_data.get('parameters', {}).get('location', {}).get('value', TEST_LOCATION)
+    except Exception:
+        return TEST_LOCATION
+
+
+def create_resource_group(rg_name: str, location: str, timeout: int = RG_CREATE_TIMEOUT):
+    """Create resource group, deleting existing one if present.
+    
+    Args:
+        rg_name: Name of the resource group
+        location: Azure region
+        timeout: Maximum time to wait for operations (seconds)
+    
+    Raises:
+        RuntimeError: If creation or deletion fails
+    """
+    # Check if RG exists and delete it
+    check_result = subprocess.run(
+        ['az', 'group', 'exists', '--name', rg_name],
+        capture_output=True,
+        text=True,
+        check=False
+    )
+    
+    if check_result.stdout.strip().lower() == 'true':
+        # Delete existing RG
+        print(f"Resource group {rg_name} exists. Deleting...")
+        delete_result = subprocess.run(
+            ['az', 'group', 'delete', '--name', rg_name, '--yes'],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if delete_result.returncode != 0:
+            raise RuntimeError(f"Failed to delete existing resource group: {delete_result.stderr}")
+        
+        # Wait for deletion to complete
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            check_result = subprocess.run(
+                ['az', 'group', 'exists', '--name', rg_name],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if check_result.stdout.strip().lower() == 'false':
+                break
+            time.sleep(5)
+        else:
+            raise RuntimeError(f"Resource group deletion timed out after {timeout} seconds")
+    
+    # Create new RG
+    print(f"Creating resource group {rg_name} in {location}...")
+    create_result = subprocess.run(
+        ['az', 'group', 'create', '--name', rg_name, '--location', location],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    
+    # Verify creation
+    check_result = subprocess.run(
+        ['az', 'group', 'exists', '--name', rg_name],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    
+    if check_result.stdout.strip().lower() != 'true':
+        raise RuntimeError(f"Resource group creation verification failed")
+    
+    return rg_name
+
+
+def delete_resource_group(rg_name: str, timeout: int = RG_DELETE_TIMEOUT):
+    """Delete resource group and wait for completion.
+    
+    Args:
+        rg_name: Name of the resource group
+        timeout: Maximum time to wait for deletion (seconds)
+    
+    Returns:
+        bool: True if deletion succeeded, False otherwise
+    """
+    print(f"Deleting resource group {rg_name}...")
+    delete_result = subprocess.run(
+        ['az', 'group', 'delete', '--name', rg_name, '--yes'],
+        capture_output=True,
+        text=True,
+        check=False
+    )
+    
+    if delete_result.returncode != 0:
+        print(f"Warning: Failed to delete resource group: {delete_result.stderr}")
+        return False
+    
+    # Wait for deletion to complete
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        check_result = subprocess.run(
+            ['az', 'group', 'exists', '--name', rg_name],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if check_result.stdout.strip().lower() == 'false':
+            print(f"Resource group {rg_name} deleted successfully")
+            return True
+        time.sleep(5)
+    
+    print(f"Warning: Resource group deletion timed out after {timeout} seconds")
+    return False
+
+
+@pytest.fixture(scope="function")
+def test_resource_group():
+    """Create test resource group before each test, delete after.
+    
+    Only creates/deletes when ENABLE_ACTUAL_DEPLOYMENT=true.
+    For what-if tests, uses existing RG from params file.
+    
+    Yields:
+        str: Resource group name
+    """
+    if not ENABLE_ACTUAL_DEPLOYMENT:
+        # For what-if tests, just return RG name from params
+        yield get_resource_group_from_params()
+        return
+    
+    # For actual deployment tests, create fresh RG
+    rg_name = get_resource_group_from_params()
+    location = get_location_from_params()
+    
+    try:
+        # Create RG (deletes existing if present)
+        create_resource_group(rg_name, location)
+        yield rg_name
+    finally:
+        # Always cleanup, even if test failed
+        try:
+            delete_resource_group(rg_name)
+        except Exception as e:
+            print(f"Error during resource group cleanup: {e}")
 
 
 class TestMainBicep:
@@ -72,7 +234,8 @@ class TestMainBicep:
                     '--location', TEST_LOCATION,
                     '--template-file', str(MAIN_BICEP),
                     '--parameters', f'@{PARAMS_FILE}',
-                    '--result-format', 'Full',
+                    '--output', 'json',
+                    '--result-format', 'FullResourcePayloads',
                     '--no-pretty-print'
                 ],
                 capture_output=True,
@@ -126,10 +289,12 @@ class TestMainBicep:
         not ENABLE_ACTUAL_DEPLOYMENT,
         reason="Actual deployment disabled. Set ENABLE_ACTUAL_DEPLOYMENT=true to enable."
     )
-    def test_actual_deployment(self):
-        """Test actual deployment (opt-in only)."""
-        # This test only runs if ENABLE_ACTUAL_DEPLOYMENT=true
-        # WARNING: This creates real Azure resources!
+    def test_actual_deployment(self, test_resource_group):
+        """Test actual deployment (opt-in only).
+        
+        Resource group is automatically created before test and deleted after.
+        """
+        # Resource group is already created by fixture
         try:
             result = subprocess.run(
                 [
@@ -152,18 +317,11 @@ class TestMainBicep:
         not ENABLE_ACTUAL_DEPLOYMENT,
         reason="Actual deployment disabled. Set ENABLE_ACTUAL_DEPLOYMENT=true to enable."
     )
-    def test_post_deployment_state_check(self):
-        """Test post-deployment state check using state_check utilities."""
-        # This test validates deployed state matches Bicep after actual deployment
-        # Requires: ENABLE_ACTUAL_DEPLOYMENT=true and resource group exists
+    def test_post_deployment_state_check(self, test_resource_group):
+        """Test post-deployment state check using state_check utilities.
         
-        # Get resource group from params
-        try:
-            params_data = json.loads(PARAMS_FILE.read_text())
-            resource_group = params_data.get('parameters', {}).get('resourceGroup', {}).get('value', TEST_RG)
-        except Exception:
-            resource_group = TEST_RG
-        
+        Resource group is automatically created before test and deleted after.
+        """
         # Run what-if against deployed resources
         try:
             result = subprocess.run(
@@ -172,7 +330,8 @@ class TestMainBicep:
                     '--location', TEST_LOCATION,
                     '--template-file', str(MAIN_BICEP),
                     '--parameters', f'@{PARAMS_FILE}',
-                    '--result-format', 'Full',
+                    '--output', 'json',
+                    '--result-format', 'FullResourcePayloads',
                     '--no-pretty-print'
                 ],
                 capture_output=True,

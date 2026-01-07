@@ -67,6 +67,13 @@ Use actual deployment tests (`ENABLE_ACTUAL_DEPLOYMENT=true`) when you need to:
 - Validate RBAC assignments
 - Test private endpoint connectivity
 
+**Note**: When `ENABLE_ACTUAL_DEPLOYMENT=true`, the test harness automatically:
+- Creates a fresh resource group before each test (deletes existing if present)
+- Deletes the resource group after each test completes
+- Waits for all operations to complete (no `--no-wait`)
+- Ensures cleanup even if tests fail
+- Uses function scope (one resource group per test)
+
 ## Recommendations
 
 1. **Keep what-if tests**: Fast, safe, catches syntax/API errors
