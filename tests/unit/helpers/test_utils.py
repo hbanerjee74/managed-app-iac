@@ -66,6 +66,50 @@ def run_bicep_build(bicep_file: Path) -> tuple[bool, str]:
         return False, "Azure CLI not found. Please install Azure CLI."
 
 
+def run_bicep_build_with_params(bicep_file: Path, params_file: Path, resource_group: str = None) -> tuple[bool, str]:
+    """Validate a Bicep file with parameters using what-if mode.
+    
+    Uses 'az deployment group what-if' to validate the template with parameters.
+    What-if mode evaluates template logic (including cidrSubnet calculations) which
+    catches errors that 'validate' mode might miss.
+    
+    Args:
+        bicep_file: Path to Bicep template file
+        params_file: Path to parameters JSON file
+        resource_group: Resource group name (extracted from shared params if None)
+    
+    Returns:
+        Tuple of (success: bool, output: str)
+    """
+    if resource_group is None:
+        resource_group = get_resource_group_from_shared_params()
+    
+    # Ensure resource group exists for what-if
+    location = get_location_from_shared_params()
+    rg_success, _ = ensure_resource_group_exists(resource_group, location)
+    if not rg_success:
+        return False, f"Failed to ensure resource group exists: {resource_group}"
+    
+    try:
+        result = subprocess.run(
+            [
+                'az', 'deployment', 'group', 'what-if',
+                '--resource-group', resource_group,
+                '--template-file', str(bicep_file),
+                '--parameters', f'@{params_file}',
+                '--no-pretty-print'
+            ],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return True, result.stdout
+    except subprocess.CalledProcessError as e:
+        return False, e.stderr
+    except FileNotFoundError:
+        return False, "Azure CLI not found. Please install Azure CLI."
+
+
 def get_resource_group_from_shared_params() -> str:
     """Extract resource group name from shared params.dev.json file.
     

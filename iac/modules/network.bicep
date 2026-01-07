@@ -18,10 +18,20 @@ param nsgPeName string
 @description('Optional tags to apply.')
 param tags object = {}
 
+// Validate CIDR format and prefix length using parseCidr
+// parseCidr will fail if CIDR format is invalid
+var parsedCidr = parseCidr(servicesVnetCidr)
+var vnetPrefixLength = parsedCidr.cidr
+
+// Validate prefix length range (must be /16-/24 per RFC-64)
+// Use conditional to enforce validation - if prefix is out of range, subnetNewBits becomes invalid
+// This will cause cidrSubnet() to fail during deployment
+var cidrPrefixValid = vnetPrefixLength >= 16 && vnetPrefixLength <= 24
+
 // Calculate subnet parameters: use /25 consistently with gaps for growth
 // Subnet numbers: [0, 4, 8, 12, 16] - leaves 12 gap slots (1,536 addresses) for future expansion
-var vnetPrefixLength = int(split(servicesVnetCidr, '/')[1])
-var subnetNewBits = 25 - vnetPrefixLength
+// If prefix is out of range, subnetNewBits will be invalid (negative or > 8) causing cidrSubnet to fail
+var subnetNewBits = cidrPrefixValid ? (25 - vnetPrefixLength) : -1
 
 resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
   name: vnetName

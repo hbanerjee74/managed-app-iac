@@ -132,6 +132,9 @@ Unit tests use module-specific parameter files (`tests/unit/fixtures/params-<mod
 - `test_params_file_exists` - Ensures parameter file exists
 - `test_params_file_valid_json` - Validates JSON syntax
 - `test_what_if_succeeds` - Runs Azure what-if to validate deployment plan
+- `test_cidr_validation_valid_ranges` - (Network module only) Tests valid CIDR ranges (/16, /20, /24)
+- `test_cidr_validation_invalid_prefix` - (Network module only) Tests invalid prefix ranges (/15, /14, /8, /25, /26, /30)
+- `test_cidr_validation_invalid_format` - (Network module only) Tests invalid CIDR formats (missing prefix, invalid IP, etc.)
 
 **E2E Tests** (`tests/e2e/test_main.py`):
 
@@ -180,6 +183,12 @@ Unit tests use module-specific parameter files (`tests/unit/fixtures/params-<mod
 - **Compilation**: Each module's test wrapper compiles successfully
 - **Parameter files**: Module-specific param files exist and are valid JSON
 - **What-if**: Azure what-if succeeds for each module (validates deployment plan)
+- **CIDR Validation** (Network module only): Tests CIDR format and prefix length validation
+  - Valid ranges: `/16`, `/20`, `/24` (should succeed)
+  - Invalid prefixes: `/15`, `/14`, `/8`, `/25`, `/26`, `/30` (should fail)
+  - Invalid formats: missing prefix, invalid IP, non-numeric prefix (should fail)
+  
+  **Note**: Invalid CIDR tests currently document expected behavior but may not fail during what-if validation. Invalid CIDRs will fail during actual deployment when `cidrSubnet` calculations are executed.
 
 **Usage:**
 
@@ -195,6 +204,9 @@ pytest tests/unit/test_modules.py -v -k "compiles"
 
 # Run only what-if tests
 pytest tests/unit/test_modules.py -v -k "what_if"
+
+# Run CIDR validation tests (network module only)
+pytest tests/unit/test_modules.py -v -k "cidr"
 ```
 
 ### `test_main.py` (E2E Tests)
