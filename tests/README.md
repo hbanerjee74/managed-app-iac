@@ -4,7 +4,7 @@ This directory contains the test harness for validating Bicep modules and deploy
 
 ## Structure
 
-```
+```text
 tests/
   unit/                    # Unit tests for individual modules
     fixtures/              # Test wrapper templates and module-specific parameters
@@ -23,14 +23,14 @@ tests/
 ### Prerequisites
 
 1. **Authenticate with Azure CLI:**
-   
+
    ```bash
    az login
    ```
 
 2. **Configure test parameters:**
    Edit `tests/fixtures/params.dev.json`:
-   
+
    ```json
    {
      "metadata": {
@@ -61,22 +61,27 @@ pytest tests/unit/test_modules.py -v -k "compiles"
 
 ### End-to-End Tests (Full-scope)
 
-**For what-if tests (default mode):**
+**Recommended workflow:**
 
-```bash
-# Resource group must exist (unit tests will create it, or create manually)
-az group create --name test-rg-managed-app --location eastus
+1. **Run unit tests first** (auto-creates resource group if needed):
 
-# Run what-if tests (safe, no actual deployment)
-pytest tests/e2e/
-```
+   ```bash
+   pytest tests/unit/test_modules.py -v
+   ```
 
-**For actual deployment tests (opt-in):**
+2. **Run E2E what-if tests** (uses resource group from unit tests):
 
-```bash
-# Resource group is created/deleted automatically - no manual setup needed
-ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
-```
+   ```bash
+   pytest tests/e2e/
+   ```
+
+3. **Run actual deployment** (opt-in, creates real resources):
+
+   ```bash
+   ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+   ```
+
+**Note**: Unit tests automatically create the resource group if it doesn't exist, so you can skip manual `az group create` when running the full test suite.
 
 ## Test Configuration
 
@@ -94,28 +99,101 @@ Both unit tests and E2E tests read `resourceGroupName` and `location` from `test
 
 Unit tests use module-specific parameter files (`tests/unit/fixtures/params-<module>.json`) for module-specific parameters, but **always** read RG name and location from the shared `params.dev.json`.
 
+**Important**: Don't include `resourceGroupName` or `location` in module-specific param files - they're automatically added from `params.dev.json`.
+
+## Test Types
+
+**Unit Tests** (`tests/unit/test_modules.py`):
+
+- `test_bicep_compiles` - Validates Bicep syntax and compilation
+- `test_params_file_exists` - Ensures parameter file exists
+- `test_params_file_valid_json` - Validates JSON syntax
+- `test_what_if_succeeds` - Runs Azure what-if to validate deployment plan
+
+**E2E Tests** (`tests/e2e/test_main.py`):
+
+- `test_bicep_compiles` - Validates main.bicep compilation
+- `test_params_file_exists` - Ensures params file exists
+- `test_params_file_valid_json` - Validates JSON syntax
+- `test_what_if_succeeds` - Full-scope what-if validation
+- `test_what_if_summary` - Validates what-if output structure
+- `test_actual_deployment` - Actual deployment (opt-in only)
+- `test_post_deployment_state_check` - Post-deployment validation (opt-in only)
+
 ## Test Modes
 
 ### Unit Tests
 
-- **Mode**: What-if only
+- **Mode**: What-if only (no actual deployment)
 - **Purpose**: Validate individual modules in isolation
-- **Dependencies**: Mocked in test wrappers
+- **Dependencies**: Mocked in test wrappers (`test-<module>.bicep`)
 - **Resources**: None created (what-if only)
 - **RG Management**: Automatically creates RG if missing (from shared params)
+- **Azure CLI**: Required for what-if tests, optional for compilation tests
 
 ### E2E Tests
 
-- **What-if mode** (default): Validates deployment plan
+- **What-if mode** (default): Validates full deployment plan
   - **Resource Group**: Must exist (unit tests create it, or create manually)
   - Uses resource group name from `tests/fixtures/params.dev.json` → `metadata.resourceGroupName`
   - Test does NOT create or delete the resource group
+  - **Azure CLI**: Required (for what-if operations)
 - **Actual deployment mode** (opt-in): Creates real resources
   - Set `ENABLE_ACTUAL_DEPLOYMENT=true` to enable
   - **Resource Group**: Automatically created before each test and deleted after
-  - **WARNING**: Creates real Azure resources!
+  - **WARNING**: Creates real Azure resources and incurs costs!
+  - **Azure CLI**: Required
 
 ## Test Files Explained
+
+### `test_modules.py` (Unit Tests)
+
+**Purpose**: Parameterized test suite for all Bicep modules.
+
+**What it tests:**
+
+- **Compilation**: Each module's test wrapper compiles successfully
+- **Parameter files**: Module-specific param files exist and are valid JSON
+- **What-if**: Azure what-if succeeds for each module (validates deployment plan)
+
+**Usage:**
+
+```bash
+# Run all tests for all modules
+pytest tests/unit/test_modules.py -v
+
+# Run tests for specific module
+pytest tests/unit/test_modules.py -v -k "network"
+
+# Run only compilation tests (no Azure CLI needed)
+pytest tests/unit/test_modules.py -v -k "compiles"
+
+# Run only what-if tests
+pytest tests/unit/test_modules.py -v -k "what_if"
+```
+
+### `test_main.py` (E2E Tests)
+
+**Purpose**: Full-scope tests for `main.bicep` deployment.
+
+**What it tests:**
+
+- **Compilation**: `main.bicep` compiles successfully
+- **Parameters**: Parameter file exists and is valid JSON
+- **What-if**: Full deployment what-if succeeds
+- **What-if summary**: What-if output can be parsed and summarized
+- **Actual deployment**: (Opt-in) Creates real resources
+- **Post-deployment**: (Opt-in) Validates deployed state matches template
+
+**Usage:**
+
+```bash
+# Run what-if tests (default, safe)
+pytest tests/e2e/
+
+# Run actual deployment (opt-in)
+ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+```
 
 ### `test_params.py`
 
@@ -152,7 +230,7 @@ pytest tests/test_shell_scripts.py
 
 ## Resource Group Management
 
-### Unit Tests
+### Unit Test Resource Groups
 
 - **Automatic creation**: Resource group is created if it doesn't exist
 - **Source**: RG name and location from `tests/fixtures/params.dev.json` → `metadata`
@@ -160,14 +238,24 @@ pytest tests/test_shell_scripts.py
 
 ### E2E Tests - What-If Mode (Default)
 
-- **Manual creation required**: You must create the resource group before running tests
+- **Resource Group**: Must exist (unit tests create it, or create manually)
 - **No automatic cleanup**: The test uses the existing resource group and does not delete it
 - **Resource group name**: Configured in `tests/fixtures/params.dev.json` → `metadata.resourceGroupName`
 
-Example:
+**Recommended workflow:**
 
 ```bash
-# Create resource group
+# 1. Run unit tests (creates RG automatically)
+pytest tests/unit/test_modules.py -v
+
+# 2. Run E2E tests (uses existing RG)
+pytest tests/e2e/
+```
+
+**Alternative (manual RG creation):**
+
+```bash
+# Create resource group manually
 az group create --name test-rg-managed-app --location eastus
 
 # Update params.dev.json metadata.resourceGroupName to "test-rg-managed-app"
@@ -180,8 +268,10 @@ pytest tests/e2e/
 
 - **Automatic creation**: Resource group is created before each test
 - **Automatic cleanup**: Resource group is deleted after each test (even on failure)
-- **Scope**: One resource group per test function
+- **Scope**: One resource group per test function (`scope="function"`)
 - **Timeout protection**: 5 min creation, 10 min deletion timeouts
+- **Delete and Recreate**: If the resource group exists, it's deleted first, then recreated
+- **Wait for Completion**: All operations wait for Azure to complete (no `--no-wait`)
 
 When `ENABLE_ACTUAL_DEPLOYMENT=true`:
 
@@ -211,16 +301,83 @@ See `tests/unit/README.md` for detailed instructions.
 
 ## Requirements
 
-- Python 3.x
-- pytest
-- Azure CLI (`az`)
-- Bicep CLI (via Azure CLI)
-- shellcheck (optional, for `test_shell_scripts.py`)
+- **Python 3.x** with pytest installed
+- **Azure CLI** (`az`) - Required for what-if tests, optional for compilation tests
+- **Bicep CLI** (included with Azure CLI)
+- **shellcheck** (optional, for `test_shell_scripts.py`)
 
 ## CI/CD Integration
 
 Tests are designed to run in CI/CD pipelines:
 
-- **Unit tests**: Fast, no Azure credentials needed for compilation tests
+- **Unit compilation tests**: Fast, no Azure credentials needed
+
+```bash
+pytest tests/unit/test_modules.py -v -k "compiles"
+```
+
+- **Unit what-if tests**: Requires Azure CLI login and subscription access
+
+```bash
+pytest tests/unit/test_modules.py -v -k "what_if"
+```
+
 - **E2E what-if**: Requires Azure CLI login and pre-existing resource group
+
+```bash
+pytest tests/e2e/
+```
+
 - **E2E actual deployment**: Opt-in only, requires explicit configuration, automatic RG management
+
+```bash
+ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+```
+
+### Authentication for CI/CD
+
+For CI/CD pipelines, use service principal authentication instead of interactive login:
+
+```bash
+az login --service-principal \
+  --username <app-id> \
+  --password <password> \
+  --tenant <tenant-id>
+```
+
+Or use managed identity if running in Azure (e.g., Azure Pipelines agents, GitHub Actions runners with Azure credentials).
+
+## Troubleshooting
+
+### Tests fail with "Azure CLI not configured"
+
+- Run `az login` to authenticate
+- Verify subscription: `az account show`
+- Set subscription in `params.dev.json` → `metadata.subscriptionId`
+
+### Resource group doesn't exist
+
+- Run unit tests first: `pytest tests/unit/test_modules.py -v` (auto-creates RG)
+- Or create manually: `az group create --name <rg-name> -l <location>`
+
+### What-if tests fail
+
+- Check Azure CLI authentication: `az account show`
+- Verify resource group exists: `az group exists --name <rg-name>`
+- Check parameter file: `pytest tests/test_params.py`
+
+### Compilation tests fail
+
+- Check Bicep syntax: `az bicep build --file iac/main.bicep`
+- Verify module dependencies are correct
+- Check test wrapper templates for syntax errors
+
+### Resource group cleanup fails
+
+If automatic cleanup fails or you need to manually clean up:
+
+```bash
+az group delete --name <resource-group-name> --yes
+```
+
+**Note**: With automatic resource group management enabled, manual cleanup should rarely be needed.

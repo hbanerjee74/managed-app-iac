@@ -2,60 +2,141 @@
 
 This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include resource-level validation tooling for marketplace deployment.
 
-## Layout
+## Prerequisites
 
-- `main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters into resource-group modules.
-- `modules/*.bicep` — per-domain modules (identity, network, security, data, compute, gateway, ai, automation, diagnostics).
-- `lib/` — shared helpers (naming per RFC-71, constants).
-- `tests/fixtures/params.dev.json` — sample parameters for local testing.
+- **Azure CLI** installed and configured (`az login`)
+- **Python 3.x** with pytest installed
+- **Azure subscription** with appropriate permissions
+- **Bicep CLI** (included with Azure CLI)
 
-## Parameters (RFC-64 names)
+## Project Structure
 
-- `resourceGroupName` (replaces `resourceGroup` and `mrgName`), `location`, `contactEmail`, `adminObjectId`, `adminPrincipalType`
-- `servicesVnetCidr`, `customerIpRanges`, `publisherIpRanges`
-- `sku` (App Service Plan), `computeTier` (PostgreSQL), `aiServicesTier`
-- Defaults/display-only: `appGwSku`, `appGwCapacity`, `storageGB`, `backupRetentionDays`, `retentionDays`
-
-## Run locally
-
-```bash
-az group create -n vd-rg-dev-abc12345 -l eastus
-az deployment group create \
-  --resource-group vd-rg-dev-abc12345 \
-  -f iac/main.bicep \
-  -p @tests/fixtures/params.dev.json
+```text
+iac/
+  main.bicep          # Resource group-scope entrypoint for managed application deployment
+  modules/            # Domain modules (identity, network, security, data, compute, gateway, ai, automation, diagnostics)
+  lib/                # Shared helpers (naming per RFC-71, constants)
+tests/
+  fixtures/
+    params.dev.json   # Sample parameters for local testing
+  unit/               # Unit tests for individual modules
+  e2e/                # End-to-end tests for main.bicep
 ```
 
-For a dry run without changes:
+## Quick Start
 
-```bash
-az deployment group what-if \
-  --resource-group vd-rg-dev-abc12345 \
-  -f iac/main.bicep \
-  -p @tests/fixtures/params.dev.json
-```
+1. **Authenticate with Azure CLI:**
+
+   ```bash
+   az login
+   ```
+
+2. **Configure parameters:**
+
+   Edit `tests/fixtures/params.dev.json` with your subscription and resource group details:
+
+   ```json
+   {
+     "metadata": {
+       "subscriptionId": "your-subscription-id",
+       "resourceGroupName": "your-rg-name",
+       "location": "eastus"
+     },
+     "parameters": {
+       ...
+     }
+   }
+   ```
+
+3. **Run what-if tests (dry run, recommended first):**
+
+   ```bash
+   # Unit tests automatically create resource group if needed
+   pytest tests/unit/test_modules.py -v
+
+   # E2E what-if tests (safe, no actual deployment)
+   pytest tests/e2e/
+   ```
+
+   The tests validate your Bicep templates and show what would be deployed without creating resources.
+
+4. **Deploy (if tests pass and what-if looks good):**
+
+   ```bash
+   # E2E actual deployment test (creates real resources, opt-in)
+   ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+   ```
+
+   **Warning**: This creates real Azure resources and incurs costs. The test automatically creates the resource group before deployment and deletes it after (even on failure).
+
+## Parameters
+
+See `tests/fixtures/params.dev.json` for all available parameters. Key parameters:
+
+**Required:**
+
+- `resourceGroupName` (replaces `resourceGroup` and `mrgName`)
+- `location`
+- `contactEmail`
+- `adminObjectId`
+- `adminPrincipalType`
+- `servicesVnetCidr`
+
+**Network:**
+
+- `customerIpRanges` - IP ranges for WAF allowlist
+- `publisherIpRanges` - IP ranges for WAF allowlist
+
+**Compute:**
+
+- `sku` - App Service Plan SKU
+- `computeTier` - PostgreSQL compute tier
+- `aiServicesTier` - AI services tier
+
+**Optional (with defaults):**
+
+- `appGwSku` - Application Gateway SKU (default: WAF_v2)
+- `appGwCapacity` - Application Gateway capacity (default: 1)
+- `storageGB` - PostgreSQL storage in GB
+- `backupRetentionDays` - PostgreSQL backup retention
+- `retentionDays` - Log Analytics retention
+
+For full parameter documentation, see RFC-64.
 
 ## Testing
 
-Run unit tests:
+### Unit Tests
 
 ```bash
 pytest tests/unit/test_modules.py -v
 ```
 
-Run E2E tests (what-if mode, safe):
+**Note**: Unit tests automatically create the resource group if it doesn't exist (using RG name and location from `tests/fixtures/params.dev.json`).
+
+### E2E Tests (What-if mode, safe)
 
 ```bash
+# Resource group must exist (unit tests will create it, or create manually)
+az group create --name test-rg-managed-app --location eastus
+
 pytest tests/e2e/
 ```
 
-Run E2E tests (actual deployment, opt-in):
+### E2E Tests (Actual deployment, opt-in)
 
 ```bash
 ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
 ```
 
-Keep parameter names and casing aligned with RFC-64 to match the eventual Marketplace handoff.
+**Warning**: Actual deployment tests create real Azure resources and incur costs. Resource groups are automatically created before each test and deleted after.
+
+For detailed testing documentation, see [`tests/README.md`](tests/README.md).
+
+## Documentation
+
+- **Testing**: See [`tests/README.md`](tests/README.md) for comprehensive test documentation
+- **Repository Guidelines**: See [`AGENTS.md`](AGENTS.md) for development practices and standards
+- **Release Notes**: See `docs/RELEASE-NOTES-*.md` for version history
 
 ## Release Notes
 
