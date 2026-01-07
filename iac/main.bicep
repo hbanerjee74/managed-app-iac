@@ -157,29 +157,53 @@ module dns 'modules/dns.bicep' = {
   }
 }
 
-module security 'modules/security.bicep' = {
-  name: 'security'
+module kv 'modules/kv.bicep' = {
+  name: 'kv'
   params: {
     location: location
     kvName: naming.outputs.names.kv
-    storageName: naming.outputs.names.storage
-    acrName: naming.outputs.names.acr
     subnetPeId: network.outputs.subnetPeId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peKvName: naming.outputs.names.peKv
+    peKvDnsName: naming.outputs.names.peKvDns
+    diagKvName: naming.outputs.names.diagKv
+    tags: tags
+  }
+}
+
+module storage 'modules/storage.bicep' = {
+  name: 'storage'
+  params: {
+    location: location
+    storageName: naming.outputs.names.storage
+    subnetPeId: network.outputs.subnetPeId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    lawId: diagnostics.outputs.lawId
+    zoneIds: dns.outputs.zoneIds
     peStBlobName: naming.outputs.names.peStBlob
     peStQueueName: naming.outputs.names.peStQueue
     peStTableName: naming.outputs.names.peStTable
-    peAcrName: naming.outputs.names.peAcr
-    peKvDnsName: naming.outputs.names.peKvDns
     peStBlobDnsName: naming.outputs.names.peStBlobDns
     peStQueueDnsName: naming.outputs.names.peStQueueDns
     peStTableDnsName: naming.outputs.names.peStTableDns
-    peAcrDnsName: naming.outputs.names.peAcrDns
-    diagKvName: naming.outputs.names.diagKv
     diagStName: naming.outputs.names.diagSt
+    tags: tags
+  }
+}
+
+module acr 'modules/acr.bicep' = {
+  name: 'acr'
+  params: {
+    location: location
+    acrName: naming.outputs.names.acr
+    subnetPeId: network.outputs.subnetPeId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    lawId: diagnostics.outputs.lawId
+    zoneIds: dns.outputs.zoneIds
+    peAcrName: naming.outputs.names.peAcr
+    peAcrDnsName: naming.outputs.names.peAcrDns
     diagAcrName: naming.outputs.names.diagAcr
     tags: tags
   }

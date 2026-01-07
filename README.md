@@ -14,7 +14,7 @@ This repository contains the Bicep-based infrastructure for PRD-30 (managed appl
 ```text
 iac/
   main.bicep          # Resource group-scope entrypoint for managed application deployment
-  modules/            # Domain modules (identity, network, security, data, compute, gateway, ai, automation, diagnostics)
+  modules/            # Domain modules (identity, network, kv, storage, acr, data, compute, gateway, ai, automation, diagnostics)
   lib/                # Shared helpers (naming per RFC-71, constants)
 tests/
   fixtures/
@@ -142,6 +142,7 @@ For comprehensive testing documentation, see [`tests/README.md`](tests/README.md
 
 ## Release Notes
 
+- 2026-01-08 — v0.7.0 Module refactoring: Split security module into kv, storage, and acr modules: [docs/RELEASE-NOTES-2026-01-08-v0.7.0.md](docs/RELEASE-NOTES-2026-01-08-v0.7.0.md)
 - 2026-01-08 — v0.6.0 Test harness improvements and documentation consolidation: [docs/RELEASE-NOTES-2026-01-08-v0.6.0.md](docs/RELEASE-NOTES-2026-01-08-v0.6.0.md)
 - 2026-01-05 — v0.5.0 RFC-71 deterministic naming: [docs/RELEASE-NOTES-2026-01-05-v0.5.0.md](docs/RELEASE-NOTES-2026-01-05-v0.5.0.md)
 - 2026-01-03 — v0.4.0 module validator + RFC-64 params: [docs/RELEASE-NOTES-2026-01-03-v0.4.0.md](docs/RELEASE-NOTES-2026-01-03-v0.4.0.md)

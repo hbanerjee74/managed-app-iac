@@ -12,6 +12,7 @@ from tests.unit.helpers.test_utils import (
     run_what_if,
     load_json_file
 )
+from tests.unit.helpers.what_if_parser import parse_what_if_output
 
 # Define all modules to test
 MODULES = [
@@ -22,7 +23,9 @@ MODULES = [
     ('gateway', 'test-gateway.bicep', 'params-gateway.json'),
     ('ai', 'test-ai.bicep', 'params-ai.json'),
     ('identity', 'test-identity.bicep', 'params-identity.json'),
-    ('security', 'test-security.bicep', 'params-security.json'),
+    ('kv', 'test-kv.bicep', 'params-kv.json'),
+    ('storage', 'test-storage.bicep', 'params-storage.json'),
+    ('acr', 'test-acr.bicep', 'params-acr.json'),
     ('automation', 'test-automation.bicep', 'params-automation.json'),
     ('logic', 'test-logic.bicep', 'params-logic.json'),
     ('dns', 'test-dns.bicep', 'params-dns.json'),
@@ -34,6 +37,44 @@ FIXTURES_DIR = Path(__file__).parent / 'fixtures'
 @pytest.mark.parametrize('module_name,bicep_file,params_file', MODULES)
 class TestBicepModules:
     """Parameterized test suite for all Bicep modules."""
+
+    @pytest.fixture(scope='class', autouse=False)
+    def cached_what_if_output(self, module_name, bicep_file, params_file):
+        """Cache what-if output for the module to avoid redundant API calls.
+        
+        This fixture runs what-if once per module class and caches the parsed output.
+        All tests in the class can use this cached data instead of calling what-if multiple times.
+        
+        Args:
+            module_name: Module name from parametrization
+            bicep_file: Bicep file name from parametrization
+            params_file: Params file name from parametrization
+        
+        Returns:
+            dict: Parsed what-if output with keys: 'status', 'changes', 'resource_changes', 'error', 'properties'
+            None: If what-if fails or Azure CLI is not configured (tests should skip)
+        """
+        bicep_path = FIXTURES_DIR / bicep_file
+        params_path = FIXTURES_DIR / params_file
+        
+        # Run what-if once per module
+        success, output = run_what_if(bicep_path, params_path)
+        
+        # Handle failures gracefully
+        if not success:
+            # Check if it's an authentication issue (should skip, not fail)
+            if "not logged in" in output.lower() or "authentication" in output.lower():
+                pytest.skip(f"Azure CLI not configured - skipping what-if cache for {module_name}")
+            # For other failures, return None (tests can check for this)
+            return None
+        
+        # Parse and cache the output
+        try:
+            parsed_output = parse_what_if_output(output)
+            return parsed_output
+        except Exception as e:
+            # If parsing fails, return None
+            return None
 
     def test_bicep_compiles(self, module_name, bicep_file, params_file):
         """Test that the module test wrapper compiles successfully."""
@@ -55,17 +96,26 @@ class TestBicepModules:
         except Exception as e:
             pytest.fail(f"Invalid JSON in params file for {module_name}: {e}")
 
-    def test_what_if_succeeds(self, module_name, bicep_file, params_file):
-        """Test that what-if execution succeeds."""
-        bicep_path = FIXTURES_DIR / bicep_file
-        params_path = FIXTURES_DIR / params_file
-        # resourceGroupName extracted from params file automatically
-        success, output = run_what_if(bicep_path, params_path)
-        # Note: This may fail if Azure CLI is not configured, which is OK for unit tests
-        # In CI, this would be skipped if credentials are not available
-        if not success and "not logged in" in output.lower():
-            pytest.skip(f"Azure CLI not configured - skipping what-if test for {module_name}")
-        assert success, f"What-if failed for {module_name}: {output}"
+    def test_what_if_succeeds(self, module_name, bicep_file, params_file, cached_what_if_output):
+        """Test that what-if execution succeeds.
+        
+        Uses cached what-if output from fixture to avoid redundant API calls.
+        """
+        # Check if cached output is available (None indicates failure)
+        if cached_what_if_output is None:
+            # If cached output is None, it means what-if failed
+            # Try running it once more to get the error message
+            bicep_path = FIXTURES_DIR / bicep_file
+            params_path = FIXTURES_DIR / params_file
+            success, output = run_what_if(bicep_path, params_path)
+            if not success and "not logged in" in output.lower():
+                pytest.skip(f"Azure CLI not configured - skipping what-if test for {module_name}")
+            pytest.fail(f"What-if failed for {module_name}: {output}")
+        
+        # Verify cached output has expected structure
+        assert 'status' in cached_what_if_output, f"Cached what-if output missing 'status' for {module_name}"
+        assert cached_what_if_output.get('status') != 'Failed', \
+            f"What-if status is 'Failed' for {module_name}: {cached_what_if_output.get('error', 'Unknown error')}"
 
     def test_cidr_validation_valid_ranges(self, module_name, bicep_file, params_file):
         """Test that valid CIDR ranges (/16-/24) allow Bicep compilation.
