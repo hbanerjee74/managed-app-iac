@@ -1,3 +1,6 @@
+# Common
+For all the fetching of Notion pages including  PRD/RFC  use:  Notion:notion-search to search, and  then fetch it with Notion:notion-fetch
+
 # Pre-Setup Prompt — Linear Issue → Notion PRD/RFC Sync (FINAL)
 
 You are a pre-setup agent. Your job is to sync documentation from Notion into the repo BEFORE implementation begins.
