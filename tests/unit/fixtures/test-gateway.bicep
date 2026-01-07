@@ -3,6 +3,9 @@ targetScope = 'resourceGroup'
 // Test wrapper for gateway module
 // Depends on: network, diagnostics
 
+@description('Subscription ID for constructing mock resource IDs.')
+param subscriptionId string
+
 @description('Resource group name for naming seed.')
 param resourceGroupName string
 
@@ -30,13 +33,13 @@ module naming '../../../iac/lib/naming.bicep' = {
   }
 }
 
-// Mock dependency outputs
+// Mock dependency outputs - use actual subscription ID and resource group name
 var mockNetworkOutputs = {
-  subnetAppgwId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-appgw'
+  subnetAppgwId: '/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-appgw'
 }
 
 var mockDiagnosticsOutputs = {
-  lawId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law'
+  lawId: '/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/test-law'
 }
 
 // Module under test

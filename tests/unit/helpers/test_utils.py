@@ -1,11 +1,15 @@
 """Utility functions for Bicep module tests."""
 import json
+import os
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Dict, Any
 
 # Shared params file - single source of truth for RG name and location
-SHARED_PARAMS_FILE = Path(__file__).parent.parent.parent / 'tests' / 'fixtures' / 'params.dev.json'
+# Path: tests/unit/helpers/test_utils.py -> tests/unit/helpers -> tests/unit -> tests -> tests/fixtures
+TESTS_DIR = Path(__file__).parent.parent.parent  # tests/
+SHARED_PARAMS_FILE = TESTS_DIR / 'fixtures' / 'params.dev.json'
 
 
 def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tuple[bool, str]:
@@ -108,6 +112,31 @@ def get_location_from_shared_params() -> str:
     return 'eastus'  # Default fallback
 
 
+def get_subscription_id_from_shared_params() -> str:
+    """Extract subscription ID from shared params.dev.json file.
+    
+    Returns:
+        Subscription ID string
+    
+    Raises:
+        ValueError: If subscription ID not found
+    """
+    try:
+        params_data = load_json_file(SHARED_PARAMS_FILE)
+        # Try metadata first (new approach - ARM-provided context)
+        subscription_id = params_data.get('metadata', {}).get('subscriptionId', '')
+        if subscription_id:
+            return subscription_id
+        # Fallback to parameters (backward compatibility)
+        subscription_id = params_data.get('parameters', {}).get('subscriptionId', {}).get('value', '')
+        if subscription_id:
+            return subscription_id
+    except Exception as e:
+        pass
+    
+    raise ValueError(f"Subscription ID not found in {SHARED_PARAMS_FILE}")
+
+
 def run_what_if(
     bicep_file: Path,
     params_file: Path,
@@ -126,7 +155,7 @@ def run_what_if(
         Tuple of (success: bool, output: str)
         Returns JSON output with full resource payloads for parsing and validation.
         Note: resourceGroupName and location are always read from tests/fixtures/params.dev.json
-        Module-specific params file is only used for --parameters flag.
+        and merged into the module-specific params file before deployment.
     """
     # Extract resource group name from shared params file if not provided
     if resource_group is None:
@@ -135,7 +164,7 @@ def run_what_if(
         except ValueError as e:
             return False, str(e)
     
-    # Extract location from shared params file for RG creation if needed
+    # Extract location from shared params file
     location = get_location_from_shared_params()
     
     # Ensure resource group exists if requested
@@ -144,13 +173,46 @@ def run_what_if(
         if not rg_success:
             return False, f"Resource group check failed: {rg_message}"
     
+    # Load module-specific params and merge with shared resourceGroupName and location
+    module_params = load_json_file(params_file)
+    if 'parameters' not in module_params:
+        module_params['parameters'] = {}
+    
+    # Merge resourceGroupName from shared params (always required)
+    module_params['parameters']['resourceGroupName'] = {'value': resource_group}
+    
+    # Check if Bicep template requires location parameter
+    bicep_content = bicep_file.read_text()
+    requires_location = 'param location' in bicep_content or '@description(\'Azure region' in bicep_content
+    
+    # Only add location if the template requires it
+    if requires_location:
+        module_params['parameters']['location'] = {'value': location}
+    
+    # Check if Bicep template requires subscriptionId parameter (for gateway test wrapper)
+    requires_subscription_id = 'param subscriptionId' in bicep_content
+    
+    # Only add subscriptionId if the template requires it
+    if requires_subscription_id:
+        try:
+            subscription_id = get_subscription_id_from_shared_params()
+            module_params['parameters']['subscriptionId'] = {'value': subscription_id}
+        except ValueError:
+            # If subscription ID not found, skip adding it (will fail with clear error)
+            pass
+    
+    # Create temporary merged params file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
+        json.dump(module_params, tmp_file, indent=2)
+        tmp_params_file = tmp_file.name
+    
     try:
         result = subprocess.run(
             [
                 'az', 'deployment', 'group', 'what-if',
                 '--resource-group', resource_group,
                 '--template-file', str(bicep_file),
-                '--parameters', f'@{params_file}',
+                '--parameters', f'@{tmp_params_file}',
                 '--output', 'json',
                 '--result-format', 'FullResourcePayloads',
                 '--no-pretty-print'
@@ -164,6 +226,12 @@ def run_what_if(
         return False, e.stderr
     except FileNotFoundError:
         return False, "Azure CLI not found. Please install Azure CLI."
+    finally:
+        # Clean up temporary file
+        try:
+            os.unlink(tmp_params_file)
+        except Exception:
+            pass
 
 
 def load_json_file(file_path: Path) -> Dict[str, Any]:
@@ -177,40 +245,3 @@ def validate_required_params(params: Dict[str, Any], required: list[str]) -> tup
     missing = [p for p in required if p not in params.get('parameters', {})]
     return len(missing) == 0, missing
 
-
-def get_module_outputs(module_name: str) -> Dict[str, Any]:
-    """Get expected module outputs structure for mocking."""
-    # This will be populated based on actual module outputs
-    outputs = {
-        'diagnostics': {
-            'lawId': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law',
-            'lawWorkspaceId': '00000000-0000-0000-0000-000000000000'
-        },
-        'identity': {
-            'uamiPrincipalId': '00000000-0000-0000-0000-000000000000',
-            'uamiClientId': '00000000-0000-0000-0000-000000000000',
-            'uamiId': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-uami'
-        },
-        'network': {
-            'subnetPsqlId': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-psql',
-            'subnetAppsvcId': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-appsvc',
-            'subnetPeId': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-pe',
-            'subnetAppgwId': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-appgw'
-        },
-        'dns': {
-            'zoneIds': {
-                'vault': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.vaultcore.azure.net',
-                'postgres': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.postgres.database.azure.com',
-                'blob': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net',
-                'queue': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.queue.core.windows.net',
-                'table': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.table.core.windows.net',
-                'acr': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.azurecr.io',
-                'appsvc': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.azurewebsites.net',
-                'search': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.search.windows.net',
-                'ai': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.cognitiveservices.azure.com',
-                'automation': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/privatelink.azure-automation.net',
-                'internal': '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/privateDnsZones/vibedata.internal'
-            }
-        }
-    }
-    return outputs.get(module_name, {})

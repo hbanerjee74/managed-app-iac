@@ -167,8 +167,21 @@ resource appGw 'Microsoft.Network/applicationGateways@2021-08-01' = {
           port: 443
         }
       }
+      {
+        name: 'http-port'
+        properties: {
+          port: 80
+        }
+      }
     ]
-    backendAddressPools: []
+    backendAddressPools: [
+      {
+        name: 'placeholder-pool'
+        properties: {
+          backendAddresses: []
+        }
+      }
+    ]
     backendHttpSettingsCollection: [
       {
         name: 'default-setting'
@@ -184,8 +197,38 @@ resource appGw 'Microsoft.Network/applicationGateways@2021-08-01' = {
         }
       }
     ]
-    httpListeners: []
-    requestRoutingRules: []
+    httpListeners: [
+      {
+        name: 'placeholder-listener'
+        properties: {
+          frontendIPConfiguration: {
+            id: '${subscription().id}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Network/applicationGateways/${agwName}/frontendIPConfigurations/appgw-feip'
+          }
+          frontendPort: {
+            id: '${subscription().id}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Network/applicationGateways/${agwName}/frontendPorts/http-port'
+          }
+          protocol: 'Http'
+        }
+      }
+    ]
+    requestRoutingRules: [
+      {
+        name: 'placeholder-rule'
+        properties: {
+          ruleType: 'Basic'
+          priority: 100
+          httpListener: {
+            id: '${subscription().id}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Network/applicationGateways/${agwName}/httpListeners/placeholder-listener'
+          }
+          backendAddressPool: {
+            id: '${subscription().id}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Network/applicationGateways/${agwName}/backendAddressPools/placeholder-pool'
+          }
+          backendHttpSettings: {
+            id: '${subscription().id}/resourceGroups/${resourceGroup().name}/providers/Microsoft.Network/applicationGateways/${agwName}/backendHttpSettingsCollection/default-setting'
+          }
+        }
+      }
+    ]
     probes: []
     firewallPolicy: {
       id: agwPolicy.id
