@@ -4,7 +4,7 @@ This directory contains full-scope tests for the complete `main.bicep` deploymen
 
 ## Structure
 
-```
+```text
 tests/e2e/
   state_check/              # What-if drift detection utilities
     what_if.sh             # Run what-if and save JSON output
@@ -22,11 +22,13 @@ tests/e2e/
 Before running E2E tests, you must authenticate with Azure CLI:
 
 ### 1. Authenticate with Azure CLI
+
 ```bash
 az login
 ```
 
 ### 2. (Optional) Configure Azure Context in Params File
+
 You can specify Azure context information in `tests/fixtures/params.dev.json` metadata section:
 
 ```json
@@ -42,12 +44,14 @@ You can specify Azure context information in `tests/fixtures/params.dev.json` me
 }
 ```
 
-**Note**: 
+**Note**:
+
 - `subscriptionId` - Used to set the active subscription via `az account set` (optional)
 - `resourceGroupName` and `location` - ARM-provided context in managed applications. For testing, extracted from metadata to create/set the resource group context
 - If metadata is not provided, tests will use your current Azure CLI context
 
 ### 3. Verify Authentication and Check Subscription
+
 ```bash
 az account show
 ```
@@ -55,6 +59,7 @@ az account show
 Verify that the correct subscription is selected and authentication is active.
 
 ### 4. Run E2E Tests
+
 ```bash
 pytest tests/e2e/
 ```
@@ -87,12 +92,14 @@ ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test
 ## Test Modes
 
 ### What-If Mode (Default)
+
 - Validates deployment plan without creating resources
 - Fast and safe
 - No actual Azure resources created
 - Requires Azure CLI login
 
 ### Actual Deployment Mode (Opt-In)
+
 - Creates real Azure resources
 - Validates actual resource properties
 - **WARNING**: This creates real resources and incurs costs!
@@ -102,11 +109,13 @@ ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test
 ## Usage
 
 ### What-If Testing (Recommended)
+
 ```bash
 pytest tests/e2e/test_main.py::TestMainBicep::test_what_if_succeeds
 ```
 
 ### Actual Deployment (Manual/CI Only)
+
 ```bash
 # Set environment variable
 export ENABLE_ACTUAL_DEPLOYMENT=true
@@ -130,7 +139,7 @@ When `ENABLE_ACTUAL_DEPLOYMENT=true`, the test harness **automatically manages**
 
 1. **Delete and Recreate**: If the resource group exists, it's deleted first, then recreated
 2. **Wait for Completion**: All operations wait for Azure to complete (no `--no-wait`)
-3. **Timeout Protection**: 
+3. **Timeout Protection**:
    - Creation timeout: 5 minutes
    - Deletion timeout: 10 minutes
 4. **Failure Handling**: Cleanup always runs, even if tests fail
@@ -138,9 +147,9 @@ When `ENABLE_ACTUAL_DEPLOYMENT=true`, the test harness **automatically manages**
 ### Manual Cleanup (if needed)
 
 If automatic cleanup fails or you need to manually clean up:
+
 ```bash
 az group delete --name <resource-group-name> --yes
 ```
 
 **Note**: With automatic resource group management enabled, manual cleanup should rarely be needed.
-
