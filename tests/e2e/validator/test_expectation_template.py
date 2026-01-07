@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from tests.validator.compare_expectation import compare_expected_actual
+from tests.e2e.validator.compare_expectation import compare_expected_actual
 
 
-TEMPLATE = Path("tests/validator/expected/dev_expectation.template.json")
+TEMPLATE = Path("tests/e2e/validator/expected/dev_expectation.template.json")
 
 
 def test_template_exists():
@@ -20,3 +20,4 @@ def test_template_exists():
 def test_compare_actual_against_template():
     actual_path = Path(os.environ["ACTUAL_EXPECTATION_PATH"])
     compare_expected_actual(TEMPLATE, actual_path)
+

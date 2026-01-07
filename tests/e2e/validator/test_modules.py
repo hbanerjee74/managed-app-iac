@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from tests.validator.compare_expectation import compare_expected_actual
+from tests.e2e.validator.compare_expectation import compare_expected_actual
 
 
-EXPECTED_DIR = Path("tests/validator/expected/modules")
+EXPECTED_DIR = Path("tests/e2e/validator/expected/modules")
 
 
 def _load(path: Path):
@@ -38,3 +38,4 @@ def _compare_expected_file(actual_data, expected_file: Path):
 )
 def test_module_expectations(actual_data, expected_file):
     _compare_expected_file(actual_data, expected_file)
+

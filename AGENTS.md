@@ -10,12 +10,12 @@
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
 - `tests/fixtures/params.dev.json` — sample params for dev/what-if.
 - `tests/test_params.py` — required param presence check.
-- `tests/state_check/` — `what_if.sh` + `diff_report.py` to compare Bicep vs. RG.
-- `tests/validator/` — placeholder for post-deploy actual/expected JSON comparison.
+- `tests/e2e/state_check/` — `what_if.sh` + `diff_report.py` to compare Bicep vs. RG.
+- `tests/e2e/validator/` — post-deploy actual/expected JSON comparison.
 
 ## Deployment & Validation
 - Create RG, then run: `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create ...`).
-- State check: `./tests/state_check/what_if.sh tests/fixtures/params.dev.json && python tests/state_check/diff_report.py tests/state_check/what-if.json`.
+- State check: `./tests/e2e/state_check/what_if.sh tests/fixtures/params.dev.json && python tests/e2e/state_check/diff_report.py tests/e2e/state_check/what-if.json`.
 - Diagnostics: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
 
 ## Naming & Standards

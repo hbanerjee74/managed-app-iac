@@ -4,6 +4,9 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Any
 
+# Shared params file - single source of truth for RG name and location
+SHARED_PARAMS_FILE = Path(__file__).parent.parent.parent / 'tests' / 'fixtures' / 'params.dev.json'
+
 
 def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tuple[bool, str]:
     """Ensure resource group exists, creating it if necessary.
@@ -59,91 +62,81 @@ def run_bicep_build(bicep_file: Path) -> tuple[bool, str]:
         return False, "Azure CLI not found. Please install Azure CLI."
 
 
-def get_location_from_params(params_file: Path, default: str = 'eastus') -> str:
-    """Extract location from params file if available.
-    
-    Args:
-        params_file: Path to parameters JSON file
-        default: Default location if not found in params
-    
-    Returns:
-        Location string
-    """
-    try:
-        params_data = load_json_file(params_file)
-        # Try parameters.location.value first
-        location = params_data.get('parameters', {}).get('location', {}).get('value', '')
-        if location:
-            return location
-        # Try metadata.location as fallback
-        location = params_data.get('metadata', {}).get('location', '')
-        if location:
-            return location
-    except Exception:
-        pass
-    return default
-
-
-def get_resource_group_from_params(params_file: Path, default: str = None) -> str:
-    """Extract resource group name from params file if available.
-    
-    Args:
-        params_file: Path to parameters JSON file
-        default: Default resource group name if not found in params (raises error if None)
+def get_resource_group_from_shared_params() -> str:
+    """Extract resource group name from shared params.dev.json file.
     
     Returns:
         Resource group name string
     
     Raises:
-        ValueError: If resource group name not found and no default provided
+        ValueError: If resource group name not found
     """
     try:
-        params_data = load_json_file(params_file)
-        # Try parameters.resourceGroupName.value first
-        rg_name = params_data.get('parameters', {}).get('resourceGroupName', {}).get('value', '')
-        if rg_name:
-            return rg_name
-        # Try metadata.resourceGroupName as fallback
+        params_data = load_json_file(SHARED_PARAMS_FILE)
+        # Try metadata first (new approach - ARM-provided context)
         rg_name = params_data.get('metadata', {}).get('resourceGroupName', '')
         if rg_name:
             return rg_name
-    except Exception:
+        # Fallback to parameters (backward compatibility)
+        rg_name = params_data.get('parameters', {}).get('resourceGroupName', {}).get('value', '')
+        if rg_name:
+            return rg_name
+    except Exception as e:
         pass
     
-    if default is None:
-        raise ValueError(f"Resource group name not found in {params_file} and no default provided")
-    return default
+    raise ValueError(f"Resource group name not found in {SHARED_PARAMS_FILE}")
+
+
+def get_location_from_shared_params() -> str:
+    """Extract location from shared params.dev.json file.
+    
+    Returns:
+        Location string (defaults to 'eastus' if not found)
+    """
+    try:
+        params_data = load_json_file(SHARED_PARAMS_FILE)
+        # Try metadata first (new approach - ARM-provided context)
+        location = params_data.get('metadata', {}).get('location', '')
+        if location:
+            return location
+        # Fallback to parameters (backward compatibility)
+        location = params_data.get('parameters', {}).get('location', {}).get('value', '')
+        if location:
+            return location
+    except Exception:
+        pass
+    return 'eastus'  # Default fallback
 
 
 def run_what_if(
     bicep_file: Path,
     params_file: Path,
-    resource_group: str = None,  # Auto-extracted from params if None
+    resource_group: str = None,  # Auto-extracted from shared params if None
     ensure_rg_exists: bool = True  # Auto-create RG if it doesn't exist
 ) -> tuple[bool, str]:
     """Run Azure what-if for a Bicep deployment.
     
     Args:
         bicep_file: Path to Bicep template file
-        params_file: Path to parameters JSON file
-        resource_group: Name of the resource group (extracted from params file if None)
-        ensure_rg_exists: If True, create RG if it doesn't exist (location extracted from params file)
+        params_file: Path to parameters JSON file (for module-specific params)
+        resource_group: Name of the resource group (extracted from shared params.dev.json if None)
+        ensure_rg_exists: If True, create RG if it doesn't exist (location from shared params)
     
     Returns:
         Tuple of (success: bool, output: str)
         Returns JSON output with full resource payloads for parsing and validation.
-        Note: --location is not used for resource group-scoped deployments.
-        Location and resource group name are extracted from params file.
+        Note: resourceGroupName and location are always read from tests/fixtures/params.dev.json
+        Module-specific params file is only used for --parameters flag.
     """
-    # Extract resource group name from params file if not provided
+    # Extract resource group name from shared params file if not provided
     if resource_group is None:
         try:
-            resource_group = get_resource_group_from_params(params_file)
+            resource_group = get_resource_group_from_shared_params()
         except ValueError as e:
             return False, str(e)
     
-    # Extract location from params file for RG creation if needed
-    location = get_location_from_params(params_file)
+    # Extract location from shared params file for RG creation if needed
+    location = get_location_from_shared_params()
     
     # Ensure resource group exists if requested
     if ensure_rg_exists:

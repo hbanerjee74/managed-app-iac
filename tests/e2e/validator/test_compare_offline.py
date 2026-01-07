@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.validator.compare_expectation import ANY_VALUE, compare_expected_actual
+from tests.e2e.validator.compare_expectation import ANY_VALUE, compare_expected_actual
 
 
 def _write(tmp_path: Path, name: str, data: dict) -> Path:
@@ -114,3 +114,4 @@ def test_compare_raises_on_missing_resource(tmp_path: Path):
 
     with pytest.raises(AssertionError):
         compare_expected_actual(exp_path, act_path)
+

@@ -34,21 +34,21 @@ az deployment group what-if \
 ## Dev/test state check
 To verify the live RG matches the Bicep in dev/test:
 ```bash
-./tests/state_check/what_if.sh tests/fixtures/params.dev.json
-python tests/state_check/diff_report.py tests/state_check/what-if.json
+./tests/e2e/state_check/what_if.sh tests/fixtures/params.dev.json
+python tests/e2e/state_check/diff_report.py tests/e2e/state_check/what-if.json
 ```
 
 Module-level validator (`ACTUAL_PATH` required):
 ```bash
-python tests/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
-ACTUAL_PATH=/tmp/actual.json pytest tests/validator/test_modules.py
+python tests/e2e/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
+ACTUAL_PATH=/tmp/actual.json pytest tests/e2e/validator/test_modules.py
 ```
 
 Per-module actual + teardown:
 ```bash
 # collect only one module
-python tests/validator/collect_actual_state.py rg-vibedata-dev --module network --output /tmp/network.json
-ACTUAL_PATH=/tmp/network.json pytest tests/validator/test_modules.py -k network
+python tests/e2e/validator/collect_actual_state.py rg-vibedata-dev --module network --output /tmp/network.json
+ACTUAL_PATH=/tmp/network.json pytest tests/e2e/validator/test_modules.py -k network
 
 # tear down resources for a module (irreversible)
 # preview
@@ -60,13 +60,13 @@ ACTUAL_PATH=/tmp/network.json pytest tests/validator/test_modules.py -k network
 ## Validating deployed state against expectation (optional)
 1) Collect actual state (best-effort summary):
 ```bash
-python tests/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
+python tests/e2e/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
 ```
 2) Compare against template:
 ```bash
-ACTUAL_EXPECTATION_PATH=/tmp/actual.json pytest tests/validator/test_expectation_template.py
+ACTUAL_EXPECTATION_PATH=/tmp/actual.json pytest tests/e2e/validator/test_expectation_template.py
 ```
-Edit `tests/validator/expected/dev_expectation.template.json` to tighten or expand checks (placeholders like `<16>` validate nanoid lengths; lists are matched as subsets).
+Edit `tests/e2e/validator/expected/dev_expectation.template.json` to tighten or expand checks (placeholders like `<16>` validate nanoid lengths; lists are matched as subsets).
 
 Keep parameter names and casing aligned with RFC-64 to match the eventual Marketplace handoff.
 

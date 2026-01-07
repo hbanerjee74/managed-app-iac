@@ -30,6 +30,7 @@ def main(path: str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python tests/state_check/diff_report.py tests/state_check/what-if.json")
+        print("Usage: python tests/e2e/state_check/diff_report.py tests/e2e/state_check/what-if.json")
         sys.exit(2)
     main(sys.argv[1])
+

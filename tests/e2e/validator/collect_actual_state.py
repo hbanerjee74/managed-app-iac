@@ -3,7 +3,7 @@ Collect detailed actual-state JSON for comparison against the expectation templa
 Requires az CLI logged in and access to the target RG.
 
 Usage:
-  python tests/validator/collect_actual_state.py <resource_group> > /tmp/actual.json
+  python tests/e2e/validator/collect_actual_state.py <resource_group> > /tmp/actual.json
 
 The output now includes a resource-level array with key properties captured
 per resource to validate against Bicep-defined settings.
@@ -13,6 +13,7 @@ import argparse
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 MODULE_FILTERS = {
     "diagnostics": {
@@ -775,3 +776,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -139,3 +139,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     compare_expected_actual(args.expected, args.actual)
     print("Match: OK")
+

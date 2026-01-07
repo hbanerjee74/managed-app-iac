@@ -1,6 +1,6 @@
 # Unit Tests for Bicep Modules
 
-This directory contains unit tests for individual Bicep modules.
+This directory contains parameterized unit tests for all Bicep modules.
 
 ## Structure
 
@@ -11,20 +11,25 @@ tests/unit/
     params-<module>.json     # Module-specific test parameters
   helpers/
     test_utils.py            # Common test utilities
-  test_<module>.py          # Python test files
+    what_if_parser.py        # What-if output parser utilities
+  test_modules.py           # Single parameterized test file for all modules
 ```
 
 ## Running Tests
 
 ```bash
-# Run all unit tests
-pytest tests/unit/
+# Run all unit tests (all modules)
+pytest tests/unit/test_modules.py -v
 
 # Run tests for a specific module
-pytest tests/unit/test_data.py
+pytest tests/unit/test_modules.py -v -k "diagnostics"
+pytest tests/unit/test_modules.py -v -k "network"
 
-# Run with verbose output
-pytest tests/unit/ -v
+# Run only compilation tests (no Azure CLI needed)
+pytest tests/unit/test_modules.py -v -k "compiles"
+
+# Run only what-if tests
+pytest tests/unit/test_modules.py -v -k "what_if"
 ```
 
 ## Test Wrapper Templates
@@ -47,7 +52,12 @@ All unit tests use **what-if mode only** - no actual Azure resources are created
 
 1. Create `test-<module>.bicep` in `fixtures/`
 2. Create `params-<module>.json` in `fixtures/`
-3. Create `test_<module>.py` in `tests/unit/`
+3. Add the module to the `MODULES` list in `test_modules.py`:
+   ```python
+   MODULES = [
+       ...
+       ('newmodule', 'test-newmodule.bicep', 'params-newmodule.json'),
+   ]
+   ```
 4. Mock all dependencies in the test wrapper
-5. Add test cases for compilation, parameter validation, and what-if
-
+5. All standard tests (compilation, parameter validation, what-if) will run automatically

@@ -8,12 +8,12 @@ from pathlib import Path
 import sys
 
 # Add state_check to path for importing utilities
-STATE_CHECK_DIR = Path(__file__).parent.parent / 'state_check'
+STATE_CHECK_DIR = Path(__file__).parent / 'state_check'
 sys.path.insert(0, str(STATE_CHECK_DIR.parent))
 
 # Import summarize function from diff_report
 def summarize(changes):
-    """Summarize what-if changes (from state_check/diff_report.py)."""
+    """Summarize what-if changes (from e2e/state_check/diff_report.py)."""
     summary = {"Create": 0, "Modify": 0, "Delete": 0, "NoChange": 0}
     for change in changes:
         change_type = change.get("changeType", "Unknown")

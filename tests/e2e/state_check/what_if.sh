@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # Runs az what-if against the resource group-scope deployment and stores the JSON result.
-# Usage: ./tests/state_check/what_if.sh [params_file]
+# Usage: ./tests/e2e/state_check/what_if.sh [params_file]
 # Defaults: params_file=tests/fixtures/params.dev.json
 # Extracts resourceGroupName from params file
 
 PARAMS_FILE="${1:-tests/fixtures/params.dev.json}"
-OUT_FILE="tests/state_check/what-if.json"
+OUT_FILE="tests/e2e/state_check/what-if.json"
 
 # Extract resourceGroupName from params file (metadata or parameters)
 RG_NAME=$(jq -r 'if .metadata.resourceGroupName then .metadata.resourceGroupName else .parameters.resourceGroupName.value end' "$PARAMS_FILE")
@@ -28,3 +28,4 @@ az deployment group what-if \
   > "$OUT_FILE"
 
 echo "What-if result saved to $OUT_FILE"
+
