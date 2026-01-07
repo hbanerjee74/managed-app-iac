@@ -1,10 +1,10 @@
 targetScope = 'resourceGroup'
 
-@description('Resource group name used for deterministic naming (RFC-64: resourceGroupName, same as mrgName).')
-param resourceGroupName string
+@description('Resource group name used for deterministic naming (RFC-64: resourceGroupName, same as mrgName). Defaults to current resource group name from ARM context.')
+param resourceGroupName string = resourceGroup().name
 
-@description('Azure region for deployment.')
-param location string
+@description('Azure region for deployment. Defaults to current resource group location from ARM context.')
+param location string = resourceGroup().location
 
 @description('Customer admin Entra object ID (RFC-64).')
 param adminObjectId string

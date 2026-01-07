@@ -35,21 +35,63 @@ ENABLE_ACTUAL_DEPLOYMENT = os.getenv('ENABLE_ACTUAL_DEPLOYMENT', 'false').lower(
 
 
 def get_resource_group_from_params():
-    """Extract resource group name from params file."""
+    """Extract resource group name from params file metadata (or parameters for backward compatibility)."""
     try:
         params_data = json.loads(PARAMS_FILE.read_text())
+        # Try metadata first (new approach - ARM-provided context)
+        rg_name = params_data.get('metadata', {}).get('resourceGroupName', '')
+        if rg_name:
+            return rg_name
+        # Fallback to parameters (backward compatibility)
         return params_data.get('parameters', {}).get('resourceGroupName', {}).get('value', TEST_RG)
     except Exception:
         return TEST_RG
 
 
 def get_location_from_params():
-    """Extract location from params file."""
+    """Extract location from params file metadata (or parameters for backward compatibility)."""
     try:
         params_data = json.loads(PARAMS_FILE.read_text())
+        # Try metadata first (new approach - ARM-provided context)
+        location = params_data.get('metadata', {}).get('location', '')
+        if location:
+            return location
+        # Fallback to parameters (backward compatibility)
         return params_data.get('parameters', {}).get('location', {}).get('value', TEST_LOCATION)
     except Exception:
         return TEST_LOCATION
+
+
+def get_subscription_id_from_params():
+    """Extract subscription ID from params file metadata."""
+    try:
+        params_data = json.loads(PARAMS_FILE.read_text())
+        subscription_id = params_data.get('metadata', {}).get('subscriptionId', '')
+        return subscription_id if subscription_id else None
+    except Exception:
+        return None
+
+
+def ensure_subscription_set():
+    """Set Azure subscription from params file if provided.
+    
+    If subscriptionId is in params file metadata, sets it as the active subscription.
+    This allows tests to be self-contained after az login.
+    """
+    subscription_id = get_subscription_id_from_params()
+    if subscription_id:
+        try:
+            subprocess.run(
+                ['az', 'account', 'set', '--subscription', subscription_id],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print(f"Set subscription to {subscription_id}")
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: Failed to set subscription: {e.stderr}")
+        except FileNotFoundError:
+            pass  # Azure CLI not available
 
 
 def create_resource_group(rg_name: str, location: str, timeout: int = RG_CREATE_TIMEOUT):
@@ -160,6 +202,16 @@ def delete_resource_group(rg_name: str, timeout: int = RG_DELETE_TIMEOUT):
     
     print(f"Warning: Resource group deletion timed out after {timeout} seconds")
     return False
+
+
+@pytest.fixture(scope="function", autouse=True)
+def setup_azure_context():
+    """Automatically set Azure subscription from params file if provided.
+    
+    Runs before each test to ensure correct subscription is active.
+    This allows tests to be self-contained after az login.
+    """
+    ensure_subscription_set()
 
 
 @pytest.fixture(scope="function")

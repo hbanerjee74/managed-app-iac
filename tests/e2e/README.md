@@ -20,10 +20,26 @@ Before running E2E tests, you must authenticate with Azure CLI:
 az login
 ```
 
-### 2. Set Your Subscription (if you have multiple subscriptions)
-```bash
-az account set --subscription <subscription-id>
+### 2. (Optional) Configure Azure Context in Params File
+You can specify Azure context information in `tests/fixtures/params.dev.json` metadata section:
+
+```json
+{
+  "metadata": {
+    "subscriptionId": "your-subscription-id-here",
+    "resourceGroupName": "vd-rg-dev-abc12345",
+    "location": "eastus"
+  },
+  "parameters": {
+    ...
+  }
+}
 ```
+
+**Note**: 
+- `subscriptionId` - Used to set the active subscription via `az account set` (optional)
+- `resourceGroupName` and `location` - ARM-provided context in managed applications. For testing, extracted from metadata to create/set the resource group context
+- If metadata is not provided, tests will use your current Azure CLI context
 
 ### 3. Verify Authentication and Check Subscription
 ```bash

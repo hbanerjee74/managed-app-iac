@@ -35,7 +35,7 @@ resource propagationDelay 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   location: location
   kind: 'AzurePowerShell'
   properties: {
-    azPowerShellVersion: '2.0'
+          azPowerShellVersion: '11.0'
     scriptContent: 'Start-Sleep -Seconds 30'
     timeout: 'PT1H'
     cleanupPreference: 'OnSuccess'

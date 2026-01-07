@@ -15,7 +15,6 @@ param retentionDays int
 // Include naming module
 module naming '../../../iac/lib/naming.bicep' = {
   name: 'naming'
-  scope: subscription()
   params: {
     resourceGroupName: resourceGroupName
     purpose: 'platform'

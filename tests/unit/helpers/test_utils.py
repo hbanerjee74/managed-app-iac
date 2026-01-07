@@ -26,18 +26,18 @@ def run_what_if(
     bicep_file: Path,
     params_file: Path,
     resource_group: str,
-    location: str = 'eastus'
+    location: str = 'eastus'  # Not used for RG deployments, kept for API compatibility
 ) -> tuple[bool, str]:
     """Run Azure what-if for a Bicep deployment.
     
     Returns JSON output with full resource payloads for parsing and validation.
+    Note: --location is not used for resource group-scoped deployments.
     """
     try:
         result = subprocess.run(
             [
                 'az', 'deployment', 'group', 'what-if',
                 '--resource-group', resource_group,
-                '--location', location,
                 '--template-file', str(bicep_file),
                 '--parameters', f'@{params_file}',
                 '--output', 'json',

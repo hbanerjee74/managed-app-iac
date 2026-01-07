@@ -12,7 +12,7 @@ from tests.unit.helpers.test_utils import (
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
 BICEP_FILE = FIXTURES_DIR / 'test-diagnostics.bicep'
 PARAMS_FILE = FIXTURES_DIR / 'params-diagnostics.json'
-TEST_RG = 'test-rg'
+TEST_RG = 'test-rg-managed-app'  # Use existing RG for testing
 
 
 class TestDiagnosticsModule:

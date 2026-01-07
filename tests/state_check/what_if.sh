@@ -9,8 +9,8 @@ set -euo pipefail
 PARAMS_FILE="${1:-tests/fixtures/params.dev.json}"
 OUT_FILE="tests/state_check/what-if.json"
 
-# Extract resourceGroupName from params file
-RG_NAME=$(jq -r '.parameters.resourceGroupName.value' "$PARAMS_FILE")
+# Extract resourceGroupName from params file (metadata or parameters)
+RG_NAME=$(jq -r 'if .metadata.resourceGroupName then .metadata.resourceGroupName else .parameters.resourceGroupName.value end' "$PARAMS_FILE")
 
 if [ -z "$RG_NAME" ] || [ "$RG_NAME" == "null" ]; then
   echo "Error: Could not extract resourceGroupName from $PARAMS_FILE"
