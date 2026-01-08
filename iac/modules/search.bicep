@@ -90,12 +90,7 @@ resource searchDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' =
   scope: search
   properties: {
     workspaceId: lawId
-    logs: [
-      {
-        category: 'AllMetrics'
-        enabled: true
-      }
-    ]
+    // Azure AI Search only supports metrics, not logs
     metrics: [
       {
         category: 'AllMetrics'
@@ -117,4 +112,5 @@ resource searchContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-p
 }
 
 output searchId string = search.id
+output peSearchId string = peSearch.id
 

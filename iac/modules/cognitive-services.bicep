@@ -112,4 +112,5 @@ resource aiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-previ
 }
 
 output aiId string = ai.id
+output peAiId string = peAi.id
 
