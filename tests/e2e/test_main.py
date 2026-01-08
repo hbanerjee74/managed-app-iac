@@ -99,17 +99,17 @@ def ensure_subscription_set():
 
 
 def create_resource_group(rg_name: str, location: str, timeout: int = RG_CREATE_TIMEOUT):
-    """Create resource group, deleting existing one if present.
+    """Create resource group, exiting if it already exists.
     
     Args:
         rg_name: Name of the resource group
         location: Azure region
-        timeout: Maximum time to wait for operations (seconds)
+        timeout: Maximum time to wait for operations (seconds) - unused, kept for compatibility
     
     Raises:
-        RuntimeError: If creation or deletion fails
+        RuntimeError: If resource group exists or creation fails
     """
-    # Check if RG exists and delete it
+    # Check if RG exists
     check_result = subprocess.run(
         ['az', 'group', 'exists', '--name', rg_name],
         capture_output=True,
@@ -118,32 +118,23 @@ def create_resource_group(rg_name: str, location: str, timeout: int = RG_CREATE_
     )
     
     if check_result.stdout.strip().lower() == 'true':
-        # Delete existing RG
-        print(f"Resource group {rg_name} exists. Deleting...")
-        delete_result = subprocess.run(
-            ['az', 'group', 'delete', '--name', rg_name, '--yes'],
-            capture_output=True,
-            text=True,
-            check=False
+        # Resource group exists - exit with instructions
+        print(f"\n❌ Resource group '{rg_name}' already exists.")
+        print(f"\nPlease manually clean up before running tests:")
+        print(f"\n1. List soft-deleted Cognitive Services:")
+        print(f"   az cognitiveservices account list-deleted")
+        print(f"\n2. Delete soft-deleted Cognitive Services (use resource ID from list):")
+        print(f"   az resource delete --ids <resource-id>")
+        print(f"   # Example: az resource delete --ids /subscriptions/<sub-id>/resourceGroups/{rg_name}/providers/Microsoft.CognitiveServices/accounts/<account-name>")
+        print(f"\n3. Delete the resource group:")
+        print(f"   az group delete --name {rg_name} --yes")
+        print(f"\n4. Wait for deletion to complete, then verify:")
+        print(f"   az group exists --name {rg_name}")
+        print(f"\nThen run the test again.")
+        raise RuntimeError(
+            f"Resource group '{rg_name}' already exists. "
+            f"Please delete it manually and delete any soft-deleted Cognitive Services resources first."
         )
-        
-        if delete_result.returncode != 0:
-            raise RuntimeError(f"Failed to delete existing resource group: {delete_result.stderr}")
-        
-        # Wait for deletion to complete
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            check_result = subprocess.run(
-                ['az', 'group', 'exists', '--name', rg_name],
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if check_result.stdout.strip().lower() == 'false':
-                break
-            time.sleep(5)
-        else:
-            raise RuntimeError(f"Resource group deletion timed out after {timeout} seconds")
     
     # Create new RG
     print(f"Creating resource group {rg_name} in {location}...")
