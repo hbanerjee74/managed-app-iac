@@ -140,6 +140,9 @@ var tags = effectiveTags
 
 module diagnostics 'modules/diagnostics.bicep' = {
   name: 'diagnostics'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     retentionDays: retentionDays
@@ -150,7 +153,10 @@ module diagnostics 'modules/diagnostics.bicep' = {
 
 module identity 'modules/identity.bicep' = {
   name: 'identity'
-  dependsOn: [diagnostics]
+  dependsOn: [
+    naming
+    diagnostics
+  ]
   params: {
     location: location
     uamiName: naming.outputs.names.uami
@@ -160,6 +166,9 @@ module identity 'modules/identity.bicep' = {
 
 module network 'modules/network.bicep' = {
   name: 'network'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     vnetName: naming.outputs.names.vnet
@@ -174,6 +183,10 @@ module network 'modules/network.bicep' = {
 
 module dns 'modules/dns.bicep' = {
   name: 'dns'
+  dependsOn: [
+    naming
+    network
+  ]
   params: {
     vnetName: naming.outputs.names.vnet
     tags: tags
@@ -182,6 +195,12 @@ module dns 'modules/dns.bicep' = {
 
 module kv 'modules/kv.bicep' = {
   name: 'kv'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     kvName: naming.outputs.names.kv
@@ -197,6 +216,12 @@ module kv 'modules/kv.bicep' = {
 
 module storage 'modules/storage.bicep' = {
   name: 'storage'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     storageName: naming.outputs.names.storage
@@ -216,6 +241,12 @@ module storage 'modules/storage.bicep' = {
 
 module acr 'modules/acr.bicep' = {
   name: 'acr'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     acrName: naming.outputs.names.acr
@@ -232,6 +263,10 @@ module acr 'modules/acr.bicep' = {
 module psql 'modules/psql.bicep' = {
   name: 'psql'
   dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
     kv
   ]
   params: {
@@ -251,6 +286,9 @@ module psql 'modules/psql.bicep' = {
 
 module compute 'modules/compute.bicep' = {
   name: 'compute'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     sku: sku
@@ -261,6 +299,9 @@ module compute 'modules/compute.bicep' = {
 
 module publicIp 'modules/public-ip.bicep' = {
   name: 'publicIp'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     pipName: naming.outputs.names.pipAgw
@@ -272,6 +313,9 @@ var wafPolicyName = '${naming.outputs.names.agw}-waf'
 
 module wafPolicy 'modules/waf-policy.bicep' = {
   name: 'wafPolicy'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     wafPolicyName: wafPolicyName
@@ -283,6 +327,13 @@ module wafPolicy 'modules/waf-policy.bicep' = {
 
 module gateway 'modules/gateway.bicep' = {
   name: 'gateway'
+  dependsOn: [
+    naming
+    publicIp
+    wafPolicy
+    network
+    diagnostics
+  ]
   params: {
     location: location
     agwName: naming.outputs.names.agw
@@ -299,6 +350,12 @@ module gateway 'modules/gateway.bicep' = {
 
 module search 'modules/search.bicep' = {
   name: 'search'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     aiServicesTier: aiServicesTier
@@ -315,6 +372,12 @@ module search 'modules/search.bicep' = {
 
 module cognitiveServices 'modules/cognitive-services.bicep' = {
   name: 'cognitive-services'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     aiName: naming.outputs.names.ai
@@ -330,6 +393,10 @@ module cognitiveServices 'modules/cognitive-services.bicep' = {
 
 module automation 'modules/automation.bicep' = {
   name: 'automation'
+  dependsOn: [
+    naming
+    diagnostics
+  ]
   params: {
     location: location
     automationName: naming.outputs.names.automation
@@ -339,9 +406,33 @@ module automation 'modules/automation.bicep' = {
   }
 }
 
+module psqlRoles 'modules/psql-roles.bicep' = {
+  name: 'psql-roles'
+  dependsOn: [
+    psql
+    identity
+    automation
+    kv
+  ]
+  params: {
+    location: location
+    psqlId: psql.outputs.psqlId
+    psqlName: psql.outputs.psqlName
+    uamiClientId: identity.outputs.uamiClientId
+    uamiId: identity.outputs.uamiId
+    kvName: naming.outputs.names.kv
+    automationId: automation.outputs.automationId
+    automationName: automation.outputs.automationName
+    tags: tags
+  }
+}
+
 module bastion 'modules/bastion.bicep' = {
   name: 'bastion'
-  dependsOn: [network]
+  dependsOn: [
+    naming
+    network
+  ]
   params: {
     location: location
     bastionName: naming.outputs.names.bastion
@@ -354,6 +445,7 @@ module bastion 'modules/bastion.bicep' = {
 module vmJumphost 'modules/vm-jumphost.bicep' = {
   name: 'vm-jumphost'
   dependsOn: [
+    naming
     network
     kv
   ]
@@ -370,6 +462,7 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
 module rbac 'modules/rbac.bicep' = {
   name: 'rbac'
   dependsOn: [
+    naming
     identity
     diagnostics
     kv

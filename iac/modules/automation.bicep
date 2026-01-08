@@ -6,7 +6,6 @@ param location string
 @description('Automation Account name.')
 param automationName string
 
-
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
@@ -32,6 +31,7 @@ resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
 }
 
 output automationId string = automation.id
+output automationName string = automation.name
 
 resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: diagAutomationName
@@ -58,3 +58,4 @@ resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-previe
 }
 
 // RBAC assignments moved to consolidated rbac.bicep module
+// Runbook creation moved to psql-roles.bicep module
