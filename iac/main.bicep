@@ -239,7 +239,6 @@ module data 'modules/data.bicep' = {
     backupRetentionDays: backupRetentionDays
     storageGB: storageGB
     subnetPsqlId: network.outputs.subnetPsqlId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     uamiClientId: identity.outputs.uamiClientId
     uamiId: identity.outputs.uamiId

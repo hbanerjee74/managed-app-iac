@@ -57,7 +57,6 @@ module data '../../../iac/modules/data.bicep' = {
     backupRetentionDays: backupRetentionDays
     storageGB: storageGB
     subnetPsqlId: mockNetworkOutputs.subnetPsqlId
-    uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
     lawId: mockDiagnosticsOutputs.lawId
     uamiClientId: mockIdentityOutputs.uamiClientId
     uamiId: mockIdentityOutputs.uamiId

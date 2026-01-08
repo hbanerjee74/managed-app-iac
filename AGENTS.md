@@ -37,7 +37,7 @@ See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 
 ## Identities & RBAC
 
-- Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push, Postgres Admin). Automation Job Operator assigned to `adminObjectId`.
+- Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push). Automation Job Operator assigned to `adminObjectId`.
 - `adminPrincipalType` param (User/Group) for RG Reader assignment.
 - **Managed Application Requirements**: All role assignments use `delegatedManagedIdentityResourceId` property for cross-tenant scenarios. Includes 30-second propagation delay after UAMI creation to allow identity propagation across tenants.
 - **Scope**: All RBAC assignments occur at resource group scope (subscription-scope roles like Cost Management Reader are not assigned).

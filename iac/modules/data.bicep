@@ -12,9 +12,6 @@ param psqlName string
 @description('Delegated subnet ID for PostgreSQL Flexible Server.')
 param subnetPsqlId string
 
-@description('Principal ID of the UAMI for RBAC.')
-param uamiPrincipalId string
-
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
@@ -137,16 +134,6 @@ SQL
         value: ossrdbmsResource
       }
     ]
-  }
-}
-
-resource psqlAdminRole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(psql.id, uamiPrincipalId, 'psql-admin')
-  scope: psql
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1f21df41-19d2-41e1-8a5e-3cbb7a0c2bd2') // PostgreSQL Flexible Server Administrator
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
   }
 }
 
