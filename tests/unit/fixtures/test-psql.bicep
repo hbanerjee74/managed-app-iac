@@ -70,9 +70,6 @@ module identity '../../../iac/modules/identity.bicep' = {
   params: {
     location: location
     uamiName: naming.outputs.names.uami
-    adminObjectId: '00000000-0000-0000-0000-000000000000'
-    adminPrincipalType: 'User'
-    lawName: naming.outputs.names.law
     tags: {}
   }
 }
@@ -83,7 +80,6 @@ module kv '../../../iac/modules/kv.bicep' = {
     location: location
     kvName: naming.outputs.names.kv
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peKvName: naming.outputs.names.peKv

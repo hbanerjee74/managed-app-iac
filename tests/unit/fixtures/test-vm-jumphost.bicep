@@ -43,7 +43,6 @@ module kv '../../../iac/modules/kv.bicep' = {
     location: location
     kvName: naming.outputs.names.kv
     subnetPeId: mockNetworkOutputs.subnetPeId
-    uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
     lawId: mockDiagnosticsOutputs.lawId
     zoneIds: mockDnsOutputs.zoneIds
     peKvName: naming.outputs.names.peKv

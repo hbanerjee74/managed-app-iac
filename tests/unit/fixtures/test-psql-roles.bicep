@@ -77,9 +77,6 @@ module identity '../../../iac/modules/identity.bicep' = {
   params: {
     location: location
     uamiName: naming.outputs.names.uami
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
-    lawName: naming.outputs.names.law
     tags: {}
   }
 }
@@ -90,7 +87,6 @@ module kv '../../../iac/modules/kv.bicep' = {
     location: location
     kvName: naming.outputs.names.kv
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peKvName: naming.outputs.names.peKv
