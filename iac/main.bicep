@@ -19,10 +19,8 @@ param contactEmail string
 ])
 param adminPrincipalType string = 'User'
 
-// Note: servicesVnetCidr parameter removed - network module now uses hardcoded VNet/subnet CIDRs
-// Hardcoded values: VNet 10.20.0.0/16, subnets 10.20.0.0/24 through 10.20.4.0/24
-// This simplifies deployment and avoids Azure cidrSubnet limitations
-// TODO: Consider making VNet/subnet CIDRs configurable via parameters if needed for different environments
+@description('VNet address prefix (CIDR notation, e.g., 10.20.0.0/16). Subnets will be automatically derived as /24 subnets.')
+param vnetCidr string
 
 @description('Customer IP ranges for WAF allowlist (RFC-64).')
 @minLength(1)
@@ -106,6 +104,10 @@ param storageGB int = 128
 @maxValue(35)
 param backupRetentionDays int = 7
 
+@description('VM admin password for jump host.')
+@secure()
+param vmAdminPassword string = ''
+
 @description('Optional tags: environment (dev/release/prod), owner, purpose, created (ISO8601).')
 param environment string = ''
 param owner string = ''
@@ -162,6 +164,7 @@ module network 'modules/network.bicep' = {
   params: {
     location: location
     vnetName: naming.outputs.names.vnet
+    vnetCidr: vnetCidr
     nsgAppgwName: naming.outputs.names.nsgAppgw
     nsgAksName: naming.outputs.names.nsgAks
     nsgAppsvcName: naming.outputs.names.nsgAppsvc
@@ -232,6 +235,9 @@ module acr 'modules/acr.bicep' = {
 
 module psql 'modules/psql.bicep' = {
   name: 'psql'
+  dependsOn: [
+    kv
+  ]
   params: {
     location: location
     psqlName: naming.outputs.names.psql
@@ -240,10 +246,9 @@ module psql 'modules/psql.bicep' = {
     storageGB: storageGB
     subnetPsqlId: network.outputs.subnetPsqlId
     lawId: diagnostics.outputs.lawId
-    uamiClientId: identity.outputs.uamiClientId
-    uamiId: identity.outputs.uamiId
     zoneIds: dns.outputs.zoneIds
     diagPsqlName: naming.outputs.names.diagPsql
+    kvName: naming.outputs.names.kv
     tags: tags
   }
 }
@@ -343,6 +348,60 @@ module automation 'modules/automation.bicep' = {
   }
 }
 
+module bastion 'modules/bastion.bicep' = {
+  name: 'bastion'
+  dependsOn: [network]
+  params: {
+    location: location
+    bastionName: naming.outputs.names.bastion
+    pipBastionName: naming.outputs.names.pipBastion
+    subnetBastionId: network.outputs.subnetBastionId
+    tags: tags
+  }
+}
+
+module vmJumphost 'modules/vm-jumphost.bicep' = {
+  name: 'vm-jumphost'
+  dependsOn: [
+    network
+    kv
+  ]
+  params: {
+    location: location
+    vmName: naming.outputs.names.vm
+    subnetId: network.outputs.subnetPeId
+    kvName: naming.outputs.names.kv
+    adminPassword: vmAdminPassword
+    tags: tags
+  }
+}
+
+module adminDataPlaneRbac 'modules/admin-data-plane-rbac.bicep' = {
+  name: 'admin-data-plane-rbac'
+  dependsOn: [
+    kv
+    storage
+    acr
+    search
+    cognitiveServices
+  ]
+  params: {
+    location: location
+    adminObjectId: adminObjectId
+    adminPrincipalType: adminPrincipalType
+    kvId: kv.outputs.kvId
+    storageId: storage.outputs.storageId
+    acrId: acr.outputs.acrId
+    searchId: search.outputs.searchId
+    aiId: cognitiveServices.outputs.aiId
+    isManagedApplication: isManagedApplication
+    tags: tags
+  }
+}
+
 output names object = naming.outputs.names
 output lawId string = diagnostics.outputs.lawId
 output lawWorkspaceId string = diagnostics.outputs.lawWorkspaceId
+output vmName string = vmJumphost.outputs.vmName
+output vmPrivateIp string = vmJumphost.outputs.vmPrivateIp
+output bastionName string = bastion.outputs.bastionName

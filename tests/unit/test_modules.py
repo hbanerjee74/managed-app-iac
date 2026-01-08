@@ -10,7 +10,8 @@ from tests.unit.helpers.test_utils import (
     run_bicep_build,
     run_bicep_build_with_params,
     run_what_if,
-    load_json_file
+    load_json_file,
+    SHARED_PARAMS_FILE
 )
 from tests.unit.helpers.what_if_parser import parse_what_if_output
 
@@ -19,6 +20,7 @@ MODULES = [
     ('diagnostics', 'test-diagnostics.bicep'),
     ('network', 'test-network.bicep'),
     ('psql', 'test-psql.bicep'),
+    ('psql-roles', 'test-psql-roles.bicep'),
     ('compute', 'test-compute.bicep'),
     ('public-ip', 'test-public-ip.bicep'),
     ('waf-policy', 'test-waf-policy.bicep'),
@@ -31,6 +33,9 @@ MODULES = [
     ('acr', 'test-acr.bicep'),
     ('automation', 'test-automation.bicep'),
     ('dns', 'test-dns.bicep'),
+    ('bastion', 'test-bastion.bicep'),
+    ('vm-jumphost', 'test-vm-jumphost.bicep'),
+    ('admin-data-plane-rbac', 'test-admin-data-plane-rbac.bicep'),
 ]
 
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
@@ -104,42 +109,128 @@ class TestBicepModules:
             f"What-if status is 'Failed' for {module_name}: {cached_what_if_output.get('error', 'Unknown error')}"
 
     def test_cidr_validation_valid_ranges(self, module_name, bicep_file):
-        """Test that valid CIDR ranges (/16-/24) allow Bicep compilation.
+        """Test that valid CIDR ranges (/16, /20, /24) allow template validation.
         
         Only runs for network module. Other modules are skipped.
-        NOTE: Network module now uses hardcoded CIDRs, so this test is skipped.
+        Uses what-if mode to evaluate assertions with different CIDR values.
         """
         if module_name != 'network':
             pytest.skip(f"CIDR validation only applies to network module, skipping for {module_name}")
         
-        # Network module now uses hardcoded CIDRs (10.20.0.0/16 VNet, /24 subnets)
-        # CIDR validation tests are no longer applicable
-        pytest.skip("Network module uses hardcoded CIDRs - CIDR validation tests no longer applicable")
+        import tempfile
+        import json
+        
+        bicep_path = FIXTURES_DIR / bicep_file
+        shared_params = load_json_file(SHARED_PARAMS_FILE)
+        
+        # Valid CIDR ranges to test
+        valid_cidrs = ['10.20.0.0/16', '10.20.0.0/20', '10.20.0.0/24']
+        
+        for cidr in valid_cidrs:
+            # Create temporary params file with only vnetCidr (run_what_if will merge with shared params and filter)
+            test_params = {
+                'parameters': {
+                    'vnetCidr': {'value': cidr}
+                }
+            }
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
+                json.dump(test_params, tmp_file, indent=2)
+                tmp_params_file = tmp_file.name
+            
+            try:
+                # Test what-if with this CIDR (run_what_if filters parameters to only those declared in template)
+                success, output = run_what_if(bicep_path, params_file=Path(tmp_params_file), ensure_rg_exists=False)
+                assert success, f"What-if failed for valid CIDR {cidr}: {output}"
+            finally:
+                # Clean up temp file
+                Path(tmp_params_file).unlink(missing_ok=True)
 
     def test_cidr_validation_invalid_prefix(self, module_name, bicep_file):
         """Test that invalid CIDR prefix ranges cause assert failure.
         
         Tests both too-small prefixes (/15 and below) and too-large prefixes (/25 and above).
         Only runs for network module.
-        NOTE: Network module now uses hardcoded CIDRs, so this test is skipped.
+        Uses what-if mode to evaluate assertions.
         """
         if module_name != 'network':
             pytest.skip(f"CIDR validation only applies to network module, skipping for {module_name}")
         
-        # Network module now uses hardcoded CIDRs (10.20.0.0/16 VNet, /24 subnets)
-        # CIDR validation tests are no longer applicable
-        pytest.skip("Network module uses hardcoded CIDRs - CIDR validation tests no longer applicable")
+        import tempfile
+        import json
+        
+        bicep_path = FIXTURES_DIR / bicep_file
+        shared_params = load_json_file(SHARED_PARAMS_FILE)
+        
+        # Invalid CIDR prefix ranges to test
+        invalid_cidrs = ['10.20.0.0/15', '10.20.0.0/14', '10.20.0.0/8', '10.20.0.0/25', '10.20.0.0/26', '10.20.0.0/30']
+        
+        for cidr in invalid_cidrs:
+            # Create temporary params file with only vnetCidr (run_what_if will merge with shared params and filter)
+            test_params = {
+                'parameters': {
+                    'vnetCidr': {'value': cidr}
+                }
+            }
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
+                json.dump(test_params, tmp_file, indent=2)
+                tmp_params_file = tmp_file.name
+            
+            try:
+                # Test what-if with this CIDR (should fail due to validation)
+                success, output = run_what_if(bicep_path, params_file=Path(tmp_params_file), ensure_rg_exists=False)
+                # For invalid CIDRs, what-if should fail (validation failure or array index error)
+                # Note: Some invalid CIDRs might fail during parsing, which is also acceptable
+                assert not success or 'error' in output.lower() or 'invalid' in output.lower() or 'index' in output.lower() or 'out of range' in output.lower(), \
+                    f"What-if unexpectedly succeeded for invalid CIDR {cidr}. Validation should have failed."
+            finally:
+                # Clean up temp file
+                Path(tmp_params_file).unlink(missing_ok=True)
 
     def test_cidr_validation_invalid_format(self, module_name, bicep_file):
         """Test that invalid CIDR formats cause assert failure.
         
         Tests missing prefix, invalid IP addresses, non-numeric prefix, etc.
         Only runs for network module.
-        NOTE: Network module now uses hardcoded CIDRs, so this test is skipped.
+        Uses what-if mode to evaluate assertions.
         """
         if module_name != 'network':
             pytest.skip(f"CIDR validation only applies to network module, skipping for {module_name}")
         
-        # Network module now uses hardcoded CIDRs (10.20.0.0/16 VNet, /24 subnets)
-        # CIDR validation tests are no longer applicable
-        pytest.skip("Network module uses hardcoded CIDRs - CIDR validation tests no longer applicable")
+        import tempfile
+        import json
+        
+        bicep_path = FIXTURES_DIR / bicep_file
+        shared_params = load_json_file(SHARED_PARAMS_FILE)
+        
+        # Invalid CIDR formats to test
+        invalid_formats = [
+            '10.20.0.0',  # Missing prefix
+            '10.20.0',    # Invalid IP (only 3 octets)
+            '10.20.0.0.0/16',  # Invalid IP (5 octets)
+            '256.20.0.0/16',   # Invalid IP (octet > 255)
+            '10.20.0.0/abc',   # Non-numeric prefix
+        ]
+        
+        for invalid_cidr in invalid_formats:
+            # Create temporary params file with only vnetCidr (run_what_if will merge with shared params and filter)
+            test_params = {
+                'parameters': {
+                    'vnetCidr': {'value': invalid_cidr}
+                }
+            }
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
+                json.dump(test_params, tmp_file, indent=2)
+                tmp_params_file = tmp_file.name
+            
+            try:
+                # Test what-if with this CIDR (should fail due to validation or parsing error)
+                success, output = run_what_if(bicep_path, params_file=Path(tmp_params_file), ensure_rg_exists=False)
+                # For invalid formats, what-if should fail (validation failure or parsing error)
+                assert not success or 'error' in output.lower() or 'invalid' in output.lower() or 'parse' in output.lower() or 'split' in output.lower(), \
+                    f"What-if unexpectedly succeeded for invalid CIDR format '{invalid_cidr}'. Should have failed."
+            finally:
+                # Clean up temp file
+                Path(tmp_params_file).unlink(missing_ok=True)

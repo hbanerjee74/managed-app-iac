@@ -1,7 +1,7 @@
 targetScope = 'resourceGroup'
 
-// Test wrapper for psql module (PostgreSQL)
-// This module depends on: network, diagnostics, dns
+// Test wrapper for psql-roles module (PostgreSQL role creation)
+// This module depends on: psql, identity
 
 @description('Resource group name for naming seed.')
 param resourceGroupName string
@@ -24,6 +24,12 @@ param backupRetentionDays int
 @description('Log Analytics retention in days (RFC-64: retentionDays).')
 param retentionDays int
 
+@description('Admin Object ID.')
+param adminObjectId string
+
+@description('Admin Principal Type.')
+param adminPrincipalType string
+
 // Include naming module
 module naming '../../../iac/lib/naming.bicep' = {
   name: 'naming'
@@ -32,7 +38,7 @@ module naming '../../../iac/lib/naming.bicep' = {
   }
 }
 
-// Dependency modules - use actual modules instead of mocks
+// Dependency modules for psql
 module network '../../../iac/modules/network.bicep' = {
   name: 'network'
   params: {
@@ -65,13 +71,14 @@ module dns '../../../iac/modules/dns.bicep' = {
   }
 }
 
+// Dependency module for identity (provides uamiClientId and uamiId)
 module identity '../../../iac/modules/identity.bicep' = {
   name: 'identity'
   params: {
     location: location
     uamiName: naming.outputs.names.uami
-    adminObjectId: '00000000-0000-0000-0000-000000000000'
-    adminPrincipalType: 'User'
+    adminObjectId: adminObjectId
+    adminPrincipalType: adminPrincipalType
     lawName: naming.outputs.names.law
     tags: {}
   }
@@ -93,7 +100,7 @@ module kv '../../../iac/modules/kv.bicep' = {
   }
 }
 
-// Module under test
+// Dependency module for psql (provides psqlId and psqlName)
 module psql '../../../iac/modules/psql.bicep' = {
   name: 'psql'
   dependsOn: [
@@ -114,7 +121,23 @@ module psql '../../../iac/modules/psql.bicep' = {
   }
 }
 
-output psqlId string = psql.outputs.psqlId
-output psqlName string = psql.outputs.psqlName
-output names object = naming.outputs.names
+// Module under test
+module psqlRoles '../../../iac/modules/psql-roles.bicep' = {
+  name: 'psql-roles'
+  // Ensure PostgreSQL server is fully provisioned before creating roles
+  //disable-next-line no-unnecessary-dependson
+  dependsOn: [
+    psql
+    kv
+  ]
+  params: {
+    location: location
+    psqlId: psql.outputs.psqlId
+    psqlName: psql.outputs.psqlName
+    uamiClientId: identity.outputs.uamiClientId
+    uamiId: identity.outputs.uamiId
+    kvName: naming.outputs.names.kv
+  }
+}
 
+output names object = naming.outputs.names

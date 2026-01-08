@@ -42,7 +42,6 @@ resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
     sku: {
       name: 'Basic'
     }
-    publicNetworkAccess: false
     disableLocalAuth: true
   }
 }
@@ -84,8 +83,8 @@ resource uamiAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020
   }
 }
 
-// Automation Job Operator for adminObjectId (only if provided and not placeholder)
-resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(adminObjectId) && adminObjectId != '00000000-0000-0000-0000-000000000000') {
+// Automation Job Operator for adminObjectId (only if provided)
+resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(adminObjectId)) {
   name: guid(automation.id, adminObjectId, 'automation-job-operator')
   scope: automation
   properties: {

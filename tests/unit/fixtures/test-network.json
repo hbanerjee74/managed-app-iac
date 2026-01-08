@@ -1,0 +1,679 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.1-experimental",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+    "_EXPERIMENTAL_FEATURES_ENABLED": [
+      "Asserts"
+    ],
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "195393117685862997"
+    }
+  },
+  "parameters": {
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name for naming seed."
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment (RFC-64: location)."
+      }
+    },
+    "vnetCidr": {
+      "type": "string",
+      "metadata": {
+        "description": "VNet address prefix (CIDR notation, e.g., 10.20.0.0/16)."
+      }
+    }
+  },
+  "resources": {
+    "naming": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "naming",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "resourceGroupName": {
+            "value": "[parameters('resourceGroupName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "2234470855925706244"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "nano16": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(format('{0}{1}', substring(uniqueString(format('{0}-{1}-a', parameters('seed'), parameters('suffix'))), 0, 8), substring(uniqueString(format('{0}-{1}-b', parameters('seed'), parameters('suffix'))), 0, 8)))]"
+                  }
+                },
+                "nano8": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(substring(uniqueString(format('{0}-{1}', parameters('seed'), parameters('suffix'))), 0, 8))]"
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource group name used as seed for deterministic nanoid generation."
+              }
+            },
+            "seedPrefix": {
+              "type": "string",
+              "defaultValue": "[parameters('resourceGroupName')]"
+            }
+          },
+          "variables": {
+            "names": {
+              "uami": "[format('vd-uami-{0}', __bicep.nano16(parameters('seedPrefix'), 'uami'))]",
+              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(parameters('seedPrefix'), 'vnet'))]",
+              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgappgw'))]",
+              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgaks'))]",
+              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgappsvc'))]",
+              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgpe'))]",
+              "kv": "[format('vd-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'kv'))]",
+              "storage": "[format('vdst{0}', __bicep.nano8(parameters('seedPrefix'), 'st'))]",
+              "acr": "[format('vdacr{0}', __bicep.nano8(parameters('seedPrefix'), 'acr'))]",
+              "law": "[format('vd-law-{0}', __bicep.nano16(parameters('seedPrefix'), 'law'))]",
+              "asp": "[format('vd-asp-{0}', __bicep.nano16(parameters('seedPrefix'), 'asp'))]",
+              "agw": "[format('vd-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'agw'))]",
+              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'pipagw'))]",
+              "psql": "[format('vd-psql-{0}', __bicep.nano16(parameters('seedPrefix'), 'psql'))]",
+              "search": "[format('vd-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'search'))]",
+              "ai": "[format('vd-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'ai'))]",
+              "automation": "[format('vd-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'aa'))]",
+              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'pekv'))]",
+              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(parameters('seedPrefix'), 'pestblob'))]",
+              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(parameters('seedPrefix'), 'pestqueue'))]",
+              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(parameters('seedPrefix'), 'pesttable'))]",
+              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'peacr'))]",
+              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'pesearch'))]",
+              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'peai'))]",
+              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'peaa'))]",
+              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnskv'))]",
+              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsstblob'))]",
+              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsstqueue'))]",
+              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnssttable'))]",
+              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsacr'))]",
+              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnssearch'))]",
+              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsai'))]",
+              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsaa'))]",
+              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagkv'))]",
+              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagst'))]",
+              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagacr'))]",
+              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagagw'))]",
+              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagpsql'))]",
+              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagsearch'))]",
+              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagai'))]",
+              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagaa'))]"
+            }
+          },
+          "resources": {},
+          "outputs": {
+            "names": {
+              "type": "object",
+              "value": "[variables('names')]"
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "network",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "vnetName": {
+            "value": "[reference('naming').outputs.names.value.vnet]"
+          },
+          "vnetCidr": {
+            "value": "[parameters('vnetCidr')]"
+          },
+          "nsgAppgwName": {
+            "value": "[reference('naming').outputs.names.value.nsgAppgw]"
+          },
+          "nsgAksName": {
+            "value": "[reference('naming').outputs.names.value.nsgAks]"
+          },
+          "nsgAppsvcName": {
+            "value": "[reference('naming').outputs.names.value.nsgAppsvc]"
+          },
+          "nsgPeName": {
+            "value": "[reference('naming').outputs.names.value.nsgPe]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "15505941093079407300"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "calculateSubnetCidr": {
+                  "parameters": [
+                    {
+                      "type": "int",
+                      "name": "octetA"
+                    },
+                    {
+                      "type": "int",
+                      "name": "octetB"
+                    },
+                    {
+                      "type": "int",
+                      "name": "octetC"
+                    },
+                    {
+                      "type": "int",
+                      "name": "subnetIndex"
+                    },
+                    {
+                      "type": "int",
+                      "name": "prefixLength"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[format('{0}.{1}.{2}.0/{3}', parameters('octetA'), parameters('octetB'), add(parameters('octetC'), parameters('subnetIndex')), parameters('prefixLength'))]"
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "vnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name for the VNet."
+              }
+            },
+            "vnetCidr": {
+              "type": "string",
+              "metadata": {
+                "description": "VNet address prefix (CIDR notation, e.g., 10.20.0.0/16)."
+              }
+            },
+            "nsgAppgwName": {
+              "type": "string",
+              "metadata": {
+                "description": "NSG names."
+              }
+            },
+            "nsgAksName": {
+              "type": "string"
+            },
+            "nsgAppsvcName": {
+              "type": "string"
+            },
+            "nsgPeName": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "variables": {
+            "subnetPrefixLength": 24,
+            "vnetBaseIp": "[split(parameters('vnetCidr'), '/')[0]]",
+            "vnetOctets": "[split(variables('vnetBaseIp'), '.')]",
+            "vnetOctetA": "[int(variables('vnetOctets')[0])]",
+            "vnetOctetB": "[int(variables('vnetOctets')[1])]",
+            "vnetOctetC": "[int(variables('vnetOctets')[2])]",
+            "subnetNames": [
+              "snet-appgw",
+              "snet-psql",
+              "snet-private-endpoints",
+              "snet-appsvc",
+              "snet-aks"
+            ]
+          },
+          "resources": {
+            "vnet": {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('vnetName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "subnets",
+                    "count": "[length(variables('subnetNames'))]",
+                    "input": {
+                      "name": "[variables('subnetNames')[copyIndex('subnets')]]",
+                      "properties": {
+                        "addressPrefix": "[__bicep.calculateSubnetCidr(variables('vnetOctetA'), variables('vnetOctetB'), variables('vnetOctetC'), copyIndex('subnets'), variables('subnetPrefixLength'))]",
+                        "networkSecurityGroup": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-appgw'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAppgwName'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-aks'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAksName'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-appsvc'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAppsvcName'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-private-endpoints'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgPeName'))), null()))))]",
+                        "delegations": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-psql'), createArray(createObject('name', 'Microsoft.DBforPostgreSQL/flexibleServers', 'properties', createObject('serviceName', 'Microsoft.DBforPostgreSQL/flexibleServers'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-appsvc'), createArray(createObject('name', 'Microsoft.Web/serverFarms', 'properties', createObject('serviceName', 'Microsoft.Web/serverFarms'))), createArray()))]",
+                        "privateEndpointNetworkPolicies": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-psql'), 'Disabled', 'Enabled')]",
+                        "privateLinkServiceNetworkPolicies": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-psql'), 'Disabled', 'Enabled')]"
+                      }
+                    }
+                  }
+                ],
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "[parameters('vnetCidr')]"
+                  ]
+                }
+              },
+              "dependsOn": [
+                "nsgAks",
+                "nsgAppgw",
+                "nsgAppsvc",
+                "nsgPe"
+              ]
+            },
+            "nsgAppgw": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgAppgwName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-443-Internet",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "Tcp",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "443",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-GatewayManager",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "Tcp",
+                      "sourceAddressPrefix": "GatewayManager",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "65200-65535",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-AzureLoadBalancer",
+                    "properties": {
+                      "priority": 120,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "AzureLoadBalancer",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 130,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-All-Inbound",
+                    "properties": {
+                      "priority": 200,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-All-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            "nsgAks": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgAksName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Inbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-All-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            "nsgAppsvc": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgAppsvcName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Inbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-All-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            "nsgPe": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgPeName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Inbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-VNet-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Outbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Outbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "Internet",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "outputs": {
+            "vnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            },
+            "subnetAppgwId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[0].id]"
+            },
+            "subnetPsqlId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[1].id]"
+            },
+            "subnetPeId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[2].id]"
+            },
+            "subnetAppsvcId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[3].id]"
+            },
+            "subnetAksId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[4].id]"
+            },
+            "subnetAppgwPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[0].properties.addressPrefix]"
+            },
+            "subnetPsqlPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[1].properties.addressPrefix]"
+            },
+            "subnetPePrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[2].properties.addressPrefix]"
+            },
+            "subnetAppsvcPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[3].properties.addressPrefix]"
+            },
+            "subnetAksPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[4].properties.addressPrefix]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    }
+  },
+  "outputs": {
+    "subnetPsqlId": {
+      "type": "string",
+      "value": "[reference('network').outputs.subnetPsqlId.value]"
+    },
+    "subnetAppsvcId": {
+      "type": "string",
+      "value": "[reference('network').outputs.subnetAppsvcId.value]"
+    },
+    "subnetPeId": {
+      "type": "string",
+      "value": "[reference('network').outputs.subnetPeId.value]"
+    },
+    "subnetAppgwId": {
+      "type": "string",
+      "value": "[reference('network').outputs.subnetAppgwId.value]"
+    },
+    "names": {
+      "type": "object",
+      "value": "[reference('naming').outputs.names.value]"
+    }
+  }
+}

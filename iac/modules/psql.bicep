@@ -15,12 +15,6 @@ param subnetPsqlId string
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
-@description('Client ID of the UAMI for database login.')
-param uamiClientId string
-
-@description('User-assigned managed identity resource ID.')
-param uamiId string
-
 @description('PostgreSQL storage size (GB).')
 param storageGB int = 128
 
@@ -33,11 +27,44 @@ param zoneIds object
 @description('Diagnostic setting name from naming helper.')
 param diagPsqlName string
 
+@description('Key Vault name for storing admin credentials.')
+param kvName string
+
+@description('PostgreSQL admin username (optional, defaults to psqladmin).')
+param psqlAdminUsername string = 'psqladmin'
+
+@description('PostgreSQL admin password (optional, auto-generated if not provided).')
+@secure()
+param psqlAdminPassword string = ''
+
 @description('Optional tags to apply.')
 param tags object = {}
 
-#disable-next-line no-hardcoded-env-urls
-var ossrdbmsResource = 'https://ossrdbms-aad.database.windows.net'
+// Reference Key Vault resource
+resource kv 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+  name: kvName
+}
+
+// Generate secure password if not provided
+var psqlAdminPasswordValue = empty(psqlAdminPassword) ? guid(subscription().id, kv.id, 'psql-admin-password') : psqlAdminPassword
+
+// Create PostgreSQL admin username secret in Key Vault
+resource psqlAdminUsernameSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: kv
+  name: 'psql-admin-username'
+  properties: {
+    value: psqlAdminUsername
+  }
+}
+
+// Create PostgreSQL admin password secret in Key Vault
+resource psqlAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: kv
+  name: 'psql-admin-password'
+  properties: {
+    value: psqlAdminPasswordValue
+  }
+}
 
 resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   name: psqlName
@@ -48,8 +75,8 @@ resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
     tier: startsWith(computeTier, 'Standard_B') ? 'Burstable' : 'GeneralPurpose'
   }
   properties: {
-    administratorLogin: null
-    administratorLoginPassword: null
+    administratorLogin: psqlAdminUsername
+    administratorLoginPassword: psqlAdminPasswordValue
     version: '16'
     storage: {
       storageSizeGB: storageGB
@@ -66,7 +93,7 @@ resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
     }
     authConfig: {
       activeDirectoryAuth: 'Enabled'
-      passwordAuth: 'Disabled'
+      passwordAuth: 'Enabled'
       tenantId: subscription().tenantId
     }
     highAvailability: {
@@ -76,68 +103,8 @@ resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   }
 }
 
-var serverHost = '${psqlName}.postgres.database.azure.com'
-
-resource createRoles 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: 'psql-create-roles'
-  location: location
-  kind: 'AzureCLI'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${uamiId}': {}
-    }
-  }
-  properties: {
-    forceUpdateTag: guid(subscription().id, psql.id, 'psql-create-roles')
-    retentionInterval: 'PT1H'
-    azCliVersion: '2.61.0'
-    //disable-next-line no-hardcoded-env-urls
-    scriptContent: '''
-#!/usr/bin/env bash
-set -euo pipefail
-SERVER="${SERVER_HOST}"
-LOGIN_USER="${UAMI_CLIENT_ID}"
-
-echo "Acquiring AAD token for Postgres..."
-ACCESS_TOKEN=$(az account get-access-token --resource ${RESOURCE_URI} --query accessToken -o tsv)
-export PGPASSWORD="$ACCESS_TOKEN"
-
-echo "Creating roles vd_dbo and vd_reader if missing, and granting vd_dbo to UAMI..."
-psql "host=${SERVER} user=${LOGIN_USER} dbname=postgres sslmode=require" <<'SQL'
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_dbo') THEN
-    CREATE ROLE "vd_dbo";
-  END IF;
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_reader') THEN
-    CREATE ROLE "vd_reader";
-  END IF;
-END$$;
-GRANT "vd_dbo" TO "${LOGIN_USER}";
-SQL
-'''
-    supportingScriptUris: []
-    timeout: 'PT10M'
-    environmentVariables: [
-      {
-        name: 'SERVER_HOST'
-        //disable-next-line no-hardcoded-env-urls
-        value: serverHost
-      }
-      {
-        name: 'UAMI_CLIENT_ID'
-        value: uamiClientId
-      }
-      {
-        name: 'RESOURCE_URI'
-        value: ossrdbmsResource
-      }
-    ]
-  }
-}
-
 output psqlId string = psql.id
+output psqlName string = psql.name
 
 resource psqlDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: diagPsqlName

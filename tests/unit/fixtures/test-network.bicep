@@ -9,6 +9,9 @@ param resourceGroupName string
 @description('Azure region for deployment (RFC-64: location).')
 param location string
 
+@description('VNet address prefix (CIDR notation, e.g., 10.20.0.0/16).')
+param vnetCidr string
+
 // Include naming module
 module naming '../../../iac/lib/naming.bicep' = {
   name: 'naming'
@@ -23,6 +26,7 @@ module network '../../../iac/modules/network.bicep' = {
   params: {
     location: location
     vnetName: naming.outputs.names.vnet
+    vnetCidr: vnetCidr
     nsgAppgwName: naming.outputs.names.nsgAppgw
     nsgAksName: naming.outputs.names.nsgAks
     nsgAppsvcName: naming.outputs.names.nsgAppsvc
