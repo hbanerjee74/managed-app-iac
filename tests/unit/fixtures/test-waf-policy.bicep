@@ -19,7 +19,7 @@ param publisherIpRanges array = [
 @description('Optional tags to apply.')
 param tags object = {}
 
-module wafPolicy 'modules/waf-policy.bicep' = {
+module wafPolicy '../../../iac/modules/waf-policy.bicep' = {
   name: 'wafPolicy'
   params: {
     location: location

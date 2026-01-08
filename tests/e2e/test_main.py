@@ -22,6 +22,8 @@ MAIN_BICEP = Path(__file__).parent.parent.parent / 'iac' / 'main.bicep'
 PARAMS_FILE = FIXTURES_DIR / 'params.dev.json'
 TEST_RG = 'test-rg'  # Fallback only - should come from params file
 WHAT_IF_OUTPUT = Path(__file__).parent / 'what-if-output.json'
+DEPLOYMENT_OUTPUT = Path(__file__).parent / 'deployment-output.json'
+DEPLOYMENT_ERROR_LOG = Path(__file__).parent / 'deployment-error.log'
 RG_CREATE_TIMEOUT = 300  # 5 minutes
 RG_DELETE_TIMEOUT = 600  # 10 minutes
 
@@ -370,15 +372,91 @@ class TestMainBicep:
                     'az', 'deployment', 'group', 'create',
                     '--resource-group', test_resource_group,
                     '--template-file', str(MAIN_BICEP),
-                    '--parameters', f'@{PARAMS_FILE}'
+                    '--parameters', f'@{PARAMS_FILE}',
+                    '--output', 'json'
                 ],
                 capture_output=True,
                 text=True,
                 check=True
             )
+            
+            # Save deployment output to file for debugging
+            DEPLOYMENT_OUTPUT.write_text(deploy_result.stdout)
+            if deploy_result.stderr:
+                DEPLOYMENT_ERROR_LOG.write_text(deploy_result.stderr)
+            
+            # Parse deployment output to check for errors even if returncode is 0
+            try:
+                deployment_data = json.loads(deploy_result.stdout)
+                if 'error' in deployment_data:
+                    error_msg = json.dumps(deployment_data['error'], indent=2)
+                    DEPLOYMENT_ERROR_LOG.write_text(f"Deployment contains errors:\n{error_msg}")
+                    pytest.fail(f"Deployment contains errors. Check {DEPLOYMENT_ERROR_LOG} for details:\n{error_msg}")
+                
+                # Log deployment properties for debugging
+                props = deployment_data.get('properties', {})
+                provisioning_state = props.get('provisioningState', 'Unknown')
+                if provisioning_state not in ['Succeeded', 'Accepted']:
+                    error_msg = f"Deployment provisioning state: {provisioning_state}"
+                    if 'error' in props:
+                        error_msg += f"\nError: {json.dumps(props['error'], indent=2)}"
+                    DEPLOYMENT_ERROR_LOG.write_text(error_msg)
+                    pytest.fail(f"Deployment did not succeed. State: {provisioning_state}. Check {DEPLOYMENT_ERROR_LOG} for details.")
+            except json.JSONDecodeError:
+                # Not JSON, that's okay - might be a warning or other output
+                pass
+            
             assert deploy_result.returncode == 0, "Deployment failed"
+            
+            # Get deployment name for operations check
+            try:
+                deployment_data = json.loads(deploy_result.stdout)
+                deployment_name = deployment_data.get('name', '')
+                if deployment_name:
+                    # Check for failed operations
+                    ops_result = subprocess.run(
+                        [
+                            'az', 'deployment', 'operation', 'group', 'list',
+                            '--resource-group', test_resource_group,
+                            '--name', deployment_name,
+                            '--output', 'json'
+                        ],
+                        capture_output=True,
+                        text=True,
+                        check=False
+                    )
+                    if ops_result.returncode == 0:
+                        try:
+                            operations = json.loads(ops_result.stdout)
+                            failed_ops = [
+                                op for op in operations
+                                if op.get('properties', {}).get('provisioningState') == 'Failed'
+                            ]
+                            if failed_ops:
+                                failed_summary = []
+                                for op in failed_ops:
+                                    op_name = op.get('operationId', 'Unknown')
+                                    error = op.get('properties', {}).get('statusMessage', {})
+                                    failed_summary.append(f"  - {op_name}: {json.dumps(error, indent=4)}")
+                                
+                                failed_msg = "Failed deployment operations:\n" + "\n".join(failed_summary)
+                                DEPLOYMENT_ERROR_LOG.write_text(
+                                    DEPLOYMENT_ERROR_LOG.read_text() + "\n\n" + failed_msg
+                                    if DEPLOYMENT_ERROR_LOG.exists() else failed_msg
+                                )
+                                pytest.fail(f"Deployment completed but some operations failed. Check {DEPLOYMENT_ERROR_LOG} for details:\n{failed_msg}")
+                        except json.JSONDecodeError:
+                            pass  # Couldn't parse operations, that's okay
+            except (json.JSONDecodeError, KeyError):
+                pass  # Couldn't get deployment name, that's okay
+            
         except subprocess.CalledProcessError as e:
-            pytest.fail(f"Actual deployment failed: {e.stderr}")
+            # Save error output to files for debugging
+            if e.stdout:
+                DEPLOYMENT_OUTPUT.write_text(e.stdout)
+            if e.stderr:
+                DEPLOYMENT_ERROR_LOG.write_text(f"Deployment command failed:\n{e.stderr}")
+            pytest.fail(f"Actual deployment failed. Check {DEPLOYMENT_ERROR_LOG} for details:\n{e.stderr}")
         except FileNotFoundError:
             pytest.skip("Azure CLI not found")
         
@@ -419,4 +497,3 @@ class TestMainBicep:
             pytest.fail(f"Post-deployment what-if failed: {e.stderr}")
         except FileNotFoundError:
             pytest.skip("Azure CLI not found")
-

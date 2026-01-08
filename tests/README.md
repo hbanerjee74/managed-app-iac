@@ -103,6 +103,15 @@ pytest tests/unit/test_modules.py -v -k "compiles"
    - Debugging deployment issues
    - Manual validation
 
+   **Deployment Log Files:**
+
+   When running actual deployment tests, the following log files are created in `tests/e2e/`:
+   - `deployment-output.json` - Full deployment response from Azure (includes provisioning state, outputs, errors)
+   - `deployment-error.log` - Error details if deployment fails or contains errors
+   - `what-if-output.json` - What-if results (created by `test_what_if_succeeds`)
+
+   These files help debug which specific resources failed to deploy. Check `deployment-error.log` for detailed error messages and failed operation IDs.
+
    **Note**: Unit tests automatically create the resource group if it doesn't exist, so you can skip manual `az group create` when running the full test suite.
 
 ## Test Configuration

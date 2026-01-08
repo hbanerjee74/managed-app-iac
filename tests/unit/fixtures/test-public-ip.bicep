@@ -9,7 +9,7 @@ param pipName string = 'test-pip'
 @description('Optional tags to apply.')
 param tags object = {}
 
-module publicIp 'modules/public-ip.bicep' = {
+module publicIp '../../../iac/modules/public-ip.bicep' = {
   name: 'publicIp'
   params: {
     location: location

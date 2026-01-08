@@ -119,7 +119,7 @@ class TestBicepModules:
         valid_cidrs = [
             '10.20.0.0/16',  # Lower bound
             '10.20.0.0/20',  # Middle range
-            '10.20.0.0/24',  # Upper bound
+            '10.20.0.0/21',  # Upper bound for /25 subnet scheme
         ]
         
         bicep_path = FIXTURES_DIR / bicep_file
@@ -172,6 +172,9 @@ class TestBicepModules:
             ('10.20.0.0/15', 'too small prefix (network too large)'),
             ('10.20.0.0/14', 'even smaller prefix'),
             ('10.20.0.0/8', 'very small prefix'),
+            ('10.20.0.0/22', 'too large prefix for /25 subnets with netNum 8'),
+            ('10.20.0.0/23', 'too large prefix for /25 subnets with netNum 8'),
+            ('10.20.0.0/24', 'too large prefix for /25 subnets with netNum 8'),
             ('10.20.0.0/25', 'too large prefix (network too small)'),
             ('10.20.0.0/26', 'even larger prefix'),
             ('10.20.0.0/30', 'very large prefix'),
@@ -265,4 +268,3 @@ class TestBicepModules:
                     os.unlink(tmp_params_file)
                 except Exception:
                     pass
-

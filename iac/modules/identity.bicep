@@ -22,6 +22,9 @@ param tags object = {}
 @description('Optional Log Analytics Workspace name for RBAC wiring.')
 param lawName string = ''
 
+@description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
+param isManagedApplication bool = true
+
 // Create the user-assigned managed identity (name provided by parent, includes suffix).
 resource vibedataUami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: uamiName
@@ -39,7 +42,7 @@ resource uamiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-pre
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor
     principalId: vibedataUami.properties.principalId
     principalType: 'ServicePrincipal'
-    delegatedManagedIdentityResourceId: vibedataUami.id  // Required for Managed Apps (cross-tenant scenarios)
+    delegatedManagedIdentityResourceId: isManagedApplication ? vibedataUami.id : null  // Required for Managed Apps (cross-tenant scenarios only)
   }
   dependsOn: [
     vibedataUami
@@ -70,7 +73,7 @@ resource uamiLawContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '73c42c96-874c-492b-b04d-ab87d138a893') // Log Analytics Contributor
     principalId: vibedataUami.properties.principalId
     principalType: 'ServicePrincipal'
-    delegatedManagedIdentityResourceId: vibedataUami.id  // Required for Managed Apps
+    delegatedManagedIdentityResourceId: isManagedApplication ? vibedataUami.id : null  // Required for Managed Apps (cross-tenant scenarios only)
   }
   dependsOn: [
     vibedataUami
