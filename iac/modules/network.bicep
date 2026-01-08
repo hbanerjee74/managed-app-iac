@@ -374,3 +374,4 @@ output subnetPePrefix string = vnet.properties.subnets[3].properties.addressPref
 output subnetPsqlPrefix string = vnet.properties.subnets[4].properties.addressPrefix
 
 // TODO: deploy VNet, subnets, NSGs, and private endpoints per RFC-42.
+// Note: VNet flow logs are deployed in a separate module (flow-logs.bicep) to avoid circular dependency with storage.

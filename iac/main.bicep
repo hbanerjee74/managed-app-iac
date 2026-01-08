@@ -193,6 +193,19 @@ module storage 'modules/storage.bicep' = {
   }
 }
 
+module flowLogs 'modules/flow-logs.bicep' = {
+  name: 'flow-logs'
+  dependsOn: [network, storage, identity]
+  params: {
+    location: location
+    vnetId: network.outputs.vnetId
+    storageAccountId: storage.outputs.storageId
+    vnetFlowLogName: naming.outputs.names.vnetFlowLog
+    uamiId: identity.outputs.uamiId
+    tags: tags
+  }
+}
+
 module acr 'modules/acr.bicep' = {
   name: 'acr'
   params: {

@@ -123,4 +123,5 @@ resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
 }
 
 output kvId string = kv.id
+output peKvId string = peKv.id
 

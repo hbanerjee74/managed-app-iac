@@ -15,6 +15,7 @@ func nano8(seed string, suffix string) string => toLower(substring(uniqueString(
 var names = {
   uami: 'vd-uami-${purpose}-${nano16(seedPrefix, 'uami')}'
   vnet: 'vd-vnet-${purpose}-${nano16(seedPrefix, 'vnet')}'
+  vnetFlowLog: 'vd-flowlog-vnet-${purpose}-${nano16(seedPrefix, 'vnetflowlog')}'
   nsgAppgw: 'vd-nsg-appgw-${nano16(seedPrefix, 'nsgappgw')}'
   nsgAks: 'vd-nsg-aks-${nano16(seedPrefix, 'nsgaks')}'
   nsgAppsvc: 'vd-nsg-appsvc-${nano16(seedPrefix, 'nsgappsvc')}'
