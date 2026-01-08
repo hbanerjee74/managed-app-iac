@@ -183,7 +183,7 @@ def get_subscription_id_from_shared_params() -> str:
 
 def run_what_if(
     bicep_file: Path,
-    params_file: Path,
+    params_file: Path = None,  # Optional - if None, uses only shared params
     resource_group: str = None,  # Auto-extracted from shared params if None
     ensure_rg_exists: bool = True  # Auto-create RG if it doesn't exist
 ) -> tuple[bool, str]:
@@ -191,15 +191,19 @@ def run_what_if(
     
     Args:
         bicep_file: Path to Bicep template file
-        params_file: Path to parameters JSON file (for module-specific params)
+        params_file: Optional path to parameters JSON file (for module-specific overrides)
         resource_group: Name of the resource group (extracted from shared params.dev.json if None)
         ensure_rg_exists: If True, create RG if it doesn't exist (location from shared params)
     
     Returns:
         Tuple of (success: bool, output: str)
         Returns JSON output with full resource payloads for parsing and validation.
-        Note: resourceGroupName and location are always read from tests/fixtures/params.dev.json
-        and merged into the module-specific params file before deployment.
+        
+    Note:
+        All parameters from tests/fixtures/params.dev.json are automatically included.
+        If params_file is provided, its parameters override shared params.
+        resourceGroupName and location are always set from metadata section.
+        Bicep will ignore any unused parameters, so it's safe to include all parameters.
     """
     # Extract resource group name from shared params file if not provided
     if resource_group is None:
@@ -217,27 +221,30 @@ def run_what_if(
         if not rg_success:
             return False, f"Resource group check failed: {rg_message}"
     
-    # Load module-specific params and merge with shared resourceGroupName and location
-    module_params = load_json_file(params_file)
-    if 'parameters' not in module_params:
-        module_params['parameters'] = {}
+    # Initialize module params (empty if no params_file provided)
+    module_params = {'parameters': {}}
+    if params_file is not None:
+        module_params = load_json_file(params_file)
+        if 'parameters' not in module_params:
+            module_params['parameters'] = {}
     
-    # Merge resourceGroupName from shared params (always required)
+    # Load shared params file (single source of truth)
+    shared_params = load_json_file(SHARED_PARAMS_FILE)
+    
+    # Merge ALL parameters from shared params (module params override shared if both exist)
+    shared_param_values = shared_params.get('parameters', {})
+    for param_name, param_value in shared_param_values.items():
+        # Only add if not already in module params (module params take precedence)
+        if param_name not in module_params['parameters']:
+            module_params['parameters'][param_name] = param_value
+    
+    # Always merge resourceGroupName and location from metadata (these are special)
+    # These come from metadata section, not parameters section
     module_params['parameters']['resourceGroupName'] = {'value': resource_group}
+    module_params['parameters']['location'] = {'value': location}
     
-    # Check if Bicep template requires location parameter
-    bicep_content = bicep_file.read_text()
-    requires_location = 'param location' in bicep_content or '@description(\'Azure region' in bicep_content
-    
-    # Only add location if the template requires it
-    if requires_location:
-        module_params['parameters']['location'] = {'value': location}
-    
-    # Check if Bicep template requires subscriptionId parameter (for gateway test wrapper)
-    requires_subscription_id = 'param subscriptionId' in bicep_content
-    
-    # Only add subscriptionId if the template requires it
-    if requires_subscription_id:
+    # Handle subscriptionId from metadata if available (for gateway test wrapper)
+    if 'subscriptionId' not in module_params['parameters']:
         try:
             subscription_id = get_subscription_id_from_shared_params()
             module_params['parameters']['subscriptionId'] = {'value': subscription_id}
@@ -265,7 +272,33 @@ def run_what_if(
             text=True,
             check=True
         )
-        return True, result.stdout
+        # Filter out warnings from output (Azure CLI writes warnings to stderr, but they may be mixed)
+        # Warnings typically start with "WARNING:" and are not part of JSON output
+        # Also handle multi-line warnings and find the actual JSON content
+        output = result.stdout
+        
+        # Remove WARNING lines (including multi-line warnings)
+        lines = output.split('\n')
+        json_lines = []
+        skip_until_empty = False
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('WARNING:'):
+                skip_until_empty = True
+                continue
+            if skip_until_empty and not stripped:
+                skip_until_empty = False
+                continue
+            if not skip_until_empty:
+                json_lines.append(line)
+        
+        cleaned_output = '\n'.join(json_lines).strip()
+        
+        # If output is empty after filtering, return original (shouldn't happen, but safety check)
+        if not cleaned_output:
+            cleaned_output = output
+        
+        return True, cleaned_output
     except subprocess.CalledProcessError as e:
         return False, e.stderr
     except FileNotFoundError:

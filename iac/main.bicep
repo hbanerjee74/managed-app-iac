@@ -273,22 +273,34 @@ module gateway 'modules/gateway.bicep' = {
   }
 }
 
-module ai 'modules/ai.bicep' = {
-  name: 'ai'
+module search 'modules/search.bicep' = {
+  name: 'search'
   params: {
     location: location
     aiServicesTier: aiServicesTier
     searchName: naming.outputs.names.search
-    aiName: naming.outputs.names.ai
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     zoneIds: dns.outputs.zoneIds
     peSearchName: naming.outputs.names.peSearch
-    peAiName: naming.outputs.names.peAi
     peSearchDnsName: naming.outputs.names.peSearchDns
-    peAiDnsName: naming.outputs.names.peAiDns
     diagSearchName: naming.outputs.names.diagSearch
+    tags: tags
+  }
+}
+
+module cognitiveServices 'modules/cognitive-services.bicep' = {
+  name: 'cognitive-services'
+  params: {
+    location: location
+    aiName: naming.outputs.names.ai
+    subnetPeId: network.outputs.subnetPeId
+    lawId: diagnostics.outputs.lawId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    zoneIds: dns.outputs.zoneIds
+    peAiName: naming.outputs.names.peAi
+    peAiDnsName: naming.outputs.names.peAiDns
     diagAiName: naming.outputs.names.diagAi
     tags: tags
   }

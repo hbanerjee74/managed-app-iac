@@ -8,7 +8,7 @@ This directory contains parameterized unit tests for all Bicep modules.
 tests/unit/
   fixtures/
     test-<module>.bicep      # Test wrapper templates
-    params-<module>.json     # Module-specific test parameters
+    # No params-*.json files needed - all params come from tests/fixtures/params.dev.json
   helpers/
     test_utils.py            # Common test utilities
     what_if_parser.py        # What-if output parser utilities
@@ -51,13 +51,13 @@ All unit tests use **what-if mode only** - no actual Azure resources are created
 ## Adding New Module Tests
 
 1. Create `test-<module>.bicep` in `fixtures/`
-2. Create `params-<module>.json` in `fixtures/`
-3. Add the module to the `MODULES` list in `test_modules.py`:
+2. Add the module to the `MODULES` list in `test_modules.py`:
    ```python
    MODULES = [
        ...
-       ('newmodule', 'test-newmodule.bicep', 'params-newmodule.json'),
+       ('newmodule', 'test-newmodule.bicep'),
    ]
    ```
-4. Mock all dependencies in the test wrapper
-5. All standard tests (compilation, parameter validation, what-if) will run automatically
+3. Mock all dependencies in the test wrapper
+4. All standard tests (compilation, what-if) will run automatically
+5. All parameters come from `tests/fixtures/params.dev.json` automatically

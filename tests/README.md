@@ -7,7 +7,7 @@ This directory contains the test harness for validating Bicep modules and deploy
 ```text
 tests/
   unit/                    # Unit tests for individual modules
-    fixtures/              # Test wrapper templates and module-specific parameters
+    fixtures/              # Test wrapper templates (no params files needed)
     helpers/               # Test utility functions
     test_modules.py        # Parameterized test file for all modules
   e2e/                     # End-to-end tests for main.bicep
@@ -118,19 +118,16 @@ Both unit tests and E2E tests read `resourceGroupName` and `location` from `test
 
 **Why?** This ensures consistency across all tests and matches the managed application deployment model where ARM provides these values.
 
-### Module-Specific Parameters
+### Parameters
 
-Unit tests use module-specific parameter files (`tests/unit/fixtures/params-<module>.json`) for module-specific parameters, but **always** read RG name and location from the shared `params.dev.json`.
-
-**Important**: Don't include `resourceGroupName` or `location` in module-specific param files - they're automatically added from `params.dev.json`.
+Unit tests **automatically use all parameters** from `tests/fixtures/params.dev.json`. No module-specific params files are needed - all parameters are merged automatically for all modules.
 
 ## Test Types
 
 **Unit Tests** (`tests/unit/test_modules.py`):
 
 - `test_bicep_compiles` - Validates Bicep syntax and compilation
-- `test_params_file_exists` - Ensures parameter file exists
-- `test_params_file_valid_json` - Validates JSON syntax
+- Parameter validation is handled automatically via shared params file
 - `test_what_if_succeeds` - Runs Azure what-if to validate deployment plan
 - `test_cidr_validation_valid_ranges` - (Network module only) Tests valid CIDR ranges (/16, /20, /24)
 - `test_cidr_validation_invalid_prefix` - (Network module only) Tests invalid prefix ranges (/15, /14, /8, /25, /26, /30)
@@ -139,8 +136,7 @@ Unit tests use module-specific parameter files (`tests/unit/fixtures/params-<mod
 **E2E Tests** (`tests/e2e/test_main.py`):
 
 - `test_bicep_compiles` - Validates main.bicep compilation
-- `test_params_file_exists` - Ensures params file exists
-- `test_params_file_valid_json` - Validates JSON syntax
+- Parameter validation is handled automatically via shared params file
 - `test_what_if_succeeds` - Full-scope what-if validation
 - `test_what_if_output_valid` - Validates what-if output is valid JSON
 - `test_what_if_summary` - Validates what-if output structure
@@ -342,20 +338,19 @@ az group delete --name <resource-group-name> --yes
 ## Adding New Module Tests
 
 1. Create test wrapper: `tests/unit/fixtures/test-<module>.bicep`
-2. Create parameters: `tests/unit/fixtures/params-<module>.json` (module-specific params only)
-3. Add module to `MODULES` list in `tests/unit/test_modules.py`:
+2. Add module to `MODULES` list in `tests/unit/test_modules.py`:
 
    ```python
    MODULES = [
        ...
-       ('newmodule', 'test-newmodule.bicep', 'params-newmodule.json'),
+       ('newmodule', 'test-newmodule.bicep'),
    ]
    ```
 
-4. Mock all dependencies in the test wrapper
-5. All standard tests (compilation, parameter validation, what-if) will run automatically
+3. Mock all dependencies in the test wrapper
+4. All standard tests (compilation, what-if) will run automatically
 
-**Note**: `resourceGroupName` and `location` are automatically read from `tests/fixtures/params.dev.json` - don't include them in module-specific params files.
+**Note**: All parameters (including `resourceGroupName` and `location`) are automatically read from `tests/fixtures/params.dev.json`. No module-specific params files are needed.
 
 See `tests/unit/README.md` for detailed instructions.
 

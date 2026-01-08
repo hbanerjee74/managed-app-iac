@@ -14,51 +14,51 @@ from tests.unit.helpers.test_utils import (
 )
 from tests.unit.helpers.what_if_parser import parse_what_if_output
 
-# Define all modules to test
+# Define all modules to test (no params files needed - all params come from params.dev.json)
 MODULES = [
-    ('diagnostics', 'test-diagnostics.bicep', 'params-diagnostics.json'),
-    ('network', 'test-network.bicep', 'params-network.json'),
-    ('data', 'test-data.bicep', 'params-data.json'),
-    ('compute', 'test-compute.bicep', 'params-compute.json'),
-    ('gateway', 'test-gateway.bicep', 'params-gateway.json'),
-    ('ai', 'test-ai.bicep', 'params-ai.json'),
-    ('identity', 'test-identity.bicep', 'params-identity.json'),
-    ('kv', 'test-kv.bicep', 'params-kv.json'),
-    ('storage', 'test-storage.bicep', 'params-storage.json'),
-    ('acr', 'test-acr.bicep', 'params-acr.json'),
-    ('automation', 'test-automation.bicep', 'params-automation.json'),
-    ('logic', 'test-logic.bicep', 'params-logic.json'),
-    ('dns', 'test-dns.bicep', 'params-dns.json'),
+    ('diagnostics', 'test-diagnostics.bicep'),
+    ('network', 'test-network.bicep'),
+    ('data', 'test-data.bicep'),
+    ('compute', 'test-compute.bicep'),
+    ('gateway', 'test-gateway.bicep'),
+    ('search', 'test-search.bicep'),
+    ('cognitive-services', 'test-cognitive-services.bicep'),
+    ('identity', 'test-identity.bicep'),
+    ('kv', 'test-kv.bicep'),
+    ('storage', 'test-storage.bicep'),
+    ('acr', 'test-acr.bicep'),
+    ('automation', 'test-automation.bicep'),
+    ('logic', 'test-logic.bicep'),
+    ('dns', 'test-dns.bicep'),
 ]
 
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
 
 
-@pytest.mark.parametrize('module_name,bicep_file,params_file', MODULES)
+@pytest.mark.parametrize('module_name,bicep_file', MODULES)
 class TestBicepModules:
     """Parameterized test suite for all Bicep modules."""
 
-    @pytest.fixture(scope='class', autouse=False)
-    def cached_what_if_output(self, module_name, bicep_file, params_file):
+    @pytest.fixture(scope='function', autouse=False)
+    def cached_what_if_output(self, module_name, bicep_file):
         """Cache what-if output for the module to avoid redundant API calls.
         
-        This fixture runs what-if once per module class and caches the parsed output.
-        All tests in the class can use this cached data instead of calling what-if multiple times.
+        This fixture runs what-if once per test function and caches the parsed output.
+        Changed to function scope to match parametrized values scope.
         
         Args:
             module_name: Module name from parametrization
             bicep_file: Bicep file name from parametrization
-            params_file: Params file name from parametrization
         
         Returns:
             dict: Parsed what-if output with keys: 'status', 'changes', 'resource_changes', 'error', 'properties'
             None: If what-if fails or Azure CLI is not configured (tests should skip)
         """
-        bicep_path = FIXTURES_DIR / bicep_file
-        params_path = FIXTURES_DIR / params_file
         
-        # Run what-if once per module
-        success, output = run_what_if(bicep_path, params_path)
+        bicep_path = FIXTURES_DIR / bicep_file
+        
+        # Run what-if once per module (no params_file - uses shared params.dev.json)
+        success, output = run_what_if(bicep_path)
         
         # Handle failures gracefully
         if not success:
@@ -76,27 +76,13 @@ class TestBicepModules:
             # If parsing fails, return None
             return None
 
-    def test_bicep_compiles(self, module_name, bicep_file, params_file):
+    def test_bicep_compiles(self, module_name, bicep_file):
         """Test that the module test wrapper compiles successfully."""
         bicep_path = FIXTURES_DIR / bicep_file
         success, output = run_bicep_build(bicep_path)
         assert success, f"Bicep compilation failed for {module_name}: {output}"
 
-    def test_params_file_exists(self, module_name, bicep_file, params_file):
-        """Test that parameter file exists."""
-        params_path = FIXTURES_DIR / params_file
-        assert params_path.exists(), f"Parameter file not found for {module_name}: {params_path}"
-
-    def test_params_file_valid_json(self, module_name, bicep_file, params_file):
-        """Test that parameter file is valid JSON."""
-        params_path = FIXTURES_DIR / params_file
-        try:
-            params = load_json_file(params_path)
-            assert 'parameters' in params, f"Invalid JSON structure for {module_name}"
-        except Exception as e:
-            pytest.fail(f"Invalid JSON in params file for {module_name}: {e}")
-
-    def test_what_if_succeeds(self, module_name, bicep_file, params_file, cached_what_if_output):
+    def test_what_if_succeeds(self, module_name, bicep_file, cached_what_if_output):
         """Test that what-if execution succeeds.
         
         Uses cached what-if output from fixture to avoid redundant API calls.
@@ -106,8 +92,7 @@ class TestBicepModules:
             # If cached output is None, it means what-if failed
             # Try running it once more to get the error message
             bicep_path = FIXTURES_DIR / bicep_file
-            params_path = FIXTURES_DIR / params_file
-            success, output = run_what_if(bicep_path, params_path)
+            success, output = run_what_if(bicep_path)
             if not success and "not logged in" in output.lower():
                 pytest.skip(f"Azure CLI not configured - skipping what-if test for {module_name}")
             pytest.fail(f"What-if failed for {module_name}: {output}")
@@ -117,7 +102,7 @@ class TestBicepModules:
         assert cached_what_if_output.get('status') != 'Failed', \
             f"What-if status is 'Failed' for {module_name}: {cached_what_if_output.get('error', 'Unknown error')}"
 
-    def test_cidr_validation_valid_ranges(self, module_name, bicep_file, params_file):
+    def test_cidr_validation_valid_ranges(self, module_name, bicep_file):
         """Test that valid CIDR ranges (/16-/24) allow Bicep compilation.
         
         Only runs for network module. Other modules are skipped.
@@ -168,7 +153,7 @@ class TestBicepModules:
                 except Exception:
                     pass
 
-    def test_cidr_validation_invalid_prefix(self, module_name, bicep_file, params_file):
+    def test_cidr_validation_invalid_prefix(self, module_name, bicep_file):
         """Test that invalid CIDR prefix ranges cause assert failure.
         
         Tests both too-small prefixes (/15 and below) and too-large prefixes (/25 and above).
@@ -225,7 +210,7 @@ class TestBicepModules:
                 except Exception:
                     pass
 
-    def test_cidr_validation_invalid_format(self, module_name, bicep_file, params_file):
+    def test_cidr_validation_invalid_format(self, module_name, bicep_file):
         """Test that invalid CIDR formats cause assert failure.
         
         Tests missing prefix, invalid IP addresses, non-numeric prefix, etc.
