@@ -3,16 +3,15 @@ from pathlib import Path
 
 
 def test_params_dev_has_required_keys():
-    params_path = Path("iac/params.dev.json")
-    assert params_path.exists(), "iac/params.dev.json is missing"
+    """Validate that params.dev.json contains all required parameters for main.bicep."""
+    params_path = Path("tests/fixtures/params.dev.json")
+    assert params_path.exists(), "tests/fixtures/params.dev.json is missing"
 
     data = json.loads(params_path.read_text())
     values = data.get("parameters", {})
 
+    # Required parameters per main.bicep (RFC-64)
     required = {
-        "resourceGroup",
-        "mrgName",
-        "location",
         "contactEmail",
         "adminObjectId",
         "servicesVnetCidr",
@@ -27,7 +26,22 @@ def test_params_dev_has_required_keys():
         "appGwSku",
         "storageGB",
         "backupRetentionDays",
+        "adminPrincipalType",
     }
 
     missing = sorted(required - values.keys())
     assert not missing, f"Missing parameters in params.dev.json: {missing}"
+
+
+def test_params_dev_has_metadata():
+    """Validate that params.dev.json has metadata section with RG name and location."""
+    params_path = Path("tests/fixtures/params.dev.json")
+    assert params_path.exists(), "tests/fixtures/params.dev.json is missing"
+
+    data = json.loads(params_path.read_text())
+    metadata = data.get("metadata", {})
+    
+    assert "resourceGroupName" in metadata, "metadata.resourceGroupName is required"
+    assert "location" in metadata, "metadata.location is required"
+    assert metadata.get("resourceGroupName"), "metadata.resourceGroupName cannot be empty"
+    assert metadata.get("location"), "metadata.location cannot be empty"

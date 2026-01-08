@@ -18,6 +18,21 @@ param nsgPeName string
 @description('Optional tags to apply.')
 param tags object = {}
 
+// Validate CIDR format and prefix length using parseCidr
+// parseCidr will fail if CIDR format is invalid
+var parsedCidr = parseCidr(servicesVnetCidr)
+var vnetPrefixLength = parsedCidr.cidr
+
+// Validate prefix length range (must be /16-/24 per RFC-64)
+// Use conditional to enforce validation - if prefix is out of range, subnetNewBits becomes invalid
+// This will cause cidrSubnet() to fail during deployment
+var cidrPrefixValid = vnetPrefixLength >= 16 && vnetPrefixLength <= 24
+
+// Calculate subnet parameters: use /25 consistently with gaps for growth
+// Subnet numbers: [0, 4, 8, 12, 16] - leaves 12 gap slots (1,536 addresses) for future expansion
+// If prefix is out of range, subnetNewBits will be invalid (negative or > 8) causing cidrSubnet to fail
+var subnetNewBits = cidrPrefixValid ? (25 - vnetPrefixLength) : -1
+
 resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
   name: vnetName
   location: location
@@ -32,8 +47,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-appgw'
         properties: {
-          // /27 derived from base
-          addressPrefix: cidrSubnet(servicesVnetCidr, 27 - int(split(servicesVnetCidr, '/')[1]), 0)
+          // /25 subnet #0 - Application Gateway
+          addressPrefix: cidrSubnet(servicesVnetCidr, subnetNewBits, 0)
           networkSecurityGroup: {
             id: nsgAppgw.id
           }
@@ -42,8 +57,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-aks'
         properties: {
-          // /25 next block after appgw
-          addressPrefix: cidrSubnet(servicesVnetCidr, 25 - int(split(servicesVnetCidr, '/')[1]), 1)
+          // /25 subnet #4 - AKS Nodes (gaps at 1,2,3 for growth)
+          addressPrefix: cidrSubnet(servicesVnetCidr, subnetNewBits, 4)
           networkSecurityGroup: {
             id: nsgAks.id
           }
@@ -52,8 +67,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-appsvc'
         properties: {
-          // /28 app service delegated
-          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 2)
+          // /25 subnet #8 - App Service Integration (gaps at 5,6,7 for growth)
+          addressPrefix: cidrSubnet(servicesVnetCidr, subnetNewBits, 8)
           delegations: [
             {
               name: 'Microsoft.Web/serverFarms'
@@ -70,8 +85,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-private-endpoints'
         properties: {
-          // /28 for PEs
-          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 3)
+          // /25 subnet #12 - Private Endpoints (gaps at 9,10,11 for growth)
+          addressPrefix: cidrSubnet(servicesVnetCidr, subnetNewBits, 12)
           networkSecurityGroup: {
             id: nsgPe.id
           }
@@ -80,8 +95,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' = {
       {
         name: 'snet-psql'
         properties: {
-          // /28 delegated to PostgreSQL flexible server
-          addressPrefix: cidrSubnet(servicesVnetCidr, 28 - int(split(servicesVnetCidr, '/')[1]), 4)
+          // /25 subnet #16 - PostgreSQL Flexible Server (gaps at 13,14,15 for growth)
+          addressPrefix: cidrSubnet(servicesVnetCidr, subnetNewBits, 16)
           delegations: [
             {
               name: 'Microsoft.DBforPostgreSQL/flexibleServers'
@@ -359,3 +374,4 @@ output subnetPePrefix string = vnet.properties.subnets[3].properties.addressPref
 output subnetPsqlPrefix string = vnet.properties.subnets[4].properties.addressPrefix
 
 // TODO: deploy VNet, subnets, NSGs, and private endpoints per RFC-42.
+// Note: VNet flow logs are deployed in a separate module (flow-logs.bicep) to avoid circular dependency with storage.

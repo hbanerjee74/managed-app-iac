@@ -1,13 +1,10 @@
-targetScope = 'subscription'
+targetScope = 'resourceGroup'
 
-@description('Existing resource group where all resources will be deployed (RFC-64: resourceGroup).')
-param resourceGroup string
+@description('Resource group name used for deterministic naming (RFC-64: resourceGroupName, same as mrgName). Defaults to current resource group name from ARM context.')
+param resourceGroupName string = resourceGroup().name
 
-@description('Managed Resource Group name (RFC-64 mrgName).')
-param mrgName string
-
-@description('Azure region for deployment.')
-param location string
+@description('Azure region for deployment. Defaults to current resource group location from ARM context.')
+param location string = resourceGroup().location
 
 @description('Customer admin Entra object ID (RFC-64).')
 param adminObjectId string
@@ -100,7 +97,7 @@ param created string = ''
 module naming 'lib/naming.bicep' = {
   name: 'naming'
   params: {
-    resourceGroupName: mrgName
+    resourceGroupName: resourceGroupName
     purpose: 'platform'
   }
 }
@@ -115,13 +112,8 @@ var tags = union(
 
 // TODO: add remaining RFC-64 parameters as modules are implemented.
 
-resource deploymentRg 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
-  name: resourceGroup
-}
-
 module diagnostics 'modules/diagnostics.bicep' = {
   name: 'diagnostics'
-  scope: deploymentRg
   params: {
     location: location
     retentionDays: retentionDays
@@ -132,7 +124,6 @@ module diagnostics 'modules/diagnostics.bicep' = {
 
 module identity 'modules/identity.bicep' = {
   name: 'identity'
-  scope: deploymentRg
   dependsOn: [diagnostics]
   params: {
     location: location
@@ -144,17 +135,8 @@ module identity 'modules/identity.bicep' = {
   }
 }
 
-module identitySubscription 'modules/identity.subscription.bicep' = {
-  name: 'identity-subscription'
-  scope: subscription()
-  params: {
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
-  }
-}
-
 module network 'modules/network.bicep' = {
   name: 'network'
-  scope: deploymentRg
   params: {
     location: location
     servicesVnetCidr: servicesVnetCidr
@@ -169,37 +151,72 @@ module network 'modules/network.bicep' = {
 
 module dns 'modules/dns.bicep' = {
   name: 'dns'
-  scope: deploymentRg
   params: {
     vnetName: naming.outputs.names.vnet
     tags: tags
   }
 }
 
-module security 'modules/security.bicep' = {
-  name: 'security'
-  scope: deploymentRg
+module kv 'modules/kv.bicep' = {
+  name: 'kv'
   params: {
     location: location
     kvName: naming.outputs.names.kv
-    storageName: naming.outputs.names.storage
-    acrName: naming.outputs.names.acr
     subnetPeId: network.outputs.subnetPeId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peKvName: naming.outputs.names.peKv
+    peKvDnsName: naming.outputs.names.peKvDns
+    diagKvName: naming.outputs.names.diagKv
+    tags: tags
+  }
+}
+
+module storage 'modules/storage.bicep' = {
+  name: 'storage'
+  params: {
+    location: location
+    storageName: naming.outputs.names.storage
+    subnetPeId: network.outputs.subnetPeId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    lawId: diagnostics.outputs.lawId
+    zoneIds: dns.outputs.zoneIds
     peStBlobName: naming.outputs.names.peStBlob
     peStQueueName: naming.outputs.names.peStQueue
     peStTableName: naming.outputs.names.peStTable
-    peAcrName: naming.outputs.names.peAcr
-    peKvDnsName: naming.outputs.names.peKvDns
     peStBlobDnsName: naming.outputs.names.peStBlobDns
     peStQueueDnsName: naming.outputs.names.peStQueueDns
     peStTableDnsName: naming.outputs.names.peStTableDns
-    peAcrDnsName: naming.outputs.names.peAcrDns
-    diagKvName: naming.outputs.names.diagKv
     diagStName: naming.outputs.names.diagSt
+    tags: tags
+  }
+}
+
+module flowLogs 'modules/flow-logs.bicep' = {
+  name: 'flow-logs'
+  dependsOn: [network, storage, identity]
+  params: {
+    location: location
+    vnetId: network.outputs.vnetId
+    storageAccountId: storage.outputs.storageId
+    vnetFlowLogName: naming.outputs.names.vnetFlowLog
+    uamiId: identity.outputs.uamiId
+    tags: tags
+  }
+}
+
+module acr 'modules/acr.bicep' = {
+  name: 'acr'
+  params: {
+    location: location
+    acrName: naming.outputs.names.acr
+    subnetPeId: network.outputs.subnetPeId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    lawId: diagnostics.outputs.lawId
+    zoneIds: dns.outputs.zoneIds
+    peAcrName: naming.outputs.names.peAcr
+    peAcrDnsName: naming.outputs.names.peAcrDns
     diagAcrName: naming.outputs.names.diagAcr
     tags: tags
   }
@@ -207,7 +224,6 @@ module security 'modules/security.bicep' = {
 
 module data 'modules/data.bicep' = {
   name: 'data'
-  scope: deploymentRg
   params: {
     location: location
     psqlName: naming.outputs.names.psql
@@ -227,7 +243,6 @@ module data 'modules/data.bicep' = {
 
 module compute 'modules/compute.bicep' = {
   name: 'compute'
-  scope: deploymentRg
   params: {
     location: location
     sku: sku
@@ -254,15 +269,35 @@ module compute 'modules/compute.bicep' = {
   }
 }
 
+module publicIp 'modules/public-ip.bicep' = {
+  name: 'publicIp'
+  params: {
+    location: location
+    pipName: naming.outputs.names.pipAgw
+    tags: tags
+  }
+}
+
+var wafPolicyName = '${naming.outputs.names.agw}-waf'
+
+module wafPolicy 'modules/waf-policy.bicep' = {
+  name: 'wafPolicy'
+  params: {
+    location: location
+    wafPolicyName: wafPolicyName
+    customerIpRanges: customerIpRanges
+    publisherIpRanges: publisherIpRanges
+    tags: tags
+  }
+}
+
 module gateway 'modules/gateway.bicep' = {
   name: 'gateway'
-  scope: deploymentRg
   params: {
     location: location
     agwName: naming.outputs.names.agw
-    pipName: naming.outputs.names.pipAgw
-    customerIpRanges: customerIpRanges
-    publisherIpRanges: publisherIpRanges
+    pipId: publicIp.outputs.pipId
+    wafPolicyId: wafPolicy.outputs.wafPolicyId
     subnetAppgwId: network.outputs.subnetAppgwId
     lawId: diagnostics.outputs.lawId
     appGwCapacity: appGwCapacity
@@ -272,23 +307,34 @@ module gateway 'modules/gateway.bicep' = {
   }
 }
 
-module ai 'modules/ai.bicep' = {
-  name: 'ai'
-  scope: deploymentRg
+module search 'modules/search.bicep' = {
+  name: 'search'
   params: {
     location: location
     aiServicesTier: aiServicesTier
     searchName: naming.outputs.names.search
-    aiName: naming.outputs.names.ai
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     zoneIds: dns.outputs.zoneIds
     peSearchName: naming.outputs.names.peSearch
-    peAiName: naming.outputs.names.peAi
     peSearchDnsName: naming.outputs.names.peSearchDns
-    peAiDnsName: naming.outputs.names.peAiDns
     diagSearchName: naming.outputs.names.diagSearch
+    tags: tags
+  }
+}
+
+module cognitiveServices 'modules/cognitive-services.bicep' = {
+  name: 'cognitive-services'
+  params: {
+    location: location
+    aiName: naming.outputs.names.ai
+    subnetPeId: network.outputs.subnetPeId
+    lawId: diagnostics.outputs.lawId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    zoneIds: dns.outputs.zoneIds
+    peAiName: naming.outputs.names.peAi
+    peAiDnsName: naming.outputs.names.peAiDns
     diagAiName: naming.outputs.names.diagAi
     tags: tags
   }
@@ -296,11 +342,11 @@ module ai 'modules/ai.bicep' = {
 
 module automation 'modules/automation.bicep' = {
   name: 'automation'
-  scope: deploymentRg
   params: {
     location: location
     automationName: naming.outputs.names.automation
     uamiId: identity.outputs.uamiId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
     subnetPeId: network.outputs.subnetPeId
@@ -315,7 +361,6 @@ module automation 'modules/automation.bicep' = {
 
 module logic 'modules/logic.bicep' = {
   name: 'logic'
-  scope: deploymentRg
   params: {
     location: location
     logicName: naming.outputs.names.logic

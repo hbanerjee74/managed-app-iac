@@ -1,0 +1,127 @@
+targetScope = 'resourceGroup'
+
+@description('Deployment location.')
+param location string
+
+@description('Key Vault name.')
+param kvName string
+
+@description('Private Endpoints subnet ID.')
+param subnetPeId string
+
+@description('Principal ID of the UAMI for RBAC.')
+param uamiPrincipalId string
+
+@description('Log Analytics Workspace resource ID.')
+param lawId string
+
+@description('DNS zone resource IDs map (from dns module).')
+param zoneIds object
+
+@description('Private endpoint name from naming helper.')
+param peKvName string
+
+@description('Private DNS zone group name from naming helper.')
+param peKvDnsName string
+
+@description('Diagnostic setting name from naming helper.')
+param diagKvName string
+
+@description('Optional tags to apply.')
+param tags object = {}
+
+resource kv 'Microsoft.KeyVault/vaults@2023-02-01' = {
+  name: kvName
+  location: location
+  tags: tags
+  properties: {
+    tenantId: subscription().tenantId
+    enableRbacAuthorization: true
+    enablePurgeProtection: true
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 90
+    publicNetworkAccess: 'Disabled'
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    networkAcls: {
+      defaultAction: 'Deny'
+      bypass: 'AzureServices'
+    }
+  }
+}
+
+// Private Endpoint
+resource peKv 'Microsoft.Network/privateEndpoints@2023-05-01' = {
+  name: peKvName
+  location: location
+  tags: tags
+  properties: {
+    subnet: {
+      id: subnetPeId
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'kv-conn'
+        properties: {
+          groupIds: [
+            'vault'
+          ]
+          privateLinkServiceId: kv.id
+        }
+      }
+    ]
+  }
+}
+
+resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
+  parent: peKv
+  name: peKvDnsName
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink.vaultcore.azure.net'
+        properties: {
+          privateDnsZoneId: zoneIds.vault
+        }
+      }
+    ]
+  }
+}
+
+// RBAC assignment
+resource kvSecretsOfficer 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(kv.id, uamiPrincipalId, 'kv-secret-officer')
+  scope: kv
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7') // Key Vault Secrets Officer
+    principalId: uamiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Diagnostic settings
+resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: diagKvName
+  scope: kv
+  properties: {
+    workspaceId: lawId
+    logs: [
+      {
+        category: 'AuditEvent'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+}
+
+output kvId string = kv.id
+output peKvId string = peKv.id
+

@@ -1,94 +1,149 @@
 # Managed Application IaC for PRD-30
 
-This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include dev/test drift enforcement and resource-level validation tooling.
+This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include resource-level validation tooling for marketplace deployment.
 
-## Layout
-- `main.bicep` — subscription-scope entrypoint; wires RFC-64 parameters into resource-group modules.
-- `main.rg.bicep` — resource-group-scope entrypoint for dev/test drift enforcement (Complete mode).
-- `modules/*.bicep` — per-domain modules (identity, network, security, data, compute, gateway, ai, automation, diagnostics).
-- `lib/` — shared helpers (naming per RFC-71, constants).
-- `params.dev.json` — sample parameters for local testing.
+## Prerequisites
 
-## Parameters (RFC-64 names)
-- `resourceGroup`, `location`, `contactEmail`, `adminObjectId`, `adminPrincipalType`
-- `servicesVnetCidr`, `customerIpRanges`, `publisherIpRanges`
-- `sku` (App Service Plan), `computeTier` (PostgreSQL), `aiServicesTier`
-- Defaults/display-only: `appGwSku`, `appGwCapacity`, `storageGB`, `backupRetentionDays`, `retentionDays`
+- **Azure CLI** installed and configured (`az login`)
+- **Python 3.x** with pytest installed
+- **Azure subscription** with appropriate permissions
+- **Bicep CLI** (included with Azure CLI)
 
-## Run locally
-```bash
-az group create -n rg-vibedata-dev -l eastus
-az deployment sub create \
-  -f iac/main.bicep \
-  -l eastus \
-  -p @iac/params.dev.json
+## Project Structure
+
+```text
+iac/
+  main.bicep          # Resource group-scope entrypoint for managed application deployment
+  modules/            # Domain modules (identity, network, kv, storage, acr, data, compute, gateway, search, cognitive-services, automation, diagnostics)
+  lib/                # Shared helpers (naming per RFC-71, constants)
+tests/
+  fixtures/
+    params.dev.json   # Sample parameters for local testing
+  unit/               # Unit tests for individual modules
+  e2e/                # End-to-end tests for main.bicep
 ```
 
-For a dry run without changes:
+## Quick Start
+
+1. **Authenticate with Azure CLI:**
+
+   ```bash
+   az login
+   ```
+
+2. **Configure parameters:**
+
+   Edit `tests/fixtures/params.dev.json` with your subscription and resource group details:
+
+   ```json
+   {
+     "metadata": {
+       "subscriptionId": "your-subscription-id",
+       "resourceGroupName": "your-rg-name",
+       "location": "eastus"
+     },
+     "parameters": {
+       ...
+     }
+   }
+   ```
+
+3. **Run what-if tests (dry run, recommended first):**
+
+   ```bash
+   # Unit tests automatically create resource group if needed
+   pytest tests/unit/test_modules.py -v
+
+   # E2E what-if tests (safe, no actual deployment)
+   pytest tests/e2e/
+   ```
+
+   The tests validate your Bicep templates and show what would be deployed without creating resources.
+
+4. **Deploy (if tests pass and what-if looks good):**
+
+   ```bash
+   # E2E actual deployment test (creates real resources, opt-in)
+   ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+   ```
+
+   **Warning**: This creates real Azure resources and incurs costs. The test automatically creates the resource group before deployment and deletes it after (even on failure).
+
+## Parameters
+
+See `tests/fixtures/params.dev.json` for all available parameters. Key parameters:
+
+**Required:**
+
+- `resourceGroupName` (replaces `resourceGroup` and `mrgName`)
+- `location`
+- `contactEmail`
+- `adminObjectId`
+- `adminPrincipalType`
+- `servicesVnetCidr`
+
+**Network:**
+
+- `customerIpRanges` - IP ranges for WAF allowlist
+- `publisherIpRanges` - IP ranges for WAF allowlist
+
+**Compute:**
+
+- `sku` - App Service Plan SKU
+- `computeTier` - PostgreSQL compute tier
+- `aiServicesTier` - AI services tier
+
+**Optional (with defaults):**
+
+- `appGwSku` - Application Gateway SKU (default: WAF_v2)
+- `appGwCapacity` - Application Gateway capacity (default: 1)
+- `storageGB` - PostgreSQL storage in GB
+- `backupRetentionDays` - PostgreSQL backup retention
+- `retentionDays` - Log Analytics retention
+
+For full parameter documentation, see RFC-64.
+
+## Testing
+
+### Unit Tests
+
 ```bash
-az deployment sub what-if -f iac/main.bicep -l eastus -p @iac/params.dev.json
+pytest tests/unit/test_modules.py -v
 ```
 
-## Dev/test state check
-To verify the live RG matches the Bicep in dev/test:
+**Note**: Unit tests automatically create the resource group if it doesn't exist (using RG name and location from `tests/fixtures/params.dev.json`).
+
+### E2E Tests (What-if mode, safe)
+
 ```bash
-./tests/state_check/what_if.sh eastus iac/params.dev.json
-python tests/state_check/diff_report.py tests/state_check/what-if.json
+# Unit tests automatically create resource group if needed
+pytest tests/e2e/
 ```
 
-Module-level validator (`ACTUAL_PATH` required):
+### E2E Tests (Actual deployment, opt-in)
+
 ```bash
-python tests/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
-ACTUAL_PATH=/tmp/actual.json pytest tests/validator/test_modules.py
+# Deploy and validate (auto-creates/deletes resource group)
+ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+
+# Keep resource group for debugging/inspection
+ENABLE_ACTUAL_DEPLOYMENT=true KEEP_RESOURCE_GROUP=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
 ```
 
-Per-module actual + teardown:
-```bash
-# collect only one module
-python tests/validator/collect_actual_state.py rg-vibedata-dev --module network --output /tmp/network.json
-ACTUAL_PATH=/tmp/network.json pytest tests/validator/test_modules.py -k network
+**Warning**: Actual deployment tests create real Azure resources and incur costs. Resource groups are automatically created before each test and deleted after (unless `KEEP_RESOURCE_GROUP=true` is set).
 
-# tear down resources for a module (irreversible)
-# preview
-./scripts/teardown/module_teardown.sh rg-vibedata-dev network --dry-run
-# execute
-./scripts/teardown/module_teardown.sh rg-vibedata-dev network
-```
+For comprehensive testing documentation, see [`tests/README.md`](tests/README.md).
 
-## Dev/test strict enforcement (RG scope, Complete mode)
-Use the RG entrypoint (`iac/main.rg.bicep`) with Complete mode for drift enforcement. RG only.
+## Documentation
 
-Prereqs (one-time per RG):
-```bash
-az group create -n rg-vibedata-dev -l eastus
-az group update -n rg-vibedata-dev --set tags.IAC=true
-```
-
-What-if (CI gate or manual):
-```bash
-./scripts/deploy/what_if_rg.sh rg-vibedata-dev eastus iac/params.dev.json
-python tests/state_check/diff_report.py tests/state_check/what-if.json
-```
-
-Apply (CD / manual):
-```bash
-./scripts/deploy/apply_rg.sh rg-vibedata-dev eastus iac/params.dev.json
-```
-
-## Validating deployed state against expectation (optional)
-1) Collect actual state (best-effort summary):
-```bash
-python tests/validator/collect_actual_state.py rg-vibedata-dev > /tmp/actual.json
-```
-2) Compare against template:
-```bash
-ACTUAL_EXPECTATION_PATH=/tmp/actual.json pytest tests/validator/test_expectation_template.py
-```
-Edit `tests/validator/expected/dev_expectation.template.json` to tighten or expand checks (placeholders like `<16>` validate nanoid lengths; lists are matched as subsets).
-
-Keep parameter names and casing aligned with RFC-64 to match the eventual Marketplace handoff.
+- **Testing**: See [`tests/README.md`](tests/README.md) for comprehensive test documentation
+- **Repository Guidelines**: See [`AGENTS.md`](AGENTS.md) for development practices and standards
+- **Release Notes**: See `docs/RELEASE-NOTES-*.md` for version history
 
 ## Release Notes
+
+- 2026-01-08 — v0.7.0 Module refactoring: Split security module into kv, storage, and acr modules: [docs/RELEASE-NOTES-2026-01-08-v0.7.0.md](docs/RELEASE-NOTES-2026-01-08-v0.7.0.md)
+- 2026-01-08 — v0.6.0 Test harness improvements and documentation consolidation: [docs/RELEASE-NOTES-2026-01-08-v0.6.0.md](docs/RELEASE-NOTES-2026-01-08-v0.6.0.md)
 - 2026-01-05 — v0.5.0 RFC-71 deterministic naming: [docs/RELEASE-NOTES-2026-01-05-v0.5.0.md](docs/RELEASE-NOTES-2026-01-05-v0.5.0.md)
 - 2026-01-03 — v0.4.0 module validator + RFC-64 params: [docs/RELEASE-NOTES-2026-01-03-v0.4.0.md](docs/RELEASE-NOTES-2026-01-03-v0.4.0.md)
 - 2026-01-03 — v0.3.0 validator resource-level coverage: [docs/RELEASE-NOTES-2026-01-03-v0.3.0.md](docs/RELEASE-NOTES-2026-01-03-v0.3.0.md)

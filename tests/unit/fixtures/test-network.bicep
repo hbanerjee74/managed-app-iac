@@ -1,0 +1,44 @@
+targetScope = 'resourceGroup'
+
+// Test wrapper for network module
+// This module has no dependencies
+
+@description('Resource group name for naming seed.')
+param resourceGroupName string
+
+@description('Azure region for deployment (RFC-64: location).')
+param location string
+
+@description('Services VNet CIDR block (RFC-64: servicesVnetCidr).')
+param servicesVnetCidr string
+
+// Include naming module
+module naming '../../../iac/lib/naming.bicep' = {
+  name: 'naming'
+  params: {
+    resourceGroupName: resourceGroupName
+    purpose: 'platform'
+  }
+}
+
+// Module under test
+module network '../../../iac/modules/network.bicep' = {
+  name: 'network'
+  params: {
+    location: location
+    servicesVnetCidr: servicesVnetCidr
+    vnetName: naming.outputs.names.vnet
+    nsgAppgwName: naming.outputs.names.nsgAppgw
+    nsgAksName: naming.outputs.names.nsgAks
+    nsgAppsvcName: naming.outputs.names.nsgAppsvc
+    nsgPeName: naming.outputs.names.nsgPe
+    tags: {}
+  }
+}
+
+output subnetPsqlId string = network.outputs.subnetPsqlId
+output subnetAppsvcId string = network.outputs.subnetAppsvcId
+output subnetPeId string = network.outputs.subnetPeId
+output subnetAppgwId string = network.outputs.subnetAppgwId
+output names object = naming.outputs.names
+
