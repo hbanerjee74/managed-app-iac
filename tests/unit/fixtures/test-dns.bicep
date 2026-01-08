@@ -30,5 +30,6 @@ module dns '../../../iac/modules/dns.bicep' = {
 }
 
 output zoneIds object = dns.outputs.zoneIds
+output vnetLinkIds object = dns.outputs.vnetLinkIds
 output names object = naming.outputs.names
 
