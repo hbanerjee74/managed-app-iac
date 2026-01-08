@@ -9,8 +9,6 @@ param kvName string
 @description('Private Endpoints subnet ID.')
 param subnetPeId string
 
-@description('Principal ID of the UAMI for RBAC.')
-param uamiPrincipalId string
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string
@@ -90,16 +88,7 @@ resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
   }
 }
 
-// RBAC assignment
-resource kvSecretsOfficer 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(kv.id, uamiPrincipalId, 'kv-secret-officer')
-  scope: kv
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7') // Key Vault Secrets Officer
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 // Diagnostic settings
 resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {

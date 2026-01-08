@@ -4,7 +4,7 @@ targetScope = 'resourceGroup'
 param resourceGroupName string
 
 // helper to build deterministic nanoids per resource type
-param seedPrefix string = resourceGroupName
+var seedPrefix = resourceGroupName
 
 func nano16(seed string, suffix string) string => toLower('${substring(uniqueString('${seed}-${suffix}-a'), 0, 8)}${substring(uniqueString('${seed}-${suffix}-b'), 0, 8)}')
 func nano8(seed string, suffix string) string => toLower(substring(uniqueString('${seed}-${suffix}'), 0, 8))

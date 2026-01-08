@@ -2,6 +2,54 @@
 
 This directory contains the test harness for validating Bicep modules and deployments.
 
+## Quick Start
+
+1. **Authenticate with Azure CLI:**
+
+   ```bash
+   az login
+   ```
+
+2. **Configure test parameters:**
+
+   Edit `tests/fixtures/params.dev.json` with your subscription and resource group details:
+
+   ```json
+   {
+     "metadata": {
+       "subscriptionId": "your-subscription-id",
+       "resourceGroupName": "your-rg-name",
+       "location": "eastus"
+     },
+     "parameters": {
+       ...
+     }
+   }
+   ```
+
+3. **Run what-if tests (dry run, recommended first):**
+
+   ```bash
+   # Unit tests automatically create resource group if needed
+   pytest tests/unit/test_modules.py -v
+
+   # E2E what-if tests (safe, no actual deployment)
+   pytest tests/e2e/
+   ```
+
+   The tests validate your Bicep templates and show what would be deployed without creating resources.
+
+4. **Deploy (if tests pass and what-if looks good):**
+
+   ```bash
+   # E2E actual deployment test (creates/updates real resources, opt-in)
+   ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
+   ```
+
+   **Warning**: This creates/updates real Azure resources and incurs costs. The test automatically creates the resource group if it doesn't exist, or reuses it if it does. Resource group persists between test runs - subsequent runs will update existing resources.
+   
+   **Note**: Deployments use **Complete mode** to ensure resource group state matches the template exactly. Resources not defined in the template will be deleted.
+
 ## Structure
 
 ```text

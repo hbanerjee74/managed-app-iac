@@ -14,7 +14,7 @@ This repository contains the Bicep-based infrastructure for PRD-30 (managed appl
 ```text
 iac/
   main.bicep          # Resource group-scope entrypoint for managed application deployment
-  modules/            # Domain modules (identity, network, kv, storage, acr, psql, compute, gateway, search, cognitive-services, automation, diagnostics)
+  modules/            # Domain modules (identity, network, kv, storage, acr, psql, compute, gateway, search, cognitive-services, automation, diagnostics, rbac)
   lib/                # Shared helpers (naming per RFC-71, constants)
 tests/
   fixtures/
@@ -33,32 +33,11 @@ tests/
 
 2. **Configure parameters:**
 
-   Edit `tests/fixtures/params.dev.json` with your subscription and resource group details:
+   Edit `tests/fixtures/params.dev.json` with your subscription and resource group details.
 
-   ```json
-   {
-     "metadata": {
-       "subscriptionId": "your-subscription-id",
-       "resourceGroupName": "your-rg-name",
-       "location": "eastus"
-     },
-     "parameters": {
-       ...
-     }
-   }
-   ```
+3. **Run tests:**
 
-3. **Run what-if tests (dry run, recommended first):**
-
-   ```bash
-   # Unit tests automatically create resource group if needed
-   pytest tests/unit/test_modules.py -v
-
-   # E2E what-if tests (safe, no actual deployment)
-   pytest tests/e2e/
-   ```
-
-   The tests validate your Bicep templates and show what would be deployed without creating resources.
+   See [`tests/README.md`](tests/README.md) for comprehensive testing documentation.
 
 4. **Deploy (if tests pass and what-if looks good):**
 
@@ -68,6 +47,8 @@ tests/
    ```
 
    **Warning**: This creates/updates real Azure resources and incurs costs. The test automatically creates the resource group if it doesn't exist, or reuses it if it does. Resource group persists between test runs - subsequent runs will update existing resources.
+   
+   **Note**: Deployments use **Complete mode** to ensure resource group state matches the template exactly. Resources not defined in the template will be deleted.
 
 ## Parameters
 
@@ -89,45 +70,43 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 
 **Compute:**
 
-- `sku` - App Service Plan SKU
-- `computeTier` - PostgreSQL compute tier
-- `aiServicesTier` - AI services tier
+- `sku` - App Service Plan SKU (allowed: B1, B2, B3, S1, S2, S3, P1v3, P2v3, P3v3)
+- `computeTier` - PostgreSQL compute tier (allowed: Standard_B1ms, Standard_B1s, Standard_B2ms, Standard_B2s, GP_Standard_D2s_v3, GP_Standard_D4s_v3)
+- `aiServicesTier` - AI services tier (allowed: free, basic, standard, standard2, standard3, storage_optimized_l1, storage_optimized_l2)
+- `nodeSize` - AKS node size (allowed: Standard_D4s_v3, Standard_D8s_v3, Standard_D16s_v3) - Note: Currently unused as AKS deployment is out of scope
 
 **Optional (with defaults):**
 
-- `appGwSku` - Application Gateway SKU (default: WAF_v2)
-- `appGwCapacity` - Application Gateway capacity (default: 1)
-- `storageGB` - PostgreSQL storage in GB
-- `backupRetentionDays` - PostgreSQL backup retention
-- `retentionDays` - Log Analytics retention
+- `appGwSku` - Application Gateway SKU (default: WAF_v2, allowed: WAF_v2)
+- `appGwCapacity` - Application Gateway capacity (default: 1, range: 1-10)
+- `storageGB` - PostgreSQL storage in GB (default: 128, range: 32-16384)
+- `backupRetentionDays` - PostgreSQL backup retention (default: 7, range: 7-35)
+- `retentionDays` - Log Analytics retention (default: 30, range: 30-730)
 
 For full parameter documentation, see RFC-64.
 
+## `isManagedApplication` Parameter
+
+The `isManagedApplication` parameter controls behavior differences between managed application deployments (cross-tenant) and same-tenant testing scenarios.
+
+**Default**: `true` (managed application scenario)
+
+**Usage:**
+
+1. **RBAC Module** (`iac/modules/rbac.bicep`): Controls `delegatedManagedIdentityResourceId` property in role assignments
+   - `true`: Sets to UAMI ID (required for cross-tenant managed apps)
+   - `false`: Sets to `null` (same-tenant testing)
+
+2. **Main Template** (`iac/main.bicep`): Controls tag application logic
+   - `false`: Uses `defaultTags` from metadata if individual tag params are empty
+   - `true`: Always uses individual tag parameters (ignores `defaultTags`)
+
+**Configuration:**
+
+- **Managed Application** (Production): Set `isManagedApplication: true` in metadata
+- **Same-Tenant Testing** (Development): Set `isManagedApplication: false` in metadata and provide `defaultTags`
+
 ## Testing
-
-### Unit Tests
-
-```bash
-pytest tests/unit/test_modules.py -v
-```
-
-**Note**: Unit tests automatically create the resource group if it doesn't exist (using RG name and location from `tests/fixtures/params.dev.json`).
-
-### E2E Tests (What-if mode, safe)
-
-```bash
-# Unit tests automatically create resource group if needed
-pytest tests/e2e/
-```
-
-### E2E Tests (Actual deployment, opt-in)
-
-```bash
-# Deploy and validate (creates RG if needed, or updates existing resources)
-ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
-```
-
-**Warning**: Actual deployment tests create/update real Azure resources and incur costs. The resource group is created if it doesn't exist, or reused if it does. Resource group persists between test runs - subsequent runs will update existing resources instead of deleting and recreating them.
 
 For comprehensive testing documentation, see [`tests/README.md`](tests/README.md).
 

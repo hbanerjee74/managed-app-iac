@@ -35,7 +35,7 @@ MODULES = [
     ('dns', 'test-dns.bicep'),
     ('bastion', 'test-bastion.bicep'),
     ('vm-jumphost', 'test-vm-jumphost.bicep'),
-    ('admin-data-plane-rbac', 'test-admin-data-plane-rbac.bicep'),
+    ('rbac', 'test-rbac.bicep'),
 ]
 
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'

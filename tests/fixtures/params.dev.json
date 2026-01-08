@@ -6,7 +6,12 @@
     "resourceGroupName": "test-rg-sg",
     "location": "southeastasia",
     "isManagedApplication": false,
-    "enableAppServicePlan": true
+    "defaultTags": {
+      "environment": "dev",
+      "owner": "ci",
+      "purpose": "ephemeral",
+      "managedBy": "bicep-iac"
+    }
   },
   "parameters": {
     "contactEmail": { "value": "dev@example.com" },

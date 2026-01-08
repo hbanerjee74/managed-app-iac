@@ -24,7 +24,7 @@
 - **E2E what-if tests** (safe, no actual deployment): `pytest tests/e2e/`
 - **E2E actual deployment** (opt-in, creates real resources): `ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment`
 - **Keep resource group for debugging**: `KEEP_RESOURCE_GROUP=true` (with `ENABLE_ACTUAL_DEPLOYMENT=true`)
-- **Manual deployment** (if needed): `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create ...`)
+- **Manual deployment** (if needed): `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create --mode Complete --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json`)
 - **Diagnostics**: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
 
 See [`tests/README.md`](tests/README.md) for comprehensive test documentation.

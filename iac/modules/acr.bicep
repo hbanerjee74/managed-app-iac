@@ -9,8 +9,6 @@ param acrName string
 @description('Private Endpoints subnet ID.')
 param subnetPeId string
 
-@description('Principal ID of the UAMI for RBAC.')
-param uamiPrincipalId string
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string
@@ -83,26 +81,7 @@ resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-
   }
 }
 
-// RBAC assignments
-resource acrPull 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(acr.id, uamiPrincipalId, 'acr-pull')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource acrPush 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(acr.id, uamiPrincipalId, 'acr-push')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec') // AcrPush
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 // Diagnostic settings
 resource acrDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {

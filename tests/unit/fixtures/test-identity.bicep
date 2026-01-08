@@ -34,9 +34,6 @@ module identity '../../../iac/modules/identity.bicep' = {
   params: {
     location: location
     uamiName: naming.outputs.names.uami
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
-    lawName: mockDiagnosticsOutputs.lawName
     tags: {}
   }
 }

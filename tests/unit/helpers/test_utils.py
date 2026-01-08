@@ -341,16 +341,17 @@ def run_what_if(
             # If not found, use default True (managed application)
             module_params['parameters']['isManagedApplication'] = {'value': True}
 
-    # Handle enableAppServicePlan from metadata if available (deployment context)
+    # Handle defaultTags from metadata if available (for non-managed app scenarios)
     # Only add if declared in template
-    if 'enableAppServicePlan' in declared_params and 'enableAppServicePlan' not in module_params['parameters']:
+    if 'defaultTags' in declared_params and 'defaultTags' not in module_params['parameters']:
         try:
             params_data = load_json_file(SHARED_PARAMS_FILE)
-            enable_asp = params_data.get('metadata', {}).get('enableAppServicePlan', True)
-            module_params['parameters']['enableAppServicePlan'] = {'value': enable_asp}
+            default_tags = params_data.get('metadata', {}).get('defaultTags', {})
+            if default_tags:
+                module_params['parameters']['defaultTags'] = {'value': default_tags}
         except Exception:
-            # If not found, use default True (enable App Service Plan)
-            module_params['parameters']['enableAppServicePlan'] = {'value': True}
+            # If not found, use empty object
+            module_params['parameters']['defaultTags'] = {'value': {}}
     
     # Create temporary merged params file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:

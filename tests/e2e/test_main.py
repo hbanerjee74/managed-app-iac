@@ -95,10 +95,6 @@ def get_merged_params_file():
     # Merge isManagedApplication from metadata into parameters
     if 'isManagedApplication' in metadata and 'isManagedApplication' not in merged_params['parameters']:
         merged_params['parameters']['isManagedApplication'] = {'value': metadata['isManagedApplication']}
-
-    # Merge enableAppServicePlan from metadata into parameters
-    if 'enableAppServicePlan' in metadata and 'enableAppServicePlan' not in merged_params['parameters']:
-        merged_params['parameters']['enableAppServicePlan'] = {'value': metadata['enableAppServicePlan']}
     
     # Create temporary file with merged params
     tmp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
@@ -339,6 +335,7 @@ class TestMainBicep:
                         '--resource-group', test_resource_group,
                         '--template-file', str(MAIN_BICEP),
                         '--parameters', f'@{merged_params_file}',
+                        '--mode', 'Complete',
                         '--output', 'json'
                     ],
                     capture_output=True,

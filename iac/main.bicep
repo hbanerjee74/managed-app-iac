@@ -44,9 +44,6 @@ param publisherIpRanges array
 ])
 param sku string = 'B1'
 
-@description('Enable App Service Plan deployment (set to false to skip due to quota constraints).')
-param enableAppServicePlan bool = true
-
 @description('AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30.')
 @allowed([
   'Standard_D4s_v3'
@@ -114,6 +111,9 @@ param owner string = ''
 param purpose string = ''
 param created string = ''
 
+@description('Default tags for non-managed application scenarios (from metadata.defaultTags).')
+param defaultTags object = {}
+
 @description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
 param isManagedApplication bool = true
 
@@ -125,13 +125,16 @@ module naming 'lib/naming.bicep' = {
   }
 }
 
-var tags = union(
+// Use default tags from metadata when isManagedApplication is false and individual tag params are empty
+var effectiveTags = !isManagedApplication && empty(environment) && empty(owner) && empty(purpose) && empty(created) ? defaultTags : union(
   empty(environment) ? {} : { environment: environment },
   empty(owner) ? {} : { owner: owner },
   empty(purpose) ? {} : { purpose: purpose },
   empty(created) ? {} : { created: created },
   empty(contactEmail) ? {} : { contactEmail: contactEmail }
 )
+
+var tags = effectiveTags
 
 // TODO: add remaining RFC-64 parameters as modules are implemented.
 
@@ -151,10 +154,6 @@ module identity 'modules/identity.bicep' = {
   params: {
     location: location
     uamiName: naming.outputs.names.uami
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
-    lawName: naming.outputs.names.law
-    isManagedApplication: isManagedApplication
     tags: tags
   }
 }
@@ -187,7 +186,6 @@ module kv 'modules/kv.bicep' = {
     location: location
     kvName: naming.outputs.names.kv
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peKvName: naming.outputs.names.peKv
@@ -203,7 +201,6 @@ module storage 'modules/storage.bicep' = {
     location: location
     storageName: naming.outputs.names.storage
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peStBlobName: naming.outputs.names.peStBlob
@@ -223,7 +220,6 @@ module acr 'modules/acr.bicep' = {
     location: location
     acrName: naming.outputs.names.acr
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peAcrName: naming.outputs.names.peAcr
@@ -253,7 +249,7 @@ module psql 'modules/psql.bicep' = {
   }
 }
 
-module compute 'modules/compute.bicep' = if (enableAppServicePlan) {
+module compute 'modules/compute.bicep' = {
   name: 'compute'
   params: {
     location: location
@@ -309,7 +305,6 @@ module search 'modules/search.bicep' = {
     searchName: naming.outputs.names.search
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     zoneIds: dns.outputs.zoneIds
     peSearchName: naming.outputs.names.peSearch
     peSearchDnsName: naming.outputs.names.peSearchDns
@@ -325,7 +320,6 @@ module cognitiveServices 'modules/cognitive-services.bicep' = {
     aiName: naming.outputs.names.ai
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     zoneIds: dns.outputs.zoneIds
     peAiName: naming.outputs.names.peAi
     peAiDnsName: naming.outputs.names.peAiDns
@@ -339,9 +333,6 @@ module automation 'modules/automation.bicep' = {
   params: {
     location: location
     automationName: naming.outputs.names.automation
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
     lawId: diagnostics.outputs.lawId
     diagAutomationName: naming.outputs.names.diagAutomation
     tags: tags
@@ -376,24 +367,32 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
   }
 }
 
-module adminDataPlaneRbac 'modules/admin-data-plane-rbac.bicep' = {
-  name: 'admin-data-plane-rbac'
+module rbac 'modules/rbac.bicep' = {
+  name: 'rbac'
   dependsOn: [
+    identity
+    diagnostics
     kv
     storage
     acr
     search
     cognitiveServices
+    automation
   ]
   params: {
     location: location
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
+    uamiId: identity.outputs.uamiId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
+    lawId: diagnostics.outputs.lawId
+    lawName: naming.outputs.names.law
     kvId: kv.outputs.kvId
     storageId: storage.outputs.storageId
     acrId: acr.outputs.acrId
     searchId: search.outputs.searchId
     aiId: cognitiveServices.outputs.aiId
+    automationId: automation.outputs.automationId
     isManagedApplication: isManagedApplication
     tags: tags
   }

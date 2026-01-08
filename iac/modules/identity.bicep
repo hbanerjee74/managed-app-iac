@@ -6,24 +6,8 @@ param location string
 @description('Name for the user-assigned managed identity.')
 param uamiName string
 
-@description('Customer admin Entra object ID.')
-param adminObjectId string
-
-@description('Principal type for adminObjectId (User or Group).')
-@allowed([
-  'User'
-  'Group'
-])
-param adminPrincipalType string = 'User'
-
 @description('Optional tags to apply.')
 param tags object = {}
-
-@description('Optional Log Analytics Workspace name for RBAC wiring.')
-param lawName string = ''
-
-@description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
-param isManagedApplication bool = true
 
 // Create the user-assigned managed identity (name provided by parent, includes suffix).
 resource vibedataUami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -32,57 +16,7 @@ resource vibedataUami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-
   tags: tags
 }
 
-// Assign Contributor on the Managed Resource Group to the UAMI.
-// Note: No explicit propagation delay needed - delegatedManagedIdentityResourceId handles cross-tenant
-// scenarios, and ARM's dependency ordering ensures UAMI is created before role assignments.
-resource uamiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, vibedataUami.id, 'Contributor')
-  scope: resourceGroup()  // Explicitly scope to MRG
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor
-    principalId: vibedataUami.properties.principalId
-    principalType: 'ServicePrincipal'
-    delegatedManagedIdentityResourceId: isManagedApplication ? vibedataUami.id : null  // Required for Managed Apps (cross-tenant scenarios only)
-  }
-  // Explicit dependency for clarity - ensures role assignment happens after UAMI creation
-  //disable-next-line no-unnecessary-dependson
-  dependsOn: [
-    vibedataUami
-  ]
-}
-
-// Assign Reader on the Managed Resource Group to the customer admin.
-resource customerReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, adminObjectId, 'Reader')
-  scope: resourceGroup()  // Explicitly scope to MRG
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7') // Reader
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-}
-
-// Additional RBAC per RFC-13 / PRD-30
-resource law 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = if (!empty(lawName)) {
-  name: lawName
-}
-
-// Optional: Log Analytics Contributor if lawId provided
-resource uamiLawContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(lawName)) {
-  name: guid(law.id, vibedataUami.id, 'LAW-Contrib')
-  scope: law
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '73c42c96-874c-492b-b04d-ab87d138a893') // Log Analytics Contributor
-    principalId: vibedataUami.properties.principalId
-    principalType: 'ServicePrincipal'
-    delegatedManagedIdentityResourceId: isManagedApplication ? vibedataUami.id : null  // Required for Managed Apps (cross-tenant scenarios only)
-  }
-  // Explicit dependency for clarity - ensures role assignment happens after UAMI creation
-  //disable-next-line no-unnecessary-dependson
-  dependsOn: [
-    vibedataUami
-  ]
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 output uamiPrincipalId string = vibedataUami.properties.principalId
 output uamiClientId string = vibedataUami.properties.clientId

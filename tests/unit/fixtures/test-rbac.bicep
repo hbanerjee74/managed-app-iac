@@ -1,7 +1,7 @@
 targetScope = 'resourceGroup'
 
-// Test wrapper for admin-data-plane-rbac module
-// Depends on: kv, storage, acr, search, cognitive-services
+// Test wrapper for rbac module
+// Depends on: identity, diagnostics, kv, storage, acr, search, cognitive-services, automation
 
 @description('Resource group name for naming seed.')
 param resourceGroupName string
@@ -23,35 +23,44 @@ module naming '../../../iac/lib/naming.bicep' = {
   }
 }
 
-// Mock resource IDs (these would come from actual deployments in real scenarios)
+// Mock dependency outputs
+var mockIdentityOutputs = {
+  uamiPrincipalId: '00000000-0000-0000-0000-000000000000'
+  uamiId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-uami'
+}
+
+var mockDiagnosticsOutputs = {
+  lawId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law'
+}
+
+// Mock resource IDs
 var mockKvId = '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.KeyVault/vaults/test-kv'
 var mockStorageId = '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Storage/storageAccounts/testst'
 var mockAcrId = '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.ContainerRegistry/registries/testacr'
 var mockSearchId = '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Search/searchServices/test-search'
 var mockAiId = '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.CognitiveServices/accounts/test-ai'
+var mockAutomationId = '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Automation/automationAccounts/test-automation'
 
 // Module under test
-module adminDataPlaneRbac '../../../iac/modules/admin-data-plane-rbac.bicep' = {
-  name: 'admin-data-plane-rbac'
+module rbac '../../../iac/modules/rbac.bicep' = {
+  name: 'rbac'
   params: {
     location: location
+    uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
+    uamiId: mockIdentityOutputs.uamiId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
+    lawId: mockDiagnosticsOutputs.lawId
+    lawName: naming.outputs.names.law
     kvId: mockKvId
     storageId: mockStorageId
     acrId: mockAcrId
     searchId: mockSearchId
     aiId: mockAiId
+    automationId: mockAutomationId
     isManagedApplication: false
     tags: {}
   }
 }
 
-output adminKvSecretsUserId string = adminDataPlaneRbac.outputs.adminKvSecretsUserId
-output adminStorageBlobReaderId string = adminDataPlaneRbac.outputs.adminStorageBlobReaderId
-output adminStorageQueueReaderId string = adminDataPlaneRbac.outputs.adminStorageQueueReaderId
-output adminStorageTableReaderId string = adminDataPlaneRbac.outputs.adminStorageTableReaderId
-output adminAcrPullId string = adminDataPlaneRbac.outputs.adminAcrPullId
-output adminSearchReaderId string = adminDataPlaneRbac.outputs.adminSearchReaderId
-output adminCognitiveServicesUserId string = adminDataPlaneRbac.outputs.adminCognitiveServicesUserId
 output names object = naming.outputs.names

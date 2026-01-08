@@ -24,10 +24,6 @@ module naming '../../../iac/lib/naming.bicep' = {
 }
 
 // Mock dependency outputs
-var mockIdentityOutputs = {
-  uamiPrincipalId: '00000000-0000-0000-0000-000000000000'
-}
-
 var mockDiagnosticsOutputs = {
   lawId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law'
 }
@@ -38,9 +34,6 @@ module automation '../../../iac/modules/automation.bicep' = {
   params: {
     location: location
     automationName: naming.outputs.names.automation
-    uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
     lawId: mockDiagnosticsOutputs.lawId
     diagAutomationName: naming.outputs.names.diagAutomation
     tags: {}
