@@ -265,4 +265,7 @@ resource stDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
 }
 
 output storageId string = st.id
+output peStBlobId string = peStBlob.id
+output peStQueueId string = peStQueue.id
+output peStTableId string = peStTable.id
 
