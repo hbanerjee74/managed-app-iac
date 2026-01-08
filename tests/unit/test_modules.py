@@ -18,7 +18,7 @@ from tests.unit.helpers.what_if_parser import parse_what_if_output
 MODULES = [
     ('diagnostics', 'test-diagnostics.bicep'),
     ('network', 'test-network.bicep'),
-    ('data', 'test-data.bicep'),
+    ('psql', 'test-psql.bicep'),
     ('compute', 'test-compute.bicep'),
     ('public-ip', 'test-public-ip.bicep'),
     ('waf-policy', 'test-waf-policy.bicep'),

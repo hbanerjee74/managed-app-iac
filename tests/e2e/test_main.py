@@ -3,6 +3,7 @@ import os
 import json
 import pytest
 import subprocess
+import tempfile
 from pathlib import Path
 
 # Summarize what-if changes helper function
@@ -68,6 +69,43 @@ def get_subscription_id_from_params():
         return subscription_id if subscription_id else None
     except Exception:
         return None
+
+
+def get_merged_params_file():
+    """Create a merged params file with metadata values injected into parameters.
+    
+    Merges metadata values (like isManagedApplication) into the parameters section
+    so they can be passed to Bicep templates via Azure CLI.
+    
+    Returns:
+        Path to temporary merged params file (caller should clean up)
+    """
+    params_data = json.loads(PARAMS_FILE.read_text())
+    
+    # Start with existing parameters
+    merged_params = {
+        '$schema': params_data.get('$schema', ''),
+        'contentVersion': params_data.get('contentVersion', '1.0.0.0'),
+        'parameters': params_data.get('parameters', {}).copy()
+    }
+    
+    # Merge metadata values into parameters (for Bicep consumption)
+    metadata = params_data.get('metadata', {})
+    
+    # Merge isManagedApplication from metadata into parameters
+    if 'isManagedApplication' in metadata and 'isManagedApplication' not in merged_params['parameters']:
+        merged_params['parameters']['isManagedApplication'] = {'value': metadata['isManagedApplication']}
+
+    # Merge enableAppServicePlan from metadata into parameters
+    if 'enableAppServicePlan' in metadata and 'enableAppServicePlan' not in merged_params['parameters']:
+        merged_params['parameters']['enableAppServicePlan'] = {'value': metadata['enableAppServicePlan']}
+    
+    # Create temporary file with merged params
+    tmp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+    json.dump(merged_params, tmp_file, indent=2)
+    tmp_file.close()
+    
+    return Path(tmp_file.name)
 
 
 def ensure_subscription_set():
@@ -214,24 +252,30 @@ class TestMainBicep:
         """Test that what-if execution succeeds (default mode)."""
         try:
             rg_name = get_resource_group_from_params()
-            result = subprocess.run(
-                [
-                    'az', 'deployment', 'group', 'what-if',
-                    '--resource-group', rg_name,
-                    '--template-file', str(MAIN_BICEP),
-                    '--parameters', f'@{PARAMS_FILE}',
-                    '--output', 'json',
-                    '--result-format', 'FullResourcePayloads',
-                    '--no-pretty-print'
-                ],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            assert result.returncode == 0
-            
-            # Save what-if output for post-deployment validation
-            WHAT_IF_OUTPUT.write_text(result.stdout)
+            merged_params_file = get_merged_params_file()
+            try:
+                result = subprocess.run(
+                    [
+                        'az', 'deployment', 'group', 'what-if',
+                        '--resource-group', rg_name,
+                        '--template-file', str(MAIN_BICEP),
+                        '--parameters', f'@{merged_params_file}',
+                        '--output', 'json',
+                        '--result-format', 'FullResourcePayloads',
+                        '--no-pretty-print'
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                assert result.returncode == 0
+                
+                # Save what-if output for post-deployment validation
+                WHAT_IF_OUTPUT.write_text(result.stdout)
+            finally:
+                # Clean up temporary merged params file
+                if merged_params_file.exists():
+                    merged_params_file.unlink()
             
         except subprocess.CalledProcessError as e:
             if "not logged in" in e.stderr.lower():
@@ -285,89 +329,102 @@ class TestMainBicep:
         Note: Resource group persists after test - next run will update existing resources.
         """
         # Step 1: Deploy resources
+        merged_params_file = get_merged_params_file()
+        deployment_data = None
         try:
-            deploy_result = subprocess.run(
-                [
-                    'az', 'deployment', 'group', 'create',
-                    '--resource-group', test_resource_group,
-                    '--template-file', str(MAIN_BICEP),
-                    '--parameters', f'@{PARAMS_FILE}',
-                    '--output', 'json'
-                ],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            
-            # Save deployment output to file for debugging
-            DEPLOYMENT_OUTPUT.write_text(deploy_result.stdout)
-            if deploy_result.stderr:
-                DEPLOYMENT_ERROR_LOG.write_text(deploy_result.stderr)
-            
-            # Parse deployment output to check for errors even if returncode is 0
             try:
-                deployment_data = json.loads(deploy_result.stdout)
-                if 'error' in deployment_data:
-                    error_msg = json.dumps(deployment_data['error'], indent=2)
-                    DEPLOYMENT_ERROR_LOG.write_text(f"Deployment contains errors:\n{error_msg}")
-                    pytest.fail(f"Deployment contains errors. Check {DEPLOYMENT_ERROR_LOG} for details:\n{error_msg}")
+                deploy_result = subprocess.run(
+                    [
+                        'az', 'deployment', 'group', 'create',
+                        '--resource-group', test_resource_group,
+                        '--template-file', str(MAIN_BICEP),
+                        '--parameters', f'@{merged_params_file}',
+                        '--output', 'json'
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
                 
-                # Log deployment properties for debugging
-                props = deployment_data.get('properties', {})
-                provisioning_state = props.get('provisioningState', 'Unknown')
-                if provisioning_state not in ['Succeeded', 'Accepted']:
-                    error_msg = f"Deployment provisioning state: {provisioning_state}"
-                    if 'error' in props:
-                        error_msg += f"\nError: {json.dumps(props['error'], indent=2)}"
-                    DEPLOYMENT_ERROR_LOG.write_text(error_msg)
-                    pytest.fail(f"Deployment did not succeed. State: {provisioning_state}. Check {DEPLOYMENT_ERROR_LOG} for details.")
-            except json.JSONDecodeError:
-                # Not JSON, that's okay - might be a warning or other output
-                pass
-            
-            assert deploy_result.returncode == 0, "Deployment failed"
+                # Save deployment output to file for debugging
+                DEPLOYMENT_OUTPUT.write_text(deploy_result.stdout)
+                if deploy_result.stderr:
+                    DEPLOYMENT_ERROR_LOG.write_text(deploy_result.stderr)
+                
+                # Parse deployment output to check for errors even if returncode is 0
+                try:
+                    deployment_data = json.loads(deploy_result.stdout)
+                    if 'error' in deployment_data:
+                        error_msg = json.dumps(deployment_data['error'], indent=2)
+                        DEPLOYMENT_ERROR_LOG.write_text(f"Deployment contains errors:\n{error_msg}")
+                        pytest.fail(f"Deployment contains errors. Check {DEPLOYMENT_ERROR_LOG} for details:\n{error_msg}")
+                    
+                    # Log deployment properties for debugging
+                    props = deployment_data.get('properties', {})
+                    provisioning_state = props.get('provisioningState', 'Unknown')
+                    if provisioning_state not in ['Succeeded', 'Accepted']:
+                        error_msg = f"Deployment provisioning state: {provisioning_state}"
+                        if 'error' in props:
+                            error_msg += f"\nError: {json.dumps(props['error'], indent=2)}"
+                        DEPLOYMENT_ERROR_LOG.write_text(error_msg)
+                        pytest.fail(f"Deployment did not succeed. State: {provisioning_state}. Check {DEPLOYMENT_ERROR_LOG} for details.")
+                except json.JSONDecodeError:
+                    # Not JSON, that's okay - might be a warning or other output
+                    pass
+                
+                assert deploy_result.returncode == 0, "Deployment failed"
+            finally:
+                # Clean up temporary merged params file
+                if merged_params_file.exists():
+                    merged_params_file.unlink()
             
             # Get deployment name for operations check
-            try:
-                deployment_data = json.loads(deploy_result.stdout)
-                deployment_name = deployment_data.get('name', '')
-                if deployment_name:
-                    # Check for failed operations
-                    ops_result = subprocess.run(
-                        [
-                            'az', 'deployment', 'operation', 'group', 'list',
-                            '--resource-group', test_resource_group,
-                            '--name', deployment_name,
-                            '--output', 'json'
-                        ],
-                        capture_output=True,
-                        text=True,
-                        check=False
-                    )
-                    if ops_result.returncode == 0:
-                        try:
-                            operations = json.loads(ops_result.stdout)
-                            failed_ops = [
-                                op for op in operations
-                                if op.get('properties', {}).get('provisioningState') == 'Failed'
-                            ]
-                            if failed_ops:
-                                failed_summary = []
-                                for op in failed_ops:
-                                    op_name = op.get('operationId', 'Unknown')
-                                    error = op.get('properties', {}).get('statusMessage', {})
-                                    failed_summary.append(f"  - {op_name}: {json.dumps(error, indent=4)}")
-                                
-                                failed_msg = "Failed deployment operations:\n" + "\n".join(failed_summary)
-                                DEPLOYMENT_ERROR_LOG.write_text(
-                                    DEPLOYMENT_ERROR_LOG.read_text() + "\n\n" + failed_msg
-                                    if DEPLOYMENT_ERROR_LOG.exists() else failed_msg
-                                )
-                                pytest.fail(f"Deployment completed but some operations failed. Check {DEPLOYMENT_ERROR_LOG} for details:\n{failed_msg}")
-                        except json.JSONDecodeError:
-                            pass  # Couldn't parse operations, that's okay
-            except (json.JSONDecodeError, KeyError):
-                pass  # Couldn't get deployment name, that's okay
+            if deployment_data is None:
+                try:
+                    deployment_data = json.loads(DEPLOYMENT_OUTPUT.read_text())
+                except Exception:
+                    pass
+            
+            if deployment_data:
+                try:
+                    deployment_name = deployment_data.get('name', '')
+                    if deployment_name:
+                        # Check for failed operations
+                        ops_result = subprocess.run(
+                            [
+                                'az', 'deployment', 'operation', 'group', 'list',
+                                '--resource-group', test_resource_group,
+                                '--name', deployment_name,
+                                '--output', 'json'
+                            ],
+                            capture_output=True,
+                            text=True,
+                            check=False
+                        )
+                        if ops_result.returncode == 0:
+                            try:
+                                operations = json.loads(ops_result.stdout)
+                                failed_ops = [
+                                    op for op in operations
+                                    if op.get('properties', {}).get('provisioningState') == 'Failed'
+                                ]
+                                if failed_ops:
+                                    failed_summary = []
+                                    for op in failed_ops:
+                                        op_name = op.get('operationId', 'Unknown')
+                                        error = op.get('properties', {}).get('statusMessage', {})
+                                        failed_summary.append(f"  - {op_name}: {json.dumps(error, indent=4)}")
+                                    
+                                    failed_msg = "Failed deployment operations:\n" + "\n".join(failed_summary)
+                                    DEPLOYMENT_ERROR_LOG.write_text(
+                                        DEPLOYMENT_ERROR_LOG.read_text() + "\n\n" + failed_msg
+                                        if DEPLOYMENT_ERROR_LOG.exists() else failed_msg
+                                    )
+                                    pytest.fail(f"Deployment completed but some operations failed. Check {DEPLOYMENT_ERROR_LOG} for details:\n{failed_msg}")
+                            except json.JSONDecodeError:
+                                pass  # Couldn't parse operations, that's okay
+                except Exception:
+                    pass  # Couldn't get deployment name, that's okay
             
         except subprocess.CalledProcessError as e:
             # Save error output to files for debugging
@@ -381,21 +438,27 @@ class TestMainBicep:
         
         # Step 2: Post-deployment state check (before fixture tears down RG)
         # Run what-if against deployed resources to validate state
+        merged_params_file = get_merged_params_file()
         try:
-            what_if_result = subprocess.run(
-                [
-                    'az', 'deployment', 'group', 'what-if',
-                    '--resource-group', test_resource_group,
-                    '--template-file', str(MAIN_BICEP),
-                    '--parameters', f'@{PARAMS_FILE}',
-                    '--output', 'json',
-                    '--result-format', 'FullResourcePayloads',
-                    '--no-pretty-print'
-                ],
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            try:
+                what_if_result = subprocess.run(
+                    [
+                        'az', 'deployment', 'group', 'what-if',
+                        '--resource-group', test_resource_group,
+                        '--template-file', str(MAIN_BICEP),
+                        '--parameters', f'@{merged_params_file}',
+                        '--output', 'json',
+                        '--result-format', 'FullResourcePayloads',
+                        '--no-pretty-print'
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+            finally:
+                # Clean up temporary merged params file
+                if merged_params_file.exists():
+                    merged_params_file.unlink()
             
             # Parse and validate what-if output
             what_if_data = json.loads(what_if_result.stdout)

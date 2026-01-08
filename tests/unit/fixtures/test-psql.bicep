@@ -1,6 +1,6 @@
 targetScope = 'resourceGroup'
 
-// Test wrapper for data module (PostgreSQL)
+// Test wrapper for psql module (PostgreSQL)
 // This module depends on: network, identity, diagnostics, dns
 
 @description('Resource group name for naming seed.')
@@ -48,8 +48,8 @@ var mockDnsOutputs = {
 }
 
 // Module under test
-module data '../../../iac/modules/data.bicep' = {
-  name: 'data'
+module psql '../../../iac/modules/psql.bicep' = {
+  name: 'psql'
   params: {
     location: location
     psqlName: naming.outputs.names.psql
@@ -66,6 +66,6 @@ module data '../../../iac/modules/data.bicep' = {
   }
 }
 
-output psqlId string = data.outputs.psqlId
+output psqlId string = psql.outputs.psqlId
 output names object = naming.outputs.names
 

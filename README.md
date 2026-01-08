@@ -14,7 +14,7 @@ This repository contains the Bicep-based infrastructure for PRD-30 (managed appl
 ```text
 iac/
   main.bicep          # Resource group-scope entrypoint for managed application deployment
-  modules/            # Domain modules (identity, network, kv, storage, acr, data, compute, gateway, search, cognitive-services, automation, diagnostics)
+  modules/            # Domain modules (identity, network, kv, storage, acr, psql, compute, gateway, search, cognitive-services, automation, diagnostics)
   lib/                # Shared helpers (naming per RFC-71, constants)
 tests/
   fixtures/

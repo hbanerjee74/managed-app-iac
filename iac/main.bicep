@@ -230,8 +230,8 @@ module acr 'modules/acr.bicep' = {
   }
 }
 
-module data 'modules/data.bicep' = {
-  name: 'data'
+module psql 'modules/psql.bicep' = {
+  name: 'psql'
   params: {
     location: location
     psqlName: naming.outputs.names.psql

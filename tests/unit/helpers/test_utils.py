@@ -287,6 +287,28 @@ def run_what_if(
             # If subscription ID not found, skip adding it (will fail with clear error)
             pass
     
+    # Handle isManagedApplication from metadata if available (deployment context)
+    # Only add if declared in template
+    if 'isManagedApplication' in declared_params and 'isManagedApplication' not in module_params['parameters']:
+        try:
+            params_data = load_json_file(SHARED_PARAMS_FILE)
+            is_managed_app = params_data.get('metadata', {}).get('isManagedApplication', True)
+            module_params['parameters']['isManagedApplication'] = {'value': is_managed_app}
+        except Exception:
+            # If not found, use default True (managed application)
+            module_params['parameters']['isManagedApplication'] = {'value': True}
+
+    # Handle enableAppServicePlan from metadata if available (deployment context)
+    # Only add if declared in template
+    if 'enableAppServicePlan' in declared_params and 'enableAppServicePlan' not in module_params['parameters']:
+        try:
+            params_data = load_json_file(SHARED_PARAMS_FILE)
+            enable_asp = params_data.get('metadata', {}).get('enableAppServicePlan', True)
+            module_params['parameters']['enableAppServicePlan'] = {'value': enable_asp}
+        except Exception:
+            # If not found, use default True (enable App Service Plan)
+            module_params['parameters']['enableAppServicePlan'] = {'value': True}
+    
     # Create temporary merged params file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
         json.dump(module_params, tmp_file, indent=2)
