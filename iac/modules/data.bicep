@@ -171,5 +171,3 @@ resource psqlDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
     ]
   }
 }
-
-// TODO: deploy PostgreSQL Flexible Server v16 with roles per PRD-30.
