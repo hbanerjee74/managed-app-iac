@@ -18,7 +18,7 @@
 4. Credit reporters if desired.
 
 ## Scope for This Repo
-- Azure IaC (Bicep modules, scripts, test tooling) under `iac/`, `scripts/`, `tests/`.
+- Azure IaC (Bicep modules, test tooling) under `iac/`, `tests/`.
 - Not in scope: downstream application code or runtime workloads.
 
 ## Secure Development Notes

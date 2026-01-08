@@ -1,15 +1,37 @@
 """Utility functions for Bicep module tests."""
 import json
 import os
+import re
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Set
 
 # Shared params file - single source of truth for RG name and location
 # Path: tests/unit/helpers/test_utils.py -> tests/unit/helpers -> tests/unit -> tests -> tests/fixtures
 TESTS_DIR = Path(__file__).parent.parent.parent  # tests/
 SHARED_PARAMS_FILE = TESTS_DIR / 'fixtures' / 'params.dev.json'
+
+
+def extract_bicep_parameters(bicep_file: Path) -> Set[str]:
+    """Extract parameter names declared in a Bicep template.
+    
+    Args:
+        bicep_file: Path to Bicep template file
+        
+    Returns:
+        Set of parameter names declared in the template
+    """
+    try:
+        content = bicep_file.read_text()
+        # Match 'param <name>' declarations (handles various formats)
+        # Pattern matches: param name, param name string, param name int, etc.
+        pattern = r'param\s+(\w+)\s+'
+        matches = re.findall(pattern, content)
+        return set(matches)
+    except Exception:
+        # If we can't parse, return empty set (will include all params - may fail but that's ok)
+        return set()
 
 
 def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tuple[bool, str]:
@@ -228,23 +250,33 @@ def run_what_if(
         if 'parameters' not in module_params:
             module_params['parameters'] = {}
     
+    # Extract parameters actually declared in the Bicep template
+    declared_params = extract_bicep_parameters(bicep_file)
+    
     # Load shared params file (single source of truth)
     shared_params = load_json_file(SHARED_PARAMS_FILE)
     
-    # Merge ALL parameters from shared params (module params override shared if both exist)
+    # Merge parameters from shared params, but only include those declared in the template
+    # (Azure ARM rejects extra parameters)
     shared_param_values = shared_params.get('parameters', {})
     for param_name, param_value in shared_param_values.items():
-        # Only add if not already in module params (module params take precedence)
-        if param_name not in module_params['parameters']:
+        # Only add if:
+        # 1. Not already in module params (module params take precedence)
+        # 2. Parameter is declared in the Bicep template (to avoid ARM validation errors)
+        if param_name not in module_params['parameters'] and param_name in declared_params:
             module_params['parameters'][param_name] = param_value
     
     # Always merge resourceGroupName and location from metadata (these are special)
     # These come from metadata section, not parameters section
-    module_params['parameters']['resourceGroupName'] = {'value': resource_group}
-    module_params['parameters']['location'] = {'value': location}
+    # Only add if declared in template
+    if 'resourceGroupName' in declared_params:
+        module_params['parameters']['resourceGroupName'] = {'value': resource_group}
+    if 'location' in declared_params:
+        module_params['parameters']['location'] = {'value': location}
     
     # Handle subscriptionId from metadata if available (for gateway test wrapper)
-    if 'subscriptionId' not in module_params['parameters']:
+    # Only add if declared in template
+    if 'subscriptionId' in declared_params and 'subscriptionId' not in module_params['parameters']:
         try:
             subscription_id = get_subscription_id_from_shared_params()
             module_params['parameters']['subscriptionId'] = {'value': subscription_id}

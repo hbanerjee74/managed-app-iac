@@ -12,7 +12,6 @@
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
 - `tests/fixtures/params.dev.json` — single source of truth for RG name, location, subscription ID, and all parameters.
 - `tests/test_params.py` — required param presence check.
-- `tests/test_shell_scripts.py` — shellcheck linting for deploy scripts.
 - `tests/unit/` — unit tests for individual modules (what-if mode, auto-creates RG if needed).
 - `tests/e2e/` — end-to-end tests for full deployment (what-if and actual deployment modes).
 - `pytest.ini` — pytest configuration for verbose output by default.
@@ -59,7 +58,6 @@ See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 - **Parameter validation**: `pytest tests/test_params.py` — validates required params are present
 - **Unit tests**: `pytest tests/unit/test_modules.py -v` — validates individual modules (what-if mode)
 - **E2E tests**: `pytest tests/e2e/` — validates full deployment (what-if mode by default)
-- **Shell script linting**: `pytest tests/test_shell_scripts.py` — runs shellcheck if available
 - **Verbose output**: Configured in `pytest.ini` (shows test names and skip reasons by default)
 - **Debugging**: Set `KEEP_RESOURCE_GROUP=true` to keep resources after E2E deployment tests
 

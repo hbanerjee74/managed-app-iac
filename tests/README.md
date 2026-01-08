@@ -15,7 +15,6 @@ tests/
   fixtures/                # Shared test fixtures
     params.dev.json       # Single source of truth for RG name, location, and all parameters
   test_params.py          # Validates params.dev.json has required parameters
-  test_shell_scripts.py   # Lints shell scripts with shellcheck
 ```
 
 ## Quick Start
@@ -246,22 +245,6 @@ ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test
 pytest tests/test_params.py
 ```
 
-### `test_shell_scripts.py`
-
-**Purpose**: Lints shell scripts in `scripts/deploy/` using `shellcheck` (if available).
-
-**What it does:**
-
-- Checks if `shellcheck` is installed
-- If available, runs `shellcheck` on all `.sh` files in `scripts/deploy/`
-- Silently skips if `shellcheck` is not installed
-
-**Usage:**
-
-```bash
-pytest tests/test_shell_scripts.py
-```
-
 **Note**: This is a code quality check, not a functional test.
 
 ## Resource Group Management
@@ -359,7 +342,6 @@ See `tests/unit/README.md` for detailed instructions.
 - **Python 3.x** with pytest installed
 - **Azure CLI** (`az`) - Required for what-if tests, optional for compilation tests
 - **Bicep CLI** (included with Azure CLI)
-- **shellcheck** (optional, for `test_shell_scripts.py`)
 
 ## Test Output Options
 
