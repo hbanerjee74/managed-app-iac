@@ -130,4 +130,5 @@ resource acrDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
 }
 
 output acrId string = acr.id
+output peAcrId string = peAcr.id
 
