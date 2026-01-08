@@ -9,6 +9,9 @@ param automationName string
 @description('User-assigned managed identity resource id.')
 param uamiId string
 
+@description('Principal ID of the UAMI for RBAC (optional).')
+param uamiPrincipalId string = ''
+
 @description('Admin Object ID for customer (for Automation role).')
 param adminObjectId string
 
@@ -119,12 +122,23 @@ resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-previe
   }
 }
 
+// Automation Job Operator for UAMI
+resource uamiAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(uamiPrincipalId)) {
+  name: guid(automation.id, uamiPrincipalId, 'automation-job-operator')
+  scope: automation
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
+    principalId: uamiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Automation Job Operator for adminObjectId
 resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(automation.id, adminObjectId, 'automation-job-operator')
   scope: automation
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
     principalId: adminObjectId
     principalType: adminPrincipalType
   }

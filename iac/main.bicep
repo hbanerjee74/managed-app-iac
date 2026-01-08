@@ -346,6 +346,7 @@ module automation 'modules/automation.bicep' = {
     location: location
     automationName: naming.outputs.names.automation
     uamiId: identity.outputs.uamiId
+    uamiPrincipalId: identity.outputs.uamiPrincipalId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
     subnetPeId: network.outputs.subnetPeId

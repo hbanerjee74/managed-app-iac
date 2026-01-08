@@ -31,6 +31,7 @@ var mockNetworkOutputs = {
 
 var mockIdentityOutputs = {
   uamiId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-uami'
+  uamiPrincipalId: '00000000-0000-0000-0000-000000000000'
 }
 
 var mockDiagnosticsOutputs = {
@@ -50,6 +51,7 @@ module automation '../../../iac/modules/automation.bicep' = {
     location: location
     automationName: naming.outputs.names.automation
     uamiId: mockIdentityOutputs.uamiId
+    uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
     subnetPeId: mockNetworkOutputs.subnetPeId
