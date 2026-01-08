@@ -309,9 +309,7 @@ resource rbacUamiRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/
 }
 
 // UAMI Runbook draft content (PowerShell script)
-// Note: After deployment, the runbook needs to be published via Azure Portal or API
-// Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name assign-rbac-roles-uami
-// The runbook will be in draft state until published
+// Runbook is automatically published by publishRbacRunbooks deployment script
 resource rbacUamiRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = if (!empty(automationId) && !empty(automationName)) {
   parent: rbacUamiRunbookDraft
   name: 'content'
@@ -346,9 +344,7 @@ resource rbacCustomerAdminRunbookDraft 'Microsoft.Automation/automationAccounts/
 }
 
 // Customer Admin Runbook draft content (PowerShell script)
-// Note: After deployment, the runbook needs to be published via Azure Portal or API
-// Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name assign-rbac-roles-admin
-// The runbook will be in draft state until published
+// Runbook is automatically published by publishRbacRunbooks deployment script
 resource rbacCustomerAdminRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = if (!empty(automationId) && !empty(automationName) && !empty(customerAdminObjectId)) {
   parent: rbacCustomerAdminRunbookDraft
   name: 'content'
@@ -384,15 +380,134 @@ resource rbacPublisherAdminRunbookDraft 'Microsoft.Automation/automationAccounts
 }
 
 // Publisher Admin Runbook draft content (PowerShell script)
-// Note: After deployment, the runbook needs to be published via Azure Portal or API
-// Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name assign-rbac-roles-publisher-admin
-// The runbook will be in draft state until published
+// Runbook is automatically published by publishRbacRunbooks deployment script
 resource rbacPublisherAdminRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = if (isManagedApplication && !empty(automationId) && !empty(automationName) && !empty(publisherAdminObjectId)) {
   parent: rbacPublisherAdminRunbookDraft
   name: 'content'
   properties: {
     content: rbacPublisherAdminScript
   }
+}
+
+// ============================================================================
+// AUTO-PUBLISH RUNBOOKS
+// Deployment script to automatically publish all runbooks after they're created
+// This ensures runbooks are immediately available for execution without manual publishing
+// ============================================================================
+
+var publishRunbooksForceUpdateTagValue = guid(resourceGroup().id, automationId, 'publish-rbac-runbooks')
+var publishRunbooksScriptNameSuffix = substring(publishRunbooksForceUpdateTagValue, 0, 8)
+var publishRunbooksScriptName = 'publish-rbac-runbooks-${publishRunbooksScriptNameSuffix}'
+
+// Deployment script to publish all RBAC runbooks automatically
+resource publishRbacRunbooks 'Microsoft.Resources/deploymentScripts@2020-10-01' = if (!empty(automationId) && !empty(automationName)) {
+  name: publishRunbooksScriptName
+  location: location
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${uamiId}': {}
+    }
+  }
+  properties: {
+    forceUpdateTag: publishRunbooksForceUpdateTagValue
+    retentionInterval: 'PT1H'
+    azPowerShellVersion: '11.0'
+    scriptContent: '''
+      $ErrorActionPreference = "Stop"
+      
+      $AutomationAccountName = "${automationName}"
+      $ResourceGroupName = "${resourceGroup().name}"
+      $HasCustomerAdmin = "$env:HAS_CUSTOMER_ADMIN"
+      $IsManagedApp = "$env:IS_MANAGED_APPLICATION"
+      $HasPublisherAdmin = "$env:HAS_PUBLISHER_ADMIN"
+      
+      Write-Host "Publishing RBAC runbooks..." -ForegroundColor Cyan
+      
+      # Publish UAMI runbook (always created if automation account exists)
+      Write-Host "Publishing assign-rbac-roles-uami runbook..." -ForegroundColor Yellow
+      try {
+        az automation runbook publish `
+          --automation-account-name $AutomationAccountName `
+          --resource-group $ResourceGroupName `
+          --name assign-rbac-roles-uami `
+          --output none 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "Successfully published assign-rbac-roles-uami" -ForegroundColor Green
+        } else {
+          Write-Warning "Failed to publish assign-rbac-roles-uami (exit code: $LASTEXITCODE)"
+        }
+      } catch {
+        Write-Warning "Failed to publish assign-rbac-roles-uami: $_"
+      }
+      
+      # Publish Customer Admin runbook (if customerAdminObjectId is provided)
+      if ($HasCustomerAdmin -eq "True") {
+        Write-Host "Publishing assign-rbac-roles-admin runbook..." -ForegroundColor Yellow
+        try {
+          az automation runbook publish `
+            --automation-account-name $AutomationAccountName `
+            --resource-group $ResourceGroupName `
+            --name assign-rbac-roles-admin `
+            --output none 2>&1 | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Successfully published assign-rbac-roles-admin" -ForegroundColor Green
+          } else {
+            Write-Warning "Failed to publish assign-rbac-roles-admin (exit code: $LASTEXITCODE)"
+          }
+        } catch {
+          Write-Warning "Failed to publish assign-rbac-roles-admin: $_"
+        }
+      } else {
+        Write-Host "Skipping assign-rbac-roles-admin (customerAdminObjectId not provided)" -ForegroundColor Gray
+      }
+      
+      # Publish Publisher Admin runbook (if managed application and publisherAdminObjectId is provided)
+      if ($IsManagedApp -eq "True" -and $HasPublisherAdmin -eq "True") {
+        Write-Host "Publishing assign-rbac-roles-publisher-admin runbook..." -ForegroundColor Yellow
+        try {
+          az automation runbook publish `
+            --automation-account-name $AutomationAccountName `
+            --resource-group $ResourceGroupName `
+            --name assign-rbac-roles-publisher-admin `
+            --output none 2>&1 | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Successfully published assign-rbac-roles-publisher-admin" -ForegroundColor Green
+          } else {
+            Write-Warning "Failed to publish assign-rbac-roles-publisher-admin (exit code: $LASTEXITCODE)"
+          }
+        } catch {
+          Write-Warning "Failed to publish assign-rbac-roles-publisher-admin: $_"
+        }
+      } else {
+        Write-Host "Skipping assign-rbac-roles-publisher-admin (not a managed application or publisherAdminObjectId not provided)" -ForegroundColor Gray
+      }
+      
+      Write-Host "Runbook publishing completed" -ForegroundColor Cyan
+    '''
+    supportingScriptUris: []
+    timeout: 'PT10M'
+    environmentVariables: [
+      {
+        name: 'HAS_CUSTOMER_ADMIN'
+        value: string(!empty(customerAdminObjectId))
+      }
+      {
+        name: 'IS_MANAGED_APPLICATION'
+        value: string(isManagedApplication)
+      }
+      {
+        name: 'HAS_PUBLISHER_ADMIN'
+        value: string(!empty(publisherAdminObjectId))
+      }
+    ]
+  }
+  dependsOn: [
+    rbacUamiRunbookContent
+    rbacCustomerAdminRunbookContent
+    rbacPublisherAdminRunbookContent
+  ]
 }
 
 // ============================================================================
