@@ -39,6 +39,7 @@ resource ai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     name: 'S0'
   }
   properties: {
+    customSubDomainName: aiName  // Required for private endpoints
     publicNetworkAccess: 'disabled'
   }
 }
@@ -80,17 +81,14 @@ resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
   }
 }
 
+// Diagnostic settings
+// Note: Cognitive Services don't support AuditEvent log category.
+// Only metrics are supported for Cognitive Services diagnostic settings.
 resource aiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: diagAiName
   scope: ai
   properties: {
     workspaceId: lawId
-    logs: [
-      {
-        category: 'AuditEvent'
-        enabled: true
-      }
-    ]
     metrics: [
       {
         category: 'AllMetrics'

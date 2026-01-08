@@ -219,7 +219,7 @@ resource stQueueContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-
   name: guid(st.id, uamiPrincipalId, 'st-queue-data-contrib')
   scope: st
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '19e7f393-1728-4e7a-9c12-054fda5c492f') // Storage Queue Data Contributor
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88') // Storage Queue Data Contributor
     principalId: uamiPrincipalId
     principalType: 'ServicePrincipal'
   }
@@ -229,35 +229,23 @@ resource stTableContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-
   name: guid(st.id, uamiPrincipalId, 'st-table-data-contrib')
   scope: st
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e7f-9d42-4c6b-9c4f-5c8f4d8e4c1a') // Storage Table Data Contributor
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3') // Storage Table Data Contributor
     principalId: uamiPrincipalId
     principalType: 'ServicePrincipal'
   }
 }
 
 // Diagnostic settings
+// Note: Storage Accounts don't support StorageRead/StorageWrite/StorageDelete log categories.
+// Only metrics are supported for Storage Accounts diagnostic settings.
 resource stDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: diagStName
   scope: st
   properties: {
     workspaceId: lawId
-    logs: [
-      {
-        category: 'StorageRead'
-        enabled: true
-      }
-      {
-        category: 'StorageWrite'
-        enabled: true
-      }
-      {
-        category: 'StorageDelete'
-        enabled: true
-      }
-    ]
     metrics: [
       {
-        category: 'AllMetrics'
+        category: 'Transaction'
         enabled: true
       }
     ]

@@ -7,7 +7,7 @@ param resourceGroupName string
 param seedPrefix string = resourceGroupName
 
 func nano16(seed string, suffix string) string => toLower('${substring(uniqueString('${seed}-${suffix}-a'), 0, 8)}${substring(uniqueString('${seed}-${suffix}-b'), 0, 8)}')
-func nano8(seed string, suffix string) string => toLower(substring(uniqueString('${seed}-${suffix}-st'), 0, 8))
+func nano8(seed string, suffix string) string => toLower(substring(uniqueString('${seed}-${suffix}'), 0, 8))
 
 var names = {
   uami: 'vd-uami-${nano16(seedPrefix, 'uami')}'
@@ -18,7 +18,7 @@ var names = {
   nsgPe: 'vd-nsg-pe-${nano16(seedPrefix, 'nsgpe')}'
   kv: 'vd-kv-${nano16(seedPrefix, 'kv')}'
   storage: 'vdst${nano8(seedPrefix, 'st')}'
-  acr: 'vd-acr-${nano16(seedPrefix, 'acr')}'
+  acr: 'vdacr${nano8(seedPrefix, 'acr')}'
   law: 'vd-law-${nano16(seedPrefix, 'law')}'
   asp: 'vd-asp-${nano16(seedPrefix, 'asp')}'
   agw: 'vd-agw-${nano16(seedPrefix, 'agw')}'

@@ -59,10 +59,14 @@ param nodeSize string = 'Standard_D4s_v3'
 
 @description('PostgreSQL compute tier (RFC-64 computeTier).')
 @allowed([
+  'Standard_B1ms'
+  'Standard_B1s'
+  'Standard_B2ms'
+  'Standard_B2s'
   'GP_Standard_D2s_v3'
   'GP_Standard_D4s_v3'
 ])
-param computeTier string = 'GP_Standard_D2s_v3'
+param computeTier string = 'Standard_B1ms'
 
 @description('AI Services tier (RFC-64).')
 @allowed([
@@ -331,15 +335,10 @@ module automation 'modules/automation.bicep' = {
   params: {
     location: location
     automationName: naming.outputs.names.automation
-    uamiId: identity.outputs.uamiId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
-    subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
-    zoneIds: dns.outputs.zoneIds
-    peAutomationName: naming.outputs.names.peAutomation
-    peAutomationDnsName: naming.outputs.names.peAutomationDns
     diagAutomationName: naming.outputs.names.diagAutomation
     tags: tags
   }
