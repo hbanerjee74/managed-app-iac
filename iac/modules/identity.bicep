@@ -30,13 +30,21 @@ resource vibedataUami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-
 }
 
 // Propagation delay to allow managed identity to propagate across tenants (required for Managed Apps).
+// Uses UAMI identity - even though we're waiting for propagation, the UAMI is available locally
+// enough to run a simple sleep script. AzureCLI is simpler than PowerShell for this use case.
 resource propagationDelay 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'propagation-delay'
   location: location
-  kind: 'AzurePowerShell'
+  kind: 'AzureCLI'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${vibedataUami.id}': {}
+    }
+  }
   properties: {
-          azPowerShellVersion: '11.0'
-    scriptContent: 'Start-Sleep -Seconds 30'
+    azCliVersion: '2.61.0'
+    scriptContent: 'sleep 30'
     timeout: 'PT1H'
     cleanupPreference: 'OnSuccess'
     retentionInterval: 'P1D'
