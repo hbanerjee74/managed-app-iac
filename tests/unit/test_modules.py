@@ -20,6 +20,8 @@ MODULES = [
     ('network', 'test-network.bicep'),
     ('data', 'test-data.bicep'),
     ('compute', 'test-compute.bicep'),
+    ('public-ip', 'test-public-ip.bicep'),
+    ('waf-policy', 'test-waf-policy.bicep'),
     ('gateway', 'test-gateway.bicep'),
     ('search', 'test-search.bicep'),
     ('cognitive-services', 'test-cognitive-services.bicep'),

@@ -256,14 +256,35 @@ module compute 'modules/compute.bicep' = {
   }
 }
 
+module publicIp 'modules/public-ip.bicep' = {
+  name: 'publicIp'
+  params: {
+    location: location
+    pipName: naming.outputs.names.pipAgw
+    tags: tags
+  }
+}
+
+var wafPolicyName = '${naming.outputs.names.agw}-waf'
+
+module wafPolicy 'modules/waf-policy.bicep' = {
+  name: 'wafPolicy'
+  params: {
+    location: location
+    wafPolicyName: wafPolicyName
+    customerIpRanges: customerIpRanges
+    publisherIpRanges: publisherIpRanges
+    tags: tags
+  }
+}
+
 module gateway 'modules/gateway.bicep' = {
   name: 'gateway'
   params: {
     location: location
     agwName: naming.outputs.names.agw
-    pipName: naming.outputs.names.pipAgw
-    customerIpRanges: customerIpRanges
-    publisherIpRanges: publisherIpRanges
+    pipId: publicIp.outputs.pipId
+    wafPolicyId: wafPolicy.outputs.wafPolicyId
     subnetAppgwId: network.outputs.subnetAppgwId
     lawId: diagnostics.outputs.lawId
     appGwCapacity: appGwCapacity

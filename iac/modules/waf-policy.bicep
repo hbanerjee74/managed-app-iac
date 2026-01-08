@@ -1,0 +1,100 @@
+targetScope = 'resourceGroup'
+
+@description('Deployment location.')
+param location string
+
+@description('WAF Policy name.')
+param wafPolicyName string
+
+@description('Customer IP ranges for WAF allowlist.')
+param customerIpRanges array
+
+@description('Publisher IP ranges for WAF allowlist.')
+param publisherIpRanges array
+
+@description('Optional tags to apply.')
+param tags object = {}
+
+var wafRules = [
+  // Customer allowlist
+  {
+    name: 'Allow-Customer'
+    priority: 100
+    action: 'Allow'
+    cidrs: customerIpRanges
+  }
+  // Publisher allowlist
+  {
+    name: 'Allow-Publisher'
+    priority: 200
+    action: 'Allow'
+    cidrs: publisherIpRanges
+  }
+]
+
+var wafAllowRules = [for rule in wafRules: {
+  name: rule.name
+  priority: rule.priority
+  ruleType: 'MatchRule'
+  action: rule.action
+  matchConditions: [
+    {
+      matchVariables: [
+        {
+          variableName: 'RemoteAddr'
+        }
+      ]
+      operator: 'IPMatch'
+      negationCondition: false
+      matchValues: rule.cidrs
+    }
+  ]
+}]
+
+var wafCustomRules = concat(wafAllowRules, [
+  {
+    name: 'Deny-All'
+    priority: 1000
+    ruleType: 'MatchRule'
+    action: 'Block'
+    matchConditions: [
+      {
+        matchVariables: [
+          {
+            variableName: 'RemoteAddr'
+          }
+        ]
+        operator: 'IPMatch'
+        negationCondition: false
+        matchValues: [
+          '0.0.0.0/0'
+        ]
+      }
+    ]
+  }
+])
+
+resource agwPolicy 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies@2022-09-01' = {
+  name: wafPolicyName
+  location: location
+  tags: tags
+  properties: {
+    policySettings: {
+      mode: 'Prevention'
+      state: 'Enabled'
+      requestBodyCheck: true
+    }
+    customRules: wafCustomRules
+    managedRules: {
+      managedRuleSets: [
+        {
+          ruleSetType: 'OWASP'
+          ruleSetVersion: '3.2'
+        }
+      ]
+    }
+  }
+}
+
+output wafPolicyId string = agwPolicy.id
+

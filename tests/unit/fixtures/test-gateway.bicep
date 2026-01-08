@@ -42,15 +42,38 @@ var mockDiagnosticsOutputs = {
   lawId: '/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/test-law'
 }
 
+// Public IP module
+module publicIp '../../../iac/modules/public-ip.bicep' = {
+  name: 'publicIp'
+  params: {
+    location: location
+    pipName: naming.outputs.names.pipAgw
+    tags: {}
+  }
+}
+
+// WAF Policy module
+var wafPolicyName = '${naming.outputs.names.agw}-waf'
+
+module wafPolicy '../../../iac/modules/waf-policy.bicep' = {
+  name: 'wafPolicy'
+  params: {
+    location: location
+    wafPolicyName: wafPolicyName
+    customerIpRanges: customerIpRanges
+    publisherIpRanges: publisherIpRanges
+    tags: {}
+  }
+}
+
 // Module under test
 module gateway '../../../iac/modules/gateway.bicep' = {
   name: 'gateway'
   params: {
     location: location
     agwName: naming.outputs.names.agw
-    pipName: naming.outputs.names.pipAgw
-    customerIpRanges: customerIpRanges
-    publisherIpRanges: publisherIpRanges
+    pipId: publicIp.outputs.pipId
+    wafPolicyId: wafPolicy.outputs.wafPolicyId
     subnetAppgwId: mockNetworkOutputs.subnetAppgwId
     lawId: mockDiagnosticsOutputs.lawId
     appGwCapacity: appGwCapacity
