@@ -32,7 +32,7 @@ See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 ## Naming & Standards
 
 - Per-resource nanoids (16-char; storage 8) per RFC-71; helper in `iac/lib/naming.bicep`.
-- Subnets derived from `servicesVnetCidr`: /27 appgw, /25 aks, /28 appsvc, /28 private-endpoints; CIDR range asserted /16–/24.
+- VNet and subnets use hardcoded CIDRs: VNet `10.20.0.0/16`, subnets `/24` (10.20.0.0/24 through 10.20.4.0/24). This simplifies deployment and avoids Azure `cidrSubnet` limitations.
 - Public access disabled for all PaaS; private endpoints + DNS zones per RFC-42/71.
 
 ## Identities & RBAC

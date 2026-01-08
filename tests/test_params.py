@@ -11,10 +11,10 @@ def test_params_dev_has_required_keys():
     values = data.get("parameters", {})
 
     # Required parameters per main.bicep (RFC-64)
+    # Note: servicesVnetCidr removed - network module uses hardcoded CIDRs
     required = {
         "contactEmail",
         "adminObjectId",
-        "servicesVnetCidr",
         "customerIpRanges",
         "publisherIpRanges",
         "sku",

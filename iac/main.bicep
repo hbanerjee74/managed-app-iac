@@ -19,8 +19,10 @@ param contactEmail string
 ])
 param adminPrincipalType string = 'User'
 
-@description('Services VNet CIDR block (RFC-64).')
-param servicesVnetCidr string = '10.100.0.0/24'
+// Note: servicesVnetCidr parameter removed - network module now uses hardcoded VNet/subnet CIDRs
+// Hardcoded values: VNet 10.20.0.0/16, subnets 10.20.0.0/24 through 10.20.4.0/24
+// This simplifies deployment and avoids Azure cidrSubnet limitations
+// TODO: Consider making VNet/subnet CIDRs configurable via parameters if needed for different environments
 
 @description('Customer IP ranges for WAF allowlist (RFC-64).')
 @minLength(1)
@@ -143,7 +145,6 @@ module network 'modules/network.bicep' = {
   name: 'network'
   params: {
     location: location
-    servicesVnetCidr: servicesVnetCidr
     vnetName: naming.outputs.names.vnet
     nsgAppgwName: naming.outputs.names.nsgAppgw
     nsgAksName: naming.outputs.names.nsgAks

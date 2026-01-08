@@ -353,4 +353,3 @@ def validate_required_params(params: Dict[str, Any], required: list[str]) -> tup
     """Validate that all required parameters are present."""
     missing = [p for p in required if p not in params.get('parameters', {})]
     return len(missing) == 0, missing
-
