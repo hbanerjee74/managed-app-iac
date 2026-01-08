@@ -59,4 +59,16 @@ output zoneIds object = {
   internal: resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'vibedata.internal')
 }
 
-// TODO: create private DNS zones and links per RFC-42.
+output vnetLinkIds object = {
+  vault: vnetLinks[0].id
+  postgres: vnetLinks[1].id
+  blob: vnetLinks[2].id
+  queue: vnetLinks[3].id
+  table: vnetLinks[4].id
+  acr: vnetLinks[5].id
+  appsvc: vnetLinks[6].id
+  search: vnetLinks[7].id
+  ai: vnetLinks[8].id
+  automation: vnetLinks[9].id
+  internal: vnetLinks[10].id
+}
