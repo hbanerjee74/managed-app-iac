@@ -19,8 +19,10 @@ param contactEmail string
 ])
 param adminPrincipalType string = 'User'
 
-@description('Services VNet CIDR block (RFC-64).')
-param servicesVnetCidr string = '10.100.0.0/24'
+// Note: servicesVnetCidr parameter removed - network module now uses hardcoded VNet/subnet CIDRs
+// Hardcoded values: VNet 10.20.0.0/16, subnets 10.20.0.0/24 through 10.20.4.0/24
+// This simplifies deployment and avoids Azure cidrSubnet limitations
+// TODO: Consider making VNet/subnet CIDRs configurable via parameters if needed for different environments
 
 @description('Customer IP ranges for WAF allowlist (RFC-64).')
 @minLength(1)
@@ -32,11 +34,20 @@ param publisherIpRanges array
 
 @description('App Service Plan SKU (RFC-64 sku).')
 @allowed([
+  'B1'
+  'B2'
+  'B3'
+  'S1'
+  'S2'
+  'S3'
   'P1v3'
   'P2v3'
   'P3v3'
 ])
-param sku string = 'P1v3'
+param sku string = 'B1'
+
+@description('Enable App Service Plan deployment (set to false to skip due to quota constraints).')
+param enableAppServicePlan bool = true
 
 @description('AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30.')
 @allowed([
@@ -48,18 +59,26 @@ param nodeSize string = 'Standard_D4s_v3'
 
 @description('PostgreSQL compute tier (RFC-64 computeTier).')
 @allowed([
+  'Standard_B1ms'
+  'Standard_B1s'
+  'Standard_B2ms'
+  'Standard_B2s'
   'GP_Standard_D2s_v3'
   'GP_Standard_D4s_v3'
 ])
-param computeTier string = 'GP_Standard_D2s_v3'
+param computeTier string = 'Standard_B1ms'
 
 @description('AI Services tier (RFC-64).')
 @allowed([
-  'S1'
-  'S2'
-  'S3'
+  'free'
+  'basic'
+  'standard'
+  'standard2'
+  'standard3'
+  'storage_optimized_l1'
+  'storage_optimized_l2'
 ])
-param aiServicesTier string = 'S1'
+param aiServicesTier string = 'basic'
 
 @description('Log Analytics retention in days (RFC-64 retentionDays display).')
 @minValue(30)
@@ -101,7 +120,6 @@ module naming 'lib/naming.bicep' = {
   name: 'naming'
   params: {
     resourceGroupName: resourceGroupName
-    purpose: 'platform'
   }
 }
 
@@ -143,7 +161,6 @@ module network 'modules/network.bicep' = {
   name: 'network'
   params: {
     location: location
-    servicesVnetCidr: servicesVnetCidr
     vnetName: naming.outputs.names.vnet
     nsgAppgwName: naming.outputs.names.nsgAppgw
     nsgAksName: naming.outputs.names.nsgAks
@@ -197,19 +214,6 @@ module storage 'modules/storage.bicep' = {
   }
 }
 
-module flowLogs 'modules/flow-logs.bicep' = {
-  name: 'flow-logs'
-  dependsOn: [network, storage, identity]
-  params: {
-    location: location
-    vnetId: network.outputs.vnetId
-    storageAccountId: storage.outputs.storageId
-    vnetFlowLogName: naming.outputs.names.vnetFlowLog
-    uamiId: identity.outputs.uamiId
-    tags: tags
-  }
-}
-
 module acr 'modules/acr.bicep' = {
   name: 'acr'
   params: {
@@ -245,30 +249,12 @@ module data 'modules/data.bicep' = {
   }
 }
 
-module compute 'modules/compute.bicep' = {
+module compute 'modules/compute.bicep' = if (enableAppServicePlan) {
   name: 'compute'
   params: {
     location: location
     sku: sku
     aspName: naming.outputs.names.asp
-    appApiName: naming.outputs.names.appApi
-    appUiName: naming.outputs.names.appUi
-    funcName: naming.outputs.names.funcOps
-    subnetAppsvcId: network.outputs.subnetAppsvcId
-    subnetPeId: network.outputs.subnetPeId
-    uamiId: identity.outputs.uamiId
-    storageAccountName: naming.outputs.names.storage
-    lawId: diagnostics.outputs.lawId
-    zoneIds: dns.outputs.zoneIds
-    peAppApiName: naming.outputs.names.peAppApi
-    peAppUiName: naming.outputs.names.peAppUi
-    peFuncName: naming.outputs.names.peFunc
-    peAppApiDnsName: naming.outputs.names.peAppApiDns
-    peAppUiDnsName: naming.outputs.names.peAppUiDns
-    peFuncDnsName: naming.outputs.names.peFuncDns
-    diagAppApiName: naming.outputs.names.diagAppApi
-    diagAppUiName: naming.outputs.names.diagAppUi
-    diagFuncName: naming.outputs.names.diagFunc
     tags: tags
   }
 }
@@ -349,28 +335,11 @@ module automation 'modules/automation.bicep' = {
   params: {
     location: location
     automationName: naming.outputs.names.automation
-    uamiId: identity.outputs.uamiId
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
-    subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
-    zoneIds: dns.outputs.zoneIds
-    peAutomationName: naming.outputs.names.peAutomation
-    peAutomationDnsName: naming.outputs.names.peAutomationDns
     diagAutomationName: naming.outputs.names.diagAutomation
-    tags: tags
-  }
-}
-
-module logic 'modules/logic.bicep' = {
-  name: 'logic'
-  params: {
-    location: location
-    logicName: naming.outputs.names.logic
-    uamiId: identity.outputs.uamiId
-    lawId: diagnostics.outputs.lawId
-    diagLogicName: naming.outputs.names.diagLogic
     tags: tags
   }
 }

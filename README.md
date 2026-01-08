@@ -63,11 +63,11 @@ tests/
 4. **Deploy (if tests pass and what-if looks good):**
 
    ```bash
-   # E2E actual deployment test (creates real resources, opt-in)
+   # E2E actual deployment test (creates/updates real resources, opt-in)
    ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
    ```
 
-   **Warning**: This creates real Azure resources and incurs costs. The test automatically creates the resource group before deployment and deletes it after (even on failure).
+   **Warning**: This creates/updates real Azure resources and incurs costs. The test automatically creates the resource group if it doesn't exist, or reuses it if it does. Resource group persists between test runs - subsequent runs will update existing resources.
 
 ## Parameters
 
@@ -80,12 +80,12 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 - `contactEmail`
 - `adminObjectId`
 - `adminPrincipalType`
-- `servicesVnetCidr`
 
 **Network:**
 
 - `customerIpRanges` - IP ranges for WAF allowlist
 - `publisherIpRanges` - IP ranges for WAF allowlist
+- **Note:** VNet and subnet CIDRs are hardcoded in `network.bicep` (VNet: `10.20.0.0/16`, subnets: `/24`). The `servicesVnetCidr` parameter has been removed to simplify deployment and avoid Azure `cidrSubnet` limitations.
 
 **Compute:**
 
@@ -123,14 +123,11 @@ pytest tests/e2e/
 ### E2E Tests (Actual deployment, opt-in)
 
 ```bash
-# Deploy and validate (auto-creates/deletes resource group)
+# Deploy and validate (creates RG if needed, or updates existing resources)
 ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
-
-# Keep resource group for debugging/inspection
-ENABLE_ACTUAL_DEPLOYMENT=true KEEP_RESOURCE_GROUP=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
 ```
 
-**Warning**: Actual deployment tests create real Azure resources and incur costs. Resource groups are automatically created before each test and deleted after (unless `KEEP_RESOURCE_GROUP=true` is set).
+**Warning**: Actual deployment tests create/update real Azure resources and incur costs. The resource group is created if it doesn't exist, or reused if it does. Resource group persists between test runs - subsequent runs will update existing resources instead of deleting and recreating them.
 
 For comprehensive testing documentation, see [`tests/README.md`](tests/README.md).
 

@@ -48,7 +48,7 @@ resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   tags: tags
   sku: {
     name: computeTier
-    tier: 'GeneralPurpose'
+    tier: startsWith(computeTier, 'Standard_B') ? 'Burstable' : 'GeneralPurpose'
   }
   properties: {
     administratorLogin: null

@@ -14,7 +14,6 @@ module naming '../../../iac/lib/naming.bicep' = {
   name: 'naming'
   params: {
     resourceGroupName: resourceGroupName
-    purpose: 'platform'
   }
 }
 

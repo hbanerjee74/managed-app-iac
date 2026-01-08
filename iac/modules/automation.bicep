@@ -6,8 +6,8 @@ param location string
 @description('Automation Account name.')
 param automationName string
 
-@description('User-assigned managed identity resource id.')
-param uamiId string
+@description('User-assigned managed identity resource id (deprecated - using SystemAssigned).')
+param uamiId string = ''
 
 @description('Principal ID of the UAMI for RBAC (optional).')
 param uamiPrincipalId string = ''
@@ -22,20 +22,8 @@ param adminObjectId string
 ])
 param adminPrincipalType string = 'User'
 
-@description('Private Endpoints subnet ID.')
-param subnetPeId string
-
 @description('Log Analytics Workspace resource ID.')
 param lawId string
-
-@description('DNS zone resource IDs map (from dns module).')
-param zoneIds object
-
-@description('Private endpoint name from naming helper.')
-param peAutomationName string
-
-@description('Private DNS zone group name from naming helper.')
-param peAutomationDnsName string
 
 @description('Diagnostic setting name from naming helper.')
 param diagAutomationName string
@@ -43,60 +31,23 @@ param diagAutomationName string
 @description('Optional tags to apply.')
 param tags object = {}
 
-resource automation 'Microsoft.Automation/automationAccounts@2021-06-22' = {
+resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
   name: automationName
   location: location
   tags: tags
   identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${uamiId}': {}
-    }
+    type: 'SystemAssigned'
   }
   properties: {
-    publicNetworkAccess: 'Disabled'
+    sku: {
+      name: 'Basic'
+    }
+    publicNetworkAccess: false
     disableLocalAuth: true
   }
 }
 
 output automationId string = automation.id
-
-resource peAutomation 'Microsoft.Network/privateEndpoints@2023-05-01' = {
-  name: peAutomationName
-  location: location
-  tags: tags
-  properties: {
-    subnet: {
-      id: subnetPeId
-    }
-    privateLinkServiceConnections: [
-      {
-        name: 'automation-conn'
-        properties: {
-          groupIds: [
-            'AzureAutomation'
-          ]
-          privateLinkServiceId: automation.id
-        }
-      }
-    ]
-  }
-}
-
-resource peAutomationDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
-  parent: peAutomation
-  name: peAutomationDnsName
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'privatelink.azure-automation.net'
-        properties: {
-          privateDnsZoneId: zoneIds.automation
-        }
-      }
-    ]
-  }
-}
 
 resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: diagAutomationName
@@ -133,8 +84,8 @@ resource uamiAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020
   }
 }
 
-// Automation Job Operator for adminObjectId
-resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+// Automation Job Operator for adminObjectId (only if provided and not placeholder)
+resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(adminObjectId) && adminObjectId != '00000000-0000-0000-0000-000000000000') {
   name: guid(automation.id, adminObjectId, 'automation-job-operator')
   scope: automation
   properties: {

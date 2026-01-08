@@ -37,6 +37,9 @@ def extract_bicep_parameters(bicep_file: Path) -> Set[str]:
 def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tuple[bool, str]:
     """Ensure resource group exists, creating it if necessary.
     
+    If the resource group already exists, returns success.
+    If it doesn't exist, creates it.
+    
     Args:
         rg_name: Name of the resource group
         location: Azure region (default: eastus)
@@ -56,7 +59,7 @@ def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tupl
         if check_result.stdout.strip().lower() == 'true':
             return True, f"Resource group {rg_name} already exists"
         
-        # Create RG if it doesn't exist
+        # RG doesn't exist, create it
         print(f"Resource group {rg_name} does not exist. Creating...")
         create_result = subprocess.run(
             ['az', 'group', 'create', '--name', rg_name, '--location', location],
@@ -304,6 +307,7 @@ def run_what_if(
             text=True,
             check=True
         )
+        
         # Filter out warnings from output (Azure CLI writes warnings to stderr, but they may be mixed)
         # Warnings typically start with "WARNING:" and are not part of JSON output
         # Also handle multi-line warnings and find the actual JSON content
@@ -332,6 +336,14 @@ def run_what_if(
         
         return True, cleaned_output
     except subprocess.CalledProcessError as e:
+        # Check if error is due to RG being deleted - exit with helpful message
+        if ('ResourceGroupBeingDeleted' in e.stderr or 
+            'deprovisioning' in e.stderr.lower()):
+            return False, (
+                f"Resource group '{resource_group}' is being deleted (deprovisioning). "
+                f"Please wait for deletion to complete before running tests. "
+                f"Check status with: az group exists --name {resource_group}"
+            )
         return False, e.stderr
     except FileNotFoundError:
         return False, "Azure CLI not found. Please install Azure CLI."
@@ -353,4 +365,3 @@ def validate_required_params(params: Dict[str, Any], required: list[str]) -> tup
     """Validate that all required parameters are present."""
     missing = [p for p in required if p not in params.get('parameters', {})]
     return len(missing) == 0, missing
-

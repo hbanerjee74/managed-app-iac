@@ -1,0 +1,213 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.1-experimental",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+    "_EXPERIMENTAL_FEATURES_ENABLED": [
+      "Asserts"
+    ],
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "12162526229984069492"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus",
+      "metadata": {
+        "description": "Deployment location."
+      }
+    },
+    "wafPolicyName": {
+      "type": "string",
+      "defaultValue": "test-waf-policy",
+      "metadata": {
+        "description": "WAF Policy name."
+      }
+    },
+    "customerIpRanges": {
+      "type": "array",
+      "defaultValue": [
+        "1.2.3.4/32"
+      ],
+      "metadata": {
+        "description": "Customer IP ranges for WAF allowlist."
+      }
+    },
+    "publisherIpRanges": {
+      "type": "array",
+      "defaultValue": [
+        "5.6.7.8/32"
+      ],
+      "metadata": {
+        "description": "Publisher IP ranges for WAF allowlist."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Optional tags to apply."
+      }
+    }
+  },
+  "resources": {
+    "wafPolicy": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "wafPolicy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "wafPolicyName": {
+            "value": "[parameters('wafPolicyName')]"
+          },
+          "customerIpRanges": {
+            "value": "[parameters('customerIpRanges')]"
+          },
+          "publisherIpRanges": {
+            "value": "[parameters('publisherIpRanges')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "15621289005927083905"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "wafPolicyName": {
+              "type": "string",
+              "metadata": {
+                "description": "WAF Policy name."
+              }
+            },
+            "customerIpRanges": {
+              "type": "array",
+              "metadata": {
+                "description": "Customer IP ranges for WAF allowlist."
+              }
+            },
+            "publisherIpRanges": {
+              "type": "array",
+              "metadata": {
+                "description": "Publisher IP ranges for WAF allowlist."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "variables": {
+            "copy": [
+              {
+                "name": "wafAllowRules",
+                "count": "[length(variables('wafRules'))]",
+                "input": {
+                  "name": "[variables('wafRules')[copyIndex('wafAllowRules')].name]",
+                  "priority": "[variables('wafRules')[copyIndex('wafAllowRules')].priority]",
+                  "ruleType": "MatchRule",
+                  "action": "[variables('wafRules')[copyIndex('wafAllowRules')].action]",
+                  "matchConditions": [
+                    {
+                      "matchVariables": [
+                        {
+                          "variableName": "RemoteAddr"
+                        }
+                      ],
+                      "operator": "IPMatch",
+                      "matchValues": "[variables('wafRules')[copyIndex('wafAllowRules')].cidrs]"
+                    }
+                  ]
+                }
+              }
+            ],
+            "wafRules": [
+              {
+                "name": "Allow-Customer",
+                "priority": 1,
+                "action": "Allow",
+                "cidrs": "[parameters('customerIpRanges')]"
+              },
+              {
+                "name": "Allow-Publisher",
+                "priority": 2,
+                "action": "Allow",
+                "cidrs": "[parameters('publisherIpRanges')]"
+              }
+            ],
+            "wafCustomRules": "[concat(variables('wafAllowRules'), createArray(createObject('name', 'Deny-All', 'priority', 3, 'ruleType', 'MatchRule', 'action', 'Block', 'matchConditions', createArray(createObject('matchVariables', createArray(createObject('variableName', 'RemoteAddr')), 'operator', 'IPMatch', 'matchValues', createArray('0.0.0.0/0'))))))]"
+          },
+          "resources": {
+            "agwPolicy": {
+              "type": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
+              "apiVersion": "2022-09-01",
+              "name": "[parameters('wafPolicyName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "policySettings": {
+                  "mode": "Prevention",
+                  "state": "Enabled",
+                  "requestBodyCheck": true
+                },
+                "customRules": "[variables('wafCustomRules')]",
+                "managedRules": {
+                  "managedRuleSets": [
+                    {
+                      "ruleSetType": "OWASP",
+                      "ruleSetVersion": "3.2"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "outputs": {
+            "wafPolicyId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies', parameters('wafPolicyName'))]"
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputs": {
+    "wafPolicyId": {
+      "type": "string",
+      "value": "[reference('wafPolicy').outputs.wafPolicyId.value]"
+    }
+  }
+}

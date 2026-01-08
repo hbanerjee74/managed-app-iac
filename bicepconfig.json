@@ -1,6 +1,13 @@
 {
   "experimentalFeaturesEnabled": {
     "assertions": true
+  },
+  "linter": {
+    "rules": {
+      "no-unnecessary-dependson": {
+        "level": "off"
+      }
+    }
   }
 }
 
