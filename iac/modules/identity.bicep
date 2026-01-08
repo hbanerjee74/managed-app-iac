@@ -44,6 +44,8 @@ resource uamiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-pre
     principalType: 'ServicePrincipal'
     delegatedManagedIdentityResourceId: isManagedApplication ? vibedataUami.id : null  // Required for Managed Apps (cross-tenant scenarios only)
   }
+  // Explicit dependency for clarity - ensures role assignment happens after UAMI creation
+  //disable-next-line no-unnecessary-dependson
   dependsOn: [
     vibedataUami
   ]
@@ -75,6 +77,8 @@ resource uamiLawContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-
     principalType: 'ServicePrincipal'
     delegatedManagedIdentityResourceId: isManagedApplication ? vibedataUami.id : null  // Required for Managed Apps (cross-tenant scenarios only)
   }
+  // Explicit dependency for clarity - ensures role assignment happens after UAMI creation
+  //disable-next-line no-unnecessary-dependson
   dependsOn: [
     vibedataUami
   ]

@@ -3,7 +3,6 @@ import os
 import json
 import pytest
 import subprocess
-import time
 from pathlib import Path
 
 # Summarize what-if changes helper function
@@ -24,14 +23,9 @@ TEST_RG = 'test-rg'  # Fallback only - should come from params file
 WHAT_IF_OUTPUT = Path(__file__).parent / 'what-if-output.json'
 DEPLOYMENT_OUTPUT = Path(__file__).parent / 'deployment-output.json'
 DEPLOYMENT_ERROR_LOG = Path(__file__).parent / 'deployment-error.log'
-RG_CREATE_TIMEOUT = 300  # 5 minutes
-RG_DELETE_TIMEOUT = 600  # 10 minutes
 
 # Check if actual deployment is enabled
 ENABLE_ACTUAL_DEPLOYMENT = os.getenv('ENABLE_ACTUAL_DEPLOYMENT', 'false').lower() == 'true'
-
-# Check if resource group should be kept after tests (for debugging/inspection)
-KEEP_RESOURCE_GROUP = os.getenv('KEEP_RESOURCE_GROUP', 'false').lower() == 'true'
 
 
 def get_resource_group_from_params():
@@ -98,16 +92,18 @@ def ensure_subscription_set():
             pass  # Azure CLI not available
 
 
-def create_resource_group(rg_name: str, location: str, timeout: int = RG_CREATE_TIMEOUT):
-    """Create resource group, exiting if it already exists.
+def ensure_resource_group(rg_name: str, location: str):
+    """Ensure resource group exists, creating if needed.
+    
+    If resource group exists, deployment will update existing resources.
+    If resource group doesn't exist, it will be created.
     
     Args:
         rg_name: Name of the resource group
         location: Azure region
-        timeout: Maximum time to wait for operations (seconds) - unused, kept for compatibility
     
-    Raises:
-        RuntimeError: If resource group exists or creation fails
+    Returns:
+        str: Resource group name
     """
     # Check if RG exists
     check_result = subprocess.run(
@@ -118,23 +114,9 @@ def create_resource_group(rg_name: str, location: str, timeout: int = RG_CREATE_
     )
     
     if check_result.stdout.strip().lower() == 'true':
-        # Resource group exists - exit with instructions
-        print(f"\n❌ Resource group '{rg_name}' already exists.")
-        print(f"\nPlease manually clean up before running tests:")
-        print(f"\n1. List soft-deleted Cognitive Services:")
-        print(f"   az cognitiveservices account list-deleted")
-        print(f"\n2. Delete soft-deleted Cognitive Services (use resource ID from list):")
-        print(f"   az resource delete --ids <resource-id>")
-        print(f"   # Example: az resource delete --ids /subscriptions/<sub-id>/resourceGroups/{rg_name}/providers/Microsoft.CognitiveServices/accounts/<account-name>")
-        print(f"\n3. Delete the resource group:")
-        print(f"   az group delete --name {rg_name} --yes")
-        print(f"\n4. Wait for deletion to complete, then verify:")
-        print(f"   az group exists --name {rg_name}")
-        print(f"\nThen run the test again.")
-        raise RuntimeError(
-            f"Resource group '{rg_name}' already exists. "
-            f"Please delete it manually and delete any soft-deleted Cognitive Services resources first."
-        )
+        # Resource group exists - use it (deployment will update resources)
+        print(f"✓ Resource group '{rg_name}' already exists. Deployment will update existing resources.")
+        return rg_name
     
     # Create new RG
     print(f"Creating resource group {rg_name} in {location}...")
@@ -156,47 +138,8 @@ def create_resource_group(rg_name: str, location: str, timeout: int = RG_CREATE_
     if check_result.stdout.strip().lower() != 'true':
         raise RuntimeError(f"Resource group creation verification failed")
     
+    print(f"✓ Resource group {rg_name} created successfully")
     return rg_name
-
-
-def delete_resource_group(rg_name: str, timeout: int = RG_DELETE_TIMEOUT):
-    """Delete resource group and wait for completion.
-    
-    Args:
-        rg_name: Name of the resource group
-        timeout: Maximum time to wait for deletion (seconds)
-    
-    Returns:
-        bool: True if deletion succeeded, False otherwise
-    """
-    print(f"Deleting resource group {rg_name}...")
-    delete_result = subprocess.run(
-        ['az', 'group', 'delete', '--name', rg_name, '--yes'],
-        capture_output=True,
-        text=True,
-        check=False
-    )
-    
-    if delete_result.returncode != 0:
-        print(f"Warning: Failed to delete resource group: {delete_result.stderr}")
-        return False
-    
-    # Wait for deletion to complete
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        check_result = subprocess.run(
-            ['az', 'group', 'exists', '--name', rg_name],
-            capture_output=True,
-            text=True,
-            check=False
-        )
-        if check_result.stdout.strip().lower() == 'false':
-            print(f"Resource group {rg_name} deleted successfully")
-            return True
-        time.sleep(5)
-    
-    print(f"Warning: Resource group deletion timed out after {timeout} seconds")
-    return False
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -211,12 +154,13 @@ def setup_azure_context():
 
 @pytest.fixture(scope="function")
 def test_resource_group():
-    """Create test resource group before each test, delete after.
+    """Ensure test resource group exists before each test.
     
-    Only creates/deletes when ENABLE_ACTUAL_DEPLOYMENT=true.
+    Creates resource group if it doesn't exist, or reuses if it does.
+    Resource group is NOT deleted after test - next run will update resources.
+    
+    Only creates when ENABLE_ACTUAL_DEPLOYMENT=true.
     For what-if tests, uses existing RG from params file.
-    
-    Set KEEP_RESOURCE_GROUP=true to skip cleanup (useful for debugging/inspection).
     
     Yields:
         str: Resource group name
@@ -224,27 +168,14 @@ def test_resource_group():
     rg_name = get_resource_group_from_params()
     
     if not ENABLE_ACTUAL_DEPLOYMENT:
-        # For what-if tests, just yield RG name from params (no creation/deletion)
+        # For what-if tests, just yield RG name from params (no creation)
         yield rg_name
     else:
-        # For actual deployment tests, create fresh RG
+        # For actual deployment tests, ensure RG exists
         location = get_location_from_params()
-        
-        try:
-            # Create RG (deletes existing if present)
-            create_resource_group(rg_name, location)
-            yield rg_name
-        finally:
-            # Skip cleanup if KEEP_RESOURCE_GROUP is set
-            if KEEP_RESOURCE_GROUP:
-                print(f"\n⚠️  KEEP_RESOURCE_GROUP=true: Resource group '{rg_name}' was NOT deleted.")
-                print(f"   Manually delete with: az group delete --name {rg_name} --yes")
-            else:
-                # Always cleanup, even if test failed
-                try:
-                    delete_resource_group(rg_name)
-                except Exception as e:
-                    print(f"Error during resource group cleanup: {e}")
+        ensure_resource_group(rg_name, location)
+        yield rg_name
+        # No cleanup - resource group persists for next test run
 
 
 class TestMainBicep:
@@ -348,12 +279,10 @@ class TestMainBicep:
         """Test actual deployment and post-deployment state check (opt-in only).
         
         This test:
-        1. Deploys main.bicep to create real resources
+        1. Deploys main.bicep to create/update real resources
         2. Runs what-if to validate deployed state (no unexpected deletions)
-        3. Resource group is automatically deleted after test completes
         
-        Note: Both deployment and state check happen in one test because the
-        fixture tears down the resource group after each test function completes.
+        Note: Resource group persists after test - next run will update existing resources.
         """
         # Step 1: Deploy resources
         try:

@@ -46,6 +46,9 @@ param publisherIpRanges array
 ])
 param sku string = 'B1'
 
+@description('Enable App Service Plan deployment (set to false to skip due to quota constraints).')
+param enableAppServicePlan bool = true
+
 @description('AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30.')
 @allowed([
   'Standard_D4s_v3'
@@ -242,7 +245,7 @@ module data 'modules/data.bicep' = {
   }
 }
 
-module compute 'modules/compute.bicep' = {
+module compute 'modules/compute.bicep' = if (enableAppServicePlan) {
   name: 'compute'
   params: {
     location: location

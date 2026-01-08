@@ -37,6 +37,7 @@ var wafAllowRules = [for rule in wafRules: {
   priority: rule.priority
   ruleType: 'MatchRule'
   action: rule.action
+  state: 'Enabled'
   matchConditions: [
     {
       matchVariables: [
@@ -56,6 +57,7 @@ var wafCustomRules = concat(wafAllowRules, [
     priority: 3  // RFC-71: priority range 1000+ for deny rules
     ruleType: 'MatchRule'
     action: 'Block'
+    state: 'Enabled'
     matchConditions: [
       {
         matchVariables: [

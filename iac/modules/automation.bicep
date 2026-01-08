@@ -54,7 +54,7 @@ resource automation 'Microsoft.Automation/automationAccounts@2021-06-22' = {
     }
   }
   properties: {
-    publicNetworkAccess: 'Disabled'
+    publicNetworkAccess: false
     disableLocalAuth: true
   }
 }

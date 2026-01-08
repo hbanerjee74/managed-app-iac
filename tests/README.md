@@ -86,22 +86,13 @@ pytest tests/unit/test_modules.py -v -k "compiles"
    pytest tests/e2e/ -rs
    ```
 
-3. **Run actual deployment** (opt-in, creates real resources):
+3. **Run actual deployment** (opt-in, creates/updates real resources):
 
    ```bash
    ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
    ```
 
-   **Keep resource group for debugging/inspection:**
-
-   ```bash
-   ENABLE_ACTUAL_DEPLOYMENT=true KEEP_RESOURCE_GROUP=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
-   ```
-
-   When `KEEP_RESOURCE_GROUP=true`, the resource group is not deleted after the test completes. Useful for:
-   - Inspecting deployed resources
-   - Debugging deployment issues
-   - Manual validation
+   **Note**: The resource group persists between test runs. If it exists, deployment will update existing resources. If it doesn't exist, it will be created. This allows incremental testing and debugging without recreating resources each time.
 
    **Deployment Log Files:**
 
@@ -224,10 +215,11 @@ pytest tests/unit/test_modules.py -v -k "cidr"
 - **What-if**: Full deployment what-if succeeds
 - **What-if output**: What-if output is valid JSON
 - **What-if summary**: What-if output can be parsed and summarized
-- **Actual deployment**: (Opt-in) Creates real resources and validates state
-  - Deploys `main.bicep` to create resources
+- **Actual deployment**: (Opt-in) Creates/updates real resources and validates state
+  - Deploys `main.bicep` to create or update resources
   - Runs what-if against deployed resources to check for drift
   - Validates no unexpected deletions (indicates template matches deployed state)
+  - Resource group persists between runs - subsequent runs update existing resources
 
 **Usage:**
 
@@ -294,34 +286,26 @@ pytest tests/e2e/
 
 ### E2E Tests - Actual Deployment Mode (Opt-In)
 
-- **Automatic creation**: Resource group is created before each test
-- **Automatic cleanup**: Resource group is deleted after each test (even on failure)
+- **Automatic creation**: Resource group is created if it doesn't exist
+- **Reuse existing**: If resource group exists, it's reused and resources are updated
+- **No cleanup**: Resource group persists between test runs
+- **Incremental updates**: Subsequent runs update existing resources instead of recreating them
 - **Scope**: One resource group per test function (`scope="function"`)
-- **Timeout protection**: 5 min creation, 10 min deletion timeouts
-- **Delete and Recreate**: If the resource group exists, it's deleted first, then recreated
-- **Wait for Completion**: All operations wait for Azure to complete (no `--no-wait`)
 
 When `ENABLE_ACTUAL_DEPLOYMENT=true`:
 
-- Test fixture automatically creates/deletes resource group
+- Test fixture ensures resource group exists (creates if needed, reuses if exists)
 - No manual setup required
-- Cleanup guaranteed even if tests fail
+- Resource group persists for debugging and incremental testing
 
-**Skip cleanup for debugging:**
+**Benefits:**
 
-Set `KEEP_RESOURCE_GROUP=true` to keep the resource group after tests complete:
+- Faster test runs (no deletion/recreation overhead)
+- Easier debugging (resources persist between runs)
+- More realistic testing (updates existing resources like production)
+- Incremental testing (can test changes without full redeployment)
 
-```bash
-ENABLE_ACTUAL_DEPLOYMENT=true KEEP_RESOURCE_GROUP=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
-```
-
-This is useful for:
-
-- Inspecting deployed resources after tests
-- Debugging deployment issues
-- Manual validation of resources
-
-**Warning**: Remember to manually delete the resource group when done:
+**Manual cleanup** (if needed):
 
 ```bash
 az group delete --name <resource-group-name> --yes
@@ -398,11 +382,13 @@ pytest tests/unit/test_modules.py -v -k "what_if"
 pytest tests/e2e/
 ```
 
-- **E2E actual deployment**: Opt-in only, requires explicit configuration, automatic RG management
+- **E2E actual deployment**: Opt-in only, requires explicit configuration, creates/updates resources
 
 ```bash
 ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment
 ```
+
+**Note**: Resource group persists between runs. First run creates resources, subsequent runs update them.
 
 ### Authentication for CI/CD
 
@@ -442,12 +428,12 @@ Or use managed identity if running in Azure (e.g., Azure Pipelines agents, GitHu
 - Verify module dependencies are correct
 - Check test wrapper templates for syntax errors
 
-### Resource group cleanup fails
+### Resource group cleanup
 
-If automatic cleanup fails or you need to manually clean up:
+Resource groups persist between test runs by design. To manually clean up:
 
 ```bash
 az group delete --name <resource-group-name> --yes
 ```
 
-**Note**: With automatic resource group management enabled, manual cleanup should rarely be needed.
+**Note**: Resource groups are not automatically deleted. This allows incremental testing and easier debugging. Delete manually when you're done testing.
