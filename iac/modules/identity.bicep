@@ -29,32 +29,9 @@ resource vibedataUami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-
   tags: tags
 }
 
-// Propagation delay to allow managed identity to propagate across tenants (required for Managed Apps).
-// Uses UAMI identity - even though we're waiting for propagation, the UAMI is available locally
-// enough to run a simple sleep script. AzureCLI is simpler than PowerShell for this use case.
-resource propagationDelay 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: 'propagation-delay'
-  location: location
-  kind: 'AzureCLI'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${vibedataUami.id}': {}
-    }
-  }
-  properties: {
-    azCliVersion: '2.61.0'
-    scriptContent: 'sleep 30'
-    timeout: 'PT1H'
-    cleanupPreference: 'OnSuccess'
-    retentionInterval: 'P1D'
-  }
-  dependsOn: [
-    vibedataUami
-  ]
-}
-
 // Assign Contributor on the Managed Resource Group to the UAMI.
+// Note: No explicit propagation delay needed - delegatedManagedIdentityResourceId handles cross-tenant
+// scenarios, and ARM's dependency ordering ensures UAMI is created before role assignments.
 resource uamiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(resourceGroup().id, vibedataUami.id, 'Contributor')
   scope: resourceGroup()  // Explicitly scope to MRG
@@ -66,7 +43,6 @@ resource uamiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-pre
   }
   dependsOn: [
     vibedataUami
-    propagationDelay  // Wait for propagation
   ]
 }
 
@@ -98,7 +74,6 @@ resource uamiLawContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-
   }
   dependsOn: [
     vibedataUami
-    propagationDelay
   ]
 }
 
