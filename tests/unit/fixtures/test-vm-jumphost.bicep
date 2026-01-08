@@ -22,10 +22,6 @@ var mockNetworkOutputs = {
   subnetPeId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-pe'
 }
 
-var mockIdentityOutputs = {
-  uamiPrincipalId: '00000000-0000-0000-0000-000000000000'
-}
-
 var mockDiagnosticsOutputs = {
   lawId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law'
 }

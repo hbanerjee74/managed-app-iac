@@ -10,7 +10,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "10113141309697582182"
+      "templateHash": "2726460352952508068"
     }
   },
   "parameters": {
@@ -56,16 +56,16 @@
         "description": "Log Analytics retention in days (RFC-64: retentionDays)."
       }
     },
-    "adminObjectId": {
+    "customerAdminObjectId": {
       "type": "string",
       "metadata": {
-        "description": "Admin Object ID."
+        "description": "Customer Admin Object ID."
       }
     },
-    "adminPrincipalType": {
+    "customerAdminPrincipalType": {
       "type": "string",
       "metadata": {
-        "description": "Admin Principal Type."
+        "description": "Customer Admin Principal Type."
       }
     }
   },
@@ -96,7 +96,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "2234470855925706244"
+              "templateHash": "9599786196098502373"
             }
           },
           "functions": [
@@ -144,55 +144,55 @@
               "metadata": {
                 "description": "Resource group name used as seed for deterministic nanoid generation."
               }
-            },
-            "seedPrefix": {
-              "type": "string",
-              "defaultValue": "[parameters('resourceGroupName')]"
             }
           },
           "variables": {
+            "seedPrefix": "[parameters('resourceGroupName')]",
             "names": {
-              "uami": "[format('vd-uami-{0}', __bicep.nano16(parameters('seedPrefix'), 'uami'))]",
-              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(parameters('seedPrefix'), 'vnet'))]",
-              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgappgw'))]",
-              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgaks'))]",
-              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgappsvc'))]",
-              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgpe'))]",
-              "kv": "[format('vd-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'kv'))]",
-              "storage": "[format('vdst{0}', __bicep.nano8(parameters('seedPrefix'), 'st'))]",
-              "acr": "[format('vdacr{0}', __bicep.nano8(parameters('seedPrefix'), 'acr'))]",
-              "law": "[format('vd-law-{0}', __bicep.nano16(parameters('seedPrefix'), 'law'))]",
-              "asp": "[format('vd-asp-{0}', __bicep.nano16(parameters('seedPrefix'), 'asp'))]",
-              "agw": "[format('vd-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'agw'))]",
-              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'pipagw'))]",
-              "psql": "[format('vd-psql-{0}', __bicep.nano16(parameters('seedPrefix'), 'psql'))]",
-              "search": "[format('vd-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'search'))]",
-              "ai": "[format('vd-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'ai'))]",
-              "automation": "[format('vd-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'aa'))]",
-              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'pekv'))]",
-              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(parameters('seedPrefix'), 'pestblob'))]",
-              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(parameters('seedPrefix'), 'pestqueue'))]",
-              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(parameters('seedPrefix'), 'pesttable'))]",
-              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'peacr'))]",
-              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'pesearch'))]",
-              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'peai'))]",
-              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'peaa'))]",
-              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnskv'))]",
-              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsstblob'))]",
-              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsstqueue'))]",
-              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnssttable'))]",
-              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsacr'))]",
-              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnssearch'))]",
-              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsai'))]",
-              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsaa'))]",
-              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagkv'))]",
-              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagst'))]",
-              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagacr'))]",
-              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagagw'))]",
-              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagpsql'))]",
-              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagsearch'))]",
-              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagai'))]",
-              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagaa'))]"
+              "uami": "[format('vd-uami-{0}', __bicep.nano16(variables('seedPrefix'), 'uami'))]",
+              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(variables('seedPrefix'), 'vnet'))]",
+              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappgw'))]",
+              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgaks'))]",
+              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappsvc'))]",
+              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgpe'))]",
+              "kv": "[format('vd-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'kv'))]",
+              "storage": "[format('vdst{0}', __bicep.nano8(variables('seedPrefix'), 'st'))]",
+              "acr": "[format('vdacr{0}', __bicep.nano8(variables('seedPrefix'), 'acr'))]",
+              "law": "[format('vd-law-{0}', __bicep.nano16(variables('seedPrefix'), 'law'))]",
+              "asp": "[format('vd-asp-{0}', __bicep.nano16(variables('seedPrefix'), 'asp'))]",
+              "agw": "[format('vd-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'agw'))]",
+              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'pipagw'))]",
+              "psql": "[format('vd-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'psql'))]",
+              "search": "[format('vd-search-{0}', __bicep.nano16(variables('seedPrefix'), 'search'))]",
+              "ai": "[format('vd-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'ai'))]",
+              "automation": "[format('vd-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'aa'))]",
+              "vm": "[format('vd-vm-{0}', __bicep.nano16(variables('seedPrefix'), 'vm'))]",
+              "bastion": "[format('vd-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'bastion'))]",
+              "pipBastion": "[format('vd-pip-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'pipbastion'))]",
+              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pekv'))]",
+              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pestblob'))]",
+              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pestqueue'))]",
+              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pesttable'))]",
+              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'peacr'))]",
+              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pesearch'))]",
+              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'peai'))]",
+              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'peaa'))]",
+              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnskv'))]",
+              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstblob'))]",
+              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstqueue'))]",
+              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssttable'))]",
+              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsacr'))]",
+              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssearch'))]",
+              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsai'))]",
+              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsaa'))]",
+              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'diagkv'))]",
+              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(variables('seedPrefix'), 'diagst'))]",
+              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'diagacr'))]",
+              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'diagagw'))]",
+              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'diagpsql'))]",
+              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(variables('seedPrefix'), 'diagsearch'))]",
+              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'diagai'))]",
+              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'diagaa'))]"
             }
           },
           "resources": {},
@@ -252,7 +252,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "16561963488514203903"
+              "templateHash": "1852654252821930432"
             }
           },
           "functions": [
@@ -358,7 +358,8 @@
               "snet-psql",
               "snet-private-endpoints",
               "snet-appsvc",
-              "snet-aks"
+              "snet-aks",
+              "snet-bastion"
             ]
           },
           "resources": {
@@ -676,6 +677,10 @@
               "type": "string",
               "value": "[reference('vnet').subnets[4].id]"
             },
+            "subnetBastionId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[5].id]"
+            },
             "subnetAppgwPrefix": {
               "type": "string",
               "value": "[reference('vnet').subnets[0].properties.addressPrefix]"
@@ -695,6 +700,10 @@
             "subnetAksPrefix": {
               "type": "string",
               "value": "[reference('vnet').subnets[4].properties.addressPrefix]"
+            },
+            "subnetBastionPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[5].properties.addressPrefix]"
             },
             "vnetPrefixLengthValidated": {
               "type": "int",
@@ -1021,15 +1030,6 @@
           "uamiName": {
             "value": "[reference('naming').outputs.names.value.uami]"
           },
-          "adminObjectId": {
-            "value": "[parameters('adminObjectId')]"
-          },
-          "adminPrincipalType": {
-            "value": "[parameters('adminPrincipalType')]"
-          },
-          "lawName": {
-            "value": "[reference('naming').outputs.names.value.law]"
-          },
           "tags": {
             "value": {}
           }
@@ -1046,7 +1046,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "12979414484051055492"
+              "templateHash": "18026571156535126747"
             }
           },
           "parameters": {
@@ -1062,42 +1062,11 @@
                 "description": "Name for the user-assigned managed identity."
               }
             },
-            "adminObjectId": {
-              "type": "string",
-              "metadata": {
-                "description": "Customer admin Entra object ID."
-              }
-            },
-            "adminPrincipalType": {
-              "type": "string",
-              "defaultValue": "User",
-              "allowedValues": [
-                "User",
-                "Group"
-              ],
-              "metadata": {
-                "description": "Principal type for adminObjectId (User or Group)."
-              }
-            },
             "tags": {
               "type": "object",
               "defaultValue": {},
               "metadata": {
                 "description": "Optional tags to apply."
-              }
-            },
-            "lawName": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Optional Log Analytics Workspace name for RBAC wiring."
-              }
-            },
-            "isManagedApplication": {
-              "type": "bool",
-              "defaultValue": true,
-              "metadata": {
-                "description": "Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing."
               }
             }
           },
@@ -1108,53 +1077,6 @@
               "name": "[parameters('uamiName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]"
-            },
-            "uamiContributor": {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "name": "[guid(resourceGroup().id, resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), 'Contributor')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-                "principalId": "[reference('vibedataUami').principalId]",
-                "principalType": "ServicePrincipal",
-                "delegatedManagedIdentityResourceId": "[if(parameters('isManagedApplication'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), null())]"
-              },
-              "dependsOn": [
-                "vibedataUami"
-              ]
-            },
-            "customerReader": {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "name": "[guid(resourceGroup().id, parameters('adminObjectId'), 'Reader')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
-                "principalId": "[parameters('adminObjectId')]",
-                "principalType": "[parameters('adminPrincipalType')]"
-              }
-            },
-            "law": {
-              "condition": "[not(empty(parameters('lawName')))]",
-              "existing": true,
-              "type": "Microsoft.OperationalInsights/workspaces",
-              "apiVersion": "2022-10-01",
-              "name": "[parameters('lawName')]"
-            },
-            "uamiLawContributor": {
-              "condition": "[not(empty(parameters('lawName')))]",
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('lawName'))]",
-              "name": "[guid(resourceId('Microsoft.OperationalInsights/workspaces', parameters('lawName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), 'LAW-Contrib')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '73c42c96-874c-492b-b04d-ab87d138a893')]",
-                "principalId": "[reference('vibedataUami').principalId]",
-                "principalType": "ServicePrincipal",
-                "delegatedManagedIdentityResourceId": "[if(parameters('isManagedApplication'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), null())]"
-              },
-              "dependsOn": [
-                "vibedataUami"
-              ]
             }
           },
           "outputs": {
@@ -1196,9 +1118,6 @@
           "subnetPeId": {
             "value": "[reference('network').outputs.subnetPeId.value]"
           },
-          "uamiPrincipalId": {
-            "value": "[reference('identity').outputs.uamiPrincipalId.value]"
-          },
           "lawId": {
             "value": "[reference('diagnostics').outputs.lawId.value]"
           },
@@ -1230,7 +1149,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "17335919119098633083"
+              "templateHash": "13643215782870213555"
             }
           },
           "parameters": {
@@ -1250,12 +1169,6 @@
               "type": "string",
               "metadata": {
                 "description": "Private Endpoints subnet ID."
-              }
-            },
-            "uamiPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "Principal ID of the UAMI for RBAC."
               }
             },
             "lawId": {
@@ -1294,24 +1207,7 @@
               "metadata": {
                 "description": "Optional tags to apply."
               }
-            },
-            "psqlAdminUsername": {
-              "type": "string",
-              "defaultValue": "psqladmin",
-              "metadata": {
-                "description": "PostgreSQL admin username (optional, defaults to psqladmin)."
-              }
-            },
-            "psqlAdminPassword": {
-              "type": "securestring",
-              "defaultValue": "",
-              "metadata": {
-                "description": "PostgreSQL admin password (optional, auto-generated if not provided)."
-              }
             }
-          },
-          "variables": {
-            "psqlAdminPasswordValue": "[if(empty(parameters('psqlAdminPassword')), guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('kvName')), 'psql-admin-password'), parameters('psqlAdminPassword'))]"
           },
           "resources": {
             "kv": {
@@ -1381,20 +1277,6 @@
                 "peKv"
               ]
             },
-            "kvSecretsOfficer": {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('kvName'))]",
-              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('kvName')), parameters('uamiPrincipalId'), 'kv-secret-officer')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')]",
-                "principalId": "[parameters('uamiPrincipalId')]",
-                "principalType": "ServicePrincipal"
-              },
-              "dependsOn": [
-                "kv"
-              ]
-            },
             "kvDiag": {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
@@ -1418,30 +1300,6 @@
               "dependsOn": [
                 "kv"
               ]
-            },
-            "psqlAdminUsernameSecret": {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2023-02-01",
-              "name": "[format('{0}/{1}', parameters('kvName'), 'psql-admin-username')]",
-              "properties": {
-                "value": "[parameters('psqlAdminUsername')]"
-              },
-              "dependsOn": [
-                "kv",
-                "kvSecretsOfficer"
-              ]
-            },
-            "psqlAdminPasswordSecret": {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2023-02-01",
-              "name": "[format('{0}/{1}', parameters('kvName'), 'psql-admin-password')]",
-              "properties": {
-                "value": "[variables('psqlAdminPasswordValue')]"
-              },
-              "dependsOn": [
-                "kv",
-                "kvSecretsOfficer"
-              ]
             }
           },
           "outputs": {
@@ -1459,7 +1317,6 @@
       "dependsOn": [
         "diagnostics",
         "dns",
-        "identity",
         "naming",
         "network"
       ]
@@ -1520,7 +1377,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "11861594900576503639"
+              "templateHash": "17077746414087310608"
             }
           },
           "parameters": {
@@ -1583,7 +1440,21 @@
             "kvName": {
               "type": "string",
               "metadata": {
-                "description": "Key Vault name for retrieving admin credentials."
+                "description": "Key Vault name for storing admin credentials."
+              }
+            },
+            "psqlAdminUsername": {
+              "type": "string",
+              "defaultValue": "psqladmin",
+              "metadata": {
+                "description": "PostgreSQL admin username (optional, defaults to psqladmin)."
+              }
+            },
+            "psqlAdminPassword": {
+              "type": "securestring",
+              "defaultValue": "",
+              "metadata": {
+                "description": "PostgreSQL admin password (optional, auto-generated if not provided)."
               }
             },
             "tags": {
@@ -1594,18 +1465,31 @@
               }
             }
           },
+          "variables": {
+            "psqlAdminPasswordValue": "[if(empty(parameters('psqlAdminPassword')), guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('kvName')), 'psql-admin-password'), parameters('psqlAdminPassword'))]"
+          },
           "resources": {
-            "psqlAdminUsernameSecret": {
+            "kv": {
               "existing": true,
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-02-01",
+              "name": "[parameters('kvName')]"
+            },
+            "psqlAdminUsernameSecret": {
               "type": "Microsoft.KeyVault/vaults/secrets",
               "apiVersion": "2023-02-01",
-              "name": "[format('{0}/psql-admin-username', parameters('kvName'))]"
+              "name": "[format('{0}/{1}', parameters('kvName'), 'psql-admin-username')]",
+              "properties": {
+                "value": "[parameters('psqlAdminUsername')]"
+              }
             },
             "psqlAdminPasswordSecret": {
-              "existing": true,
               "type": "Microsoft.KeyVault/vaults/secrets",
               "apiVersion": "2023-02-01",
-              "name": "[format('{0}/psql-admin-password', parameters('kvName'))]"
+              "name": "[format('{0}/{1}', parameters('kvName'), 'psql-admin-password')]",
+              "properties": {
+                "value": "[variables('psqlAdminPasswordValue')]"
+              }
             },
             "psql": {
               "type": "Microsoft.DBforPostgreSQL/flexibleServers",
@@ -1618,8 +1502,8 @@
                 "tier": "[if(startsWith(parameters('computeTier'), 'Standard_B'), 'Burstable', 'GeneralPurpose')]"
               },
               "properties": {
-                "administratorLogin": "[reference('psqlAdminUsernameSecret').value]",
-                "administratorLoginPassword": "[reference('psqlAdminPasswordSecret').value]",
+                "administratorLogin": "[parameters('psqlAdminUsername')]",
+                "administratorLoginPassword": "[variables('psqlAdminPasswordValue')]",
                 "version": "16",
                 "storage": {
                   "storageSizeGB": "[parameters('storageGB')]",
@@ -1643,11 +1527,7 @@
                   "mode": "Disabled"
                 },
                 "createMode": "Default"
-              },
-              "dependsOn": [
-                "psqlAdminPasswordSecret",
-                "psqlAdminUsernameSecret"
-              ]
+              }
             },
             "psqlDiag": {
               "type": "Microsoft.Insights/diagnosticSettings",
@@ -1735,7 +1615,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "7946574091519435243"
+              "templateHash": "13426524201398454441"
             }
           },
           "parameters": {
@@ -1774,21 +1654,50 @@
               "metadata": {
                 "description": "Key Vault name for retrieving admin credentials."
               }
+            },
+            "automationId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Automation Account resource ID (for runbook creation)."
+              }
+            },
+            "automationName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Automation Account name (for runbook creation)."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
             }
           },
           "variables": {
             "serverHost": "[format('{0}.postgres.database.azure.com', parameters('psqlName'))]",
             "forceUpdateTagValue": "[guid(subscription().id, parameters('psqlId'), 'psql-create-roles')]",
             "scriptNameSuffix": "[substring(variables('forceUpdateTagValue'), 0, 8)]",
-            "scriptName": "[format('psql-create-roles-{0}', variables('scriptNameSuffix'))]"
+            "scriptName": "[format('psql-create-roles-{0}', variables('scriptNameSuffix'))]",
+            "psqlRolesScript": "# PowerShell script to create PostgreSQL roles and grant permissions\n# This script is executed by Azure deploymentScripts resource\n# Parameters are passed via environment variables:\n#   SERVER_HOST - PostgreSQL server hostname (e.g., servername.postgres.database.azure.com)\n#   KV_NAME - Key Vault name for retrieving admin credentials\n#   UAMI_CLIENT_ID - Client ID of the User-Assigned Managed Identity\n\nparam(\n    [string]$ServerHost = $env:SERVER_HOST,\n    [string]$KvName = $env:KV_NAME,\n    [string]$UamiClientId = $env:UAMI_CLIENT_ID\n)\n\n$ErrorActionPreference = \"Stop\"\n\nWrite-Host \"Starting PostgreSQL role creation script...\"\nWrite-Host \"Server Host: $ServerHost\"\nWrite-Host \"Key Vault Name: $KvName\"\nWrite-Host \"UAMI Client ID: $UamiClientId\"\n\n# Validate required parameters\nif ([string]::IsNullOrEmpty($ServerHost)) {\n    Write-Error \"SERVER_HOST environment variable is required\"\n    exit 1\n}\n\nif ([string]::IsNullOrEmpty($KvName)) {\n    Write-Error \"KV_NAME environment variable is required\"\n    exit 1\n}\n\nif ([string]::IsNullOrEmpty($UamiClientId)) {\n    Write-Error \"UAMI_CLIENT_ID environment variable is required\"\n    exit 1\n}\n\n# Check if psql is available\nWrite-Host \"Checking if psql is available...\"\n$psqlPath = Get-Command psql -ErrorAction SilentlyContinue\nif (-not $psqlPath) {\n    Write-Host \"psql not found in PATH. Attempting to install PostgreSQL client...\"\n    \n    # Try to install psql using Chocolatey (if available) or download directly\n    # Note: Azure deploymentScripts PowerShell runs on Windows containers\n    # For production, consider pre-installing psql or using Azure CLI deploymentScripts instead\n    try {\n        # Check if Chocolatey is available\n        $chocoPath = Get-Command choco -ErrorAction SilentlyContinue\n        if ($chocoPath) {\n            Write-Host \"Installing PostgreSQL client using Chocolatey...\"\n            choco install postgresql --version=16.0.0 -y --no-progress\n            # Refresh PATH\n            $env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\") + \";\" + [System.Environment]::GetEnvironmentVariable(\"Path\",\"User\")\n            $psqlPath = Get-Command psql -ErrorAction SilentlyContinue\n        }\n    } catch {\n        Write-Warning \"Could not install psql via Chocolatey: $_\"\n    }\n    \n    # Verify psql is now available\n    if (-not $psqlPath) {\n        Write-Error \"psql command not found and could not be installed. This script requires psql to be available.\"\n        Write-Error \"For Azure deploymentScripts, consider using AzureCLI kind (Linux) which has psql pre-installed, or ensure psql is pre-installed in the deploymentScripts environment.\"\n        exit 1\n    }\n    \n    Write-Host \"Successfully verified psql is available\"\n}\n\n# Retrieve PostgreSQL admin credentials from Key Vault\nWrite-Host \"Retrieving PostgreSQL admin credentials from Key Vault...\"\ntry {\n    $psqlAdminUsername = az keyvault secret show --vault-name $KvName --name \"psql-admin-username\" --query \"value\" -o tsv\n    if ([string]::IsNullOrEmpty($psqlAdminUsername)) {\n        Write-Error \"Failed to retrieve PostgreSQL admin username from Key Vault\"\n        exit 1\n    }\n    \n    $psqlAdminPassword = az keyvault secret show --vault-name $KvName --name \"psql-admin-password\" --query \"value\" -o tsv\n    if ([string]::IsNullOrEmpty($psqlAdminPassword)) {\n        Write-Error \"Failed to retrieve PostgreSQL admin password from Key Vault\"\n        exit 1\n    }\n    \n    Write-Host \"Successfully retrieved admin credentials from Key Vault\"\n} catch {\n    Write-Error \"Error retrieving credentials from Key Vault: $_\"\n    exit 1\n}\n\n# Set PGPASSWORD environment variable for psql\n$env:PGPASSWORD = $psqlAdminPassword\n\n# Wait for PostgreSQL server to be ready\nWrite-Host \"Waiting for PostgreSQL server to be ready...\"\n$retryCount = 0\n$maxRetries = 30\n$serverReady = $false\n\nwhile ($retryCount -lt $maxRetries) {\n    try {\n        $testQuery = psql \"host=$ServerHost user=$psqlAdminUsername dbname=postgres sslmode=require\" -c \"SELECT 1;\" 2>&1\n        if ($LASTEXITCODE -eq 0) {\n            Write-Host \"PostgreSQL server is ready\"\n            $serverReady = $true\n            break\n        }\n    } catch {\n        # Continue retrying\n    }\n    \n    $retryCount++\n    Write-Host \"Waiting for PostgreSQL server... (attempt $retryCount/$maxRetries)\"\n    Start-Sleep -Seconds 10\n}\n\nif (-not $serverReady) {\n    Write-Error \"PostgreSQL server is not ready after $maxRetries attempts\"\n    exit 1\n}\n\n# Test admin credentials\nWrite-Host \"Testing admin credentials by performing a simple query...\"\ntry {\n    $testResult = psql \"host=$ServerHost user=$psqlAdminUsername dbname=postgres sslmode=require\" -c \"SELECT current_user, version();\" 2>&1\n    if ($LASTEXITCODE -eq 0) {\n        Write-Host \"Successfully verified admin credentials - login test passed\"\n    } else {\n        Write-Error \"Failed to login with admin credentials\"\n        exit 1\n    }\n} catch {\n    Write-Error \"Error testing admin credentials: $_\"\n    exit 1\n}\n\n# Create roles and grant permissions\nWrite-Host \"Creating roles vd_dbo and vd_reader if missing, and granting vd_dbo to UAMI...\"\n\n$sqlScript = @\"\nDO `$\\$`\nBEGIN\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_dbo') THEN\n    CREATE ROLE \"vd_dbo\";\n    RAISE NOTICE 'Created role vd_dbo';\n  ELSE\n    RAISE NOTICE 'Role vd_dbo already exists';\n  END IF;\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_reader') THEN\n    CREATE ROLE \"vd_reader\";\n    RAISE NOTICE 'Created role vd_reader';\n  ELSE\n    RAISE NOTICE 'Role vd_reader already exists';\n  END IF;\nEND`$\\$`;\n-- Grant vd_dbo role to UAMI (using client ID as the role name for AAD authentication)\nGRANT \"vd_dbo\" TO \"$UamiClientId\";\n\"@\n\ntry {\n    # Use psql with here-string input\n    $sqlScript | psql \"host=$ServerHost user=$psqlAdminUsername dbname=postgres sslmode=require\"\n    \n    if ($LASTEXITCODE -eq 0) {\n        Write-Host \"Successfully created roles and granted permissions\"\n    } else {\n        Write-Error \"Failed to create roles or grant permissions\"\n        exit 1\n    }\n} catch {\n    Write-Error \"Error executing SQL script: $_\"\n    exit 1\n}\n\nWrite-Host \"PostgreSQL role creation script completed successfully\"\n"
           },
           "resources": {
-            "createRoles": {
+            "automation": {
+              "condition": "[not(empty(parameters('automationId')))]",
+              "existing": true,
+              "type": "Microsoft.Automation/automationAccounts",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('automationName')]"
+            },
+            "createPgRoles": {
               "type": "Microsoft.Resources/deploymentScripts",
               "apiVersion": "2020-10-01",
               "name": "[variables('scriptName')]",
               "location": "[parameters('location')]",
-              "kind": "AzureCLI",
+              "kind": "AzurePowerShell",
               "identity": {
                 "type": "UserAssigned",
                 "userAssignedIdentities": {
@@ -1798,8 +1707,8 @@
               "properties": {
                 "forceUpdateTag": "[variables('forceUpdateTagValue')]",
                 "retentionInterval": "PT1H",
-                "azCliVersion": "2.61.0",
-                "scriptContent": "#!/usr/bin/env bash\nset -euo pipefail\nSERVER=\"${SERVER_HOST}\"\nKV_NAME=\"${KV_NAME}\"\nUAMI_CLIENT_ID=\"${UAMI_CLIENT_ID}\"\n\necho \"Checking if psql is available...\"\nif ! command -v psql &> /dev/null; then\n  echo \"Installing PostgreSQL client (psql)...\"\n  apt-get update -qq && apt-get install -y postgresql-client > /dev/null 2>&1 || {\n    echo \"ERROR: Failed to install postgresql-client\"\n    exit 1\n  }\nfi\n\necho \"Retrieving PostgreSQL admin credentials from Key Vault...\"\nPSQL_ADMIN_USERNAME=$(az keyvault secret show --vault-name \"${KV_NAME}\" --name \"psql-admin-username\" --query \"value\" -o tsv)\nif [ -z \"$PSQL_ADMIN_USERNAME\" ]; then\n  echo \"ERROR: Failed to retrieve PostgreSQL admin username from Key Vault\"\n  exit 1\nfi\n\nPSQL_ADMIN_PASSWORD=$(az keyvault secret show --vault-name \"${KV_NAME}\" --name \"psql-admin-password\" --query \"value\" -o tsv)\nif [ -z \"$PSQL_ADMIN_PASSWORD\" ]; then\n  echo \"ERROR: Failed to retrieve PostgreSQL admin password from Key Vault\"\n  exit 1\nfi\n\nexport PGPASSWORD=\"$PSQL_ADMIN_PASSWORD\"\n\necho \"Waiting for PostgreSQL server to be ready...\"\nRETRY_COUNT=0\nMAX_RETRIES=30\nwhile [ $RETRY_COUNT -lt $MAX_RETRIES ]; do\n  if psql \"host=${SERVER} user=${PSQL_ADMIN_USERNAME} dbname=postgres sslmode=require\" -c \"SELECT 1;\" > /dev/null 2>&1; then\n    echo \"PostgreSQL server is ready\"\n    break\n  fi\n  RETRY_COUNT=$((RETRY_COUNT + 1))\n  echo \"Waiting for PostgreSQL server... (attempt $RETRY_COUNT/$MAX_RETRIES)\"\n  sleep 10\ndone\n\nif [ $RETRY_COUNT -eq $MAX_RETRIES ]; then\n  echo \"ERROR: PostgreSQL server is not ready after ${MAX_RETRIES} attempts\"\n  exit 1\nfi\n\necho \"Creating roles vd_dbo and vd_reader if missing, and granting vd_dbo to UAMI...\"\n# Use unquoted heredoc to allow bash variable expansion for UAMI_CLIENT_ID\npsql \"host=${SERVER} user=${PSQL_ADMIN_USERNAME} dbname=postgres sslmode=require\" <<SQL\nDO \\$\\$\nBEGIN\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_dbo') THEN\n    CREATE ROLE \"vd_dbo\";\n    RAISE NOTICE 'Created role vd_dbo';\n  ELSE\n    RAISE NOTICE 'Role vd_dbo already exists';\n  END IF;\n  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'vd_reader') THEN\n    CREATE ROLE \"vd_reader\";\n    RAISE NOTICE 'Created role vd_reader';\n  ELSE\n    RAISE NOTICE 'Role vd_reader already exists';\n  END IF;\nEND\\$\\$;\n-- Grant vd_dbo role to UAMI (using client ID as the role name for AAD authentication)\nGRANT \"vd_dbo\" TO \"${UAMI_CLIENT_ID}\";\nSQL\n\nif [ $? -eq 0 ]; then\n  echo \"Successfully created roles and granted permissions\"\nelse\n  echo \"ERROR: Failed to create roles or grant permissions\"\n  exit 1\nfi\n",
+                "azPowerShellVersion": "11.0",
+                "scriptContent": "[variables('psqlRolesScript')]",
                 "supportingScriptUris": [],
                 "timeout": "PT10M",
                 "environmentVariables": [
@@ -1817,6 +1726,44 @@
                   }
                 ]
               }
+            },
+            "psqlRolesRunbook": {
+              "condition": "[and(not(empty(parameters('automationId'))), not(empty(parameters('automationName'))))]",
+              "type": "Microsoft.Automation/automationAccounts/runbooks",
+              "apiVersion": "2023-11-01",
+              "name": "[format('{0}/{1}', parameters('automationName'), 'create-postgresql-roles')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "runbookType": "PowerShell",
+                "logVerbose": false,
+                "logProgress": true,
+                "description": "[format('Creates PostgreSQL roles (vd_dbo and vd_reader) and grants vd_dbo to UAMI. Can be run by admins for on-demand role creation. Parameters: ServerHost (default: {0}.postgres.database.azure.com), KvName (default: {1}), UamiClientId (default: {2}).', parameters('psqlName'), parameters('kvName'), parameters('uamiClientId'))]"
+              },
+              "dependsOn": [
+                "automation"
+              ]
+            },
+            "psqlRolesRunbookDraft": {
+              "condition": "[and(not(empty(parameters('automationId'))), not(empty(parameters('automationName'))))]",
+              "type": "Microsoft.Automation/automationAccounts/runbooks/draft",
+              "apiVersion": "2019-06-01",
+              "name": "[format('{0}/{1}/{2}', parameters('automationName'), 'create-postgresql-roles', 'content')]",
+              "dependsOn": [
+                "psqlRolesRunbook"
+              ]
+            },
+            "psqlRolesRunbookContent": {
+              "condition": "[and(not(empty(parameters('automationId'))), not(empty(parameters('automationName'))))]",
+              "type": "Microsoft.Automation/automationAccounts/runbooks/draft/content",
+              "apiVersion": "2019-06-01",
+              "name": "[format('{0}/{1}/{2}/{3}', parameters('automationName'), 'create-postgresql-roles', 'content', 'content')]",
+              "properties": {
+                "content": "[variables('psqlRolesScript')]"
+              },
+              "dependsOn": [
+                "psqlRolesRunbookDraft"
+              ]
             }
           }
         }

@@ -1,0 +1,330 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.1-experimental",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+    "_EXPERIMENTAL_FEATURES_ENABLED": [
+      "Asserts"
+    ],
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "8110800240287636157"
+    }
+  },
+  "parameters": {
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name for naming seed."
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment (RFC-64: location)."
+      }
+    },
+    "customerAdminObjectId": {
+      "type": "string",
+      "metadata": {
+        "description": "Customer Admin Object ID."
+      }
+    },
+    "customerAdminPrincipalType": {
+      "type": "string",
+      "metadata": {
+        "description": "Customer Admin Principal Type."
+      }
+    }
+  },
+  "variables": {
+    "mockDiagnosticsOutputs": {
+      "lawId": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law"
+    }
+  },
+  "resources": {
+    "naming": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "naming",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "resourceGroupName": {
+            "value": "[parameters('resourceGroupName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "9599786196098502373"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "nano16": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(format('{0}{1}', substring(uniqueString(format('{0}-{1}-a', parameters('seed'), parameters('suffix'))), 0, 8), substring(uniqueString(format('{0}-{1}-b', parameters('seed'), parameters('suffix'))), 0, 8)))]"
+                  }
+                },
+                "nano8": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(substring(uniqueString(format('{0}-{1}', parameters('seed'), parameters('suffix'))), 0, 8))]"
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource group name used as seed for deterministic nanoid generation."
+              }
+            }
+          },
+          "variables": {
+            "seedPrefix": "[parameters('resourceGroupName')]",
+            "names": {
+              "uami": "[format('vd-uami-{0}', __bicep.nano16(variables('seedPrefix'), 'uami'))]",
+              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(variables('seedPrefix'), 'vnet'))]",
+              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappgw'))]",
+              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgaks'))]",
+              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappsvc'))]",
+              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgpe'))]",
+              "kv": "[format('vd-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'kv'))]",
+              "storage": "[format('vdst{0}', __bicep.nano8(variables('seedPrefix'), 'st'))]",
+              "acr": "[format('vdacr{0}', __bicep.nano8(variables('seedPrefix'), 'acr'))]",
+              "law": "[format('vd-law-{0}', __bicep.nano16(variables('seedPrefix'), 'law'))]",
+              "asp": "[format('vd-asp-{0}', __bicep.nano16(variables('seedPrefix'), 'asp'))]",
+              "agw": "[format('vd-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'agw'))]",
+              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'pipagw'))]",
+              "psql": "[format('vd-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'psql'))]",
+              "search": "[format('vd-search-{0}', __bicep.nano16(variables('seedPrefix'), 'search'))]",
+              "ai": "[format('vd-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'ai'))]",
+              "automation": "[format('vd-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'aa'))]",
+              "vm": "[format('vd-vm-{0}', __bicep.nano16(variables('seedPrefix'), 'vm'))]",
+              "bastion": "[format('vd-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'bastion'))]",
+              "pipBastion": "[format('vd-pip-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'pipbastion'))]",
+              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pekv'))]",
+              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pestblob'))]",
+              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pestqueue'))]",
+              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pesttable'))]",
+              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'peacr'))]",
+              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pesearch'))]",
+              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'peai'))]",
+              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'peaa'))]",
+              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnskv'))]",
+              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstblob'))]",
+              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstqueue'))]",
+              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssttable'))]",
+              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsacr'))]",
+              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssearch'))]",
+              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsai'))]",
+              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsaa'))]",
+              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'diagkv'))]",
+              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(variables('seedPrefix'), 'diagst'))]",
+              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'diagacr'))]",
+              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'diagagw'))]",
+              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'diagpsql'))]",
+              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(variables('seedPrefix'), 'diagsearch'))]",
+              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'diagai'))]",
+              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'diagaa'))]"
+            }
+          },
+          "resources": {},
+          "outputs": {
+            "names": {
+              "type": "object",
+              "value": "[variables('names')]"
+            }
+          }
+        }
+      }
+    },
+    "automation": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "automation",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "automationName": {
+            "value": "[reference('naming').outputs.names.value.automation]"
+          },
+          "lawId": {
+            "value": "[variables('mockDiagnosticsOutputs').lawId]"
+          },
+          "diagAutomationName": {
+            "value": "[reference('naming').outputs.names.value.diagAutomation]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "5635741664522698008"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "automationName": {
+              "type": "string",
+              "metadata": {
+                "description": "Automation Account name."
+              }
+            },
+            "lawId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace resource ID."
+              }
+            },
+            "diagAutomationName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "resources": {
+            "automation": {
+              "type": "Microsoft.Automation/automationAccounts",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('automationName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "sku": {
+                  "name": "Basic"
+                },
+                "disableLocalAuth": true
+              }
+            },
+            "automationDiag": {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.Automation/automationAccounts/{0}', parameters('automationName'))]",
+              "name": "[parameters('diagAutomationName')]",
+              "properties": {
+                "workspaceId": "[parameters('lawId')]",
+                "logs": [
+                  {
+                    "category": "JobLogs",
+                    "enabled": true
+                  },
+                  {
+                    "category": "JobStreams",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "automation"
+              ]
+            }
+          },
+          "outputs": {
+            "automationId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationName'))]"
+            },
+            "automationName": {
+              "type": "string",
+              "value": "[parameters('automationName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    }
+  },
+  "outputs": {
+    "automationId": {
+      "type": "string",
+      "value": "[reference('automation').outputs.automationId.value]"
+    },
+    "names": {
+      "type": "object",
+      "value": "[reference('naming').outputs.names.value]"
+    }
+  }
+}

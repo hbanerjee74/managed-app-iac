@@ -10,14 +10,14 @@ param uamiPrincipalId string
 param uamiId string
 
 @description('Customer admin Entra object ID.')
-param adminObjectId string
+param customerAdminObjectId string
 
-@description('Principal type for adminObjectId (User or Group).')
+@description('Principal type for customerAdminObjectId (User or Group).')
 @allowed([
   'User'
   'Group'
 ])
-param adminPrincipalType string = 'User'
+param customerAdminPrincipalType string = 'User'
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string = ''
@@ -43,320 +43,361 @@ param aiId string
 @description('Automation Account resource ID.')
 param automationId string
 
+@description('Automation Account name (for runbook creation).')
+param automationName string = ''
+
 @description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
 param isManagedApplication bool = true
+
+@description('Publisher admin Entra object ID (for managed applications only).')
+param publisherAdminObjectId string = ''
+
+@description('Principal type for publisherAdminObjectId (User or Group).')
+@allowed([
+  'User'
+  'Group'
+])
+param publisherAdminPrincipalType string = 'User'
 
 @description('Optional tags to apply.')
 param tags object = {}
 
+// Load PowerShell scripts from files
+var rbacUamiScript = loadTextContent('../../scripts/assign-rbac-roles-uami.ps1')
+var rbacCustomerAdminScript = loadTextContent('../../scripts/assign-rbac-roles-admin.ps1')
+var rbacPublisherAdminScript = loadTextContent('../../scripts/assign-rbac-roles-publisher-admin.ps1')
+
+// Reference Automation Account (if provided)
+resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' existing = if (!empty(automationId) && !empty(automationName)) {
+  name: automationName
+}
+
+// Generate unique script names for deploymentScripts
+var uamiForceUpdateTagValue = guid(resourceGroup().id, uamiId, 'rbac-uami-assignments')
+var uamiScriptNameSuffix = substring(uamiForceUpdateTagValue, 0, 8)
+var uamiScriptName = 'assign-rbac-roles-uami-${uamiScriptNameSuffix}'
+
+var customerAdminForceUpdateTagValue = guid(resourceGroup().id, customerAdminObjectId, 'rbac-customer-admin-assignments')
+var customerAdminScriptNameSuffix = substring(customerAdminForceUpdateTagValue, 0, 8)
+var customerAdminScriptName = 'assign-rbac-roles-customer-admin-${customerAdminScriptNameSuffix}'
+
+var publisherAdminForceUpdateTagValue = guid(resourceGroup().id, publisherAdminObjectId, 'rbac-publisher-admin-assignments')
+var publisherAdminScriptNameSuffix = substring(publisherAdminForceUpdateTagValue, 0, 8)
+var publisherAdminScriptName = 'assign-rbac-roles-publisher-admin-${publisherAdminScriptNameSuffix}'
+
+// Deployment script for UAMI RBAC role assignments during deployment
+resource assignRbacRolesUami 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: uamiScriptName
+  location: location
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${uamiId}': {}
+    }
+  }
+  properties: {
+    forceUpdateTag: uamiForceUpdateTagValue
+    retentionInterval: 'PT1H'
+    azPowerShellVersion: '11.0'
+    scriptContent: rbacUamiScript
+    supportingScriptUris: []
+    timeout: 'PT15M'
+    environmentVariables: [
+      {
+        name: 'RESOURCE_GROUP_ID'
+        value: resourceGroup().id
+      }
+      {
+        name: 'UAMI_PRINCIPAL_ID'
+        value: uamiPrincipalId
+      }
+      {
+        name: 'UAMI_ID'
+        value: uamiId
+      }
+      {
+        name: 'LAW_ID'
+        value: lawId
+      }
+      {
+        name: 'LAW_NAME'
+        value: lawName
+      }
+      {
+        name: 'KV_ID'
+        value: kvId
+      }
+      {
+        name: 'STORAGE_ID'
+        value: storageId
+      }
+      {
+        name: 'ACR_ID'
+        value: acrId
+      }
+      {
+        name: 'SEARCH_ID'
+        value: searchId
+      }
+      {
+        name: 'AI_ID'
+        value: aiId
+      }
+      {
+        name: 'AUTOMATION_ID'
+        value: automationId
+      }
+      {
+        name: 'IS_MANAGED_APPLICATION'
+        value: string(isManagedApplication)
+      }
+    ]
+  }
+}
+
+// Deployment script for Customer Admin RBAC role assignments during deployment
+resource assignRbacRolesCustomerAdmin 'Microsoft.Resources/deploymentScripts@2020-10-01' = if (!empty(customerAdminObjectId)) {
+  name: customerAdminScriptName
+  location: location
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${uamiId}': {}
+    }
+  }
+  properties: {
+    forceUpdateTag: customerAdminForceUpdateTagValue
+    retentionInterval: 'PT1H'
+    azPowerShellVersion: '11.0'
+    scriptContent: rbacCustomerAdminScript
+    supportingScriptUris: []
+    timeout: 'PT15M'
+    environmentVariables: [
+      {
+        name: 'RESOURCE_GROUP_ID'
+        value: resourceGroup().id
+      }
+      {
+        name: 'CUSTOMER_ADMIN_OBJECT_ID'
+        value: customerAdminObjectId
+      }
+      {
+        name: 'CUSTOMER_ADMIN_PRINCIPAL_TYPE'
+        value: customerAdminPrincipalType
+      }
+      {
+        name: 'KV_ID'
+        value: kvId
+      }
+      {
+        name: 'STORAGE_ID'
+        value: storageId
+      }
+      {
+        name: 'ACR_ID'
+        value: acrId
+      }
+      {
+        name: 'SEARCH_ID'
+        value: searchId
+      }
+      {
+        name: 'AI_ID'
+        value: aiId
+      }
+      {
+        name: 'AUTOMATION_ID'
+        value: automationId
+      }
+    ]
+  }
+}
+
+// Deployment script for Publisher Admin RBAC role assignments during deployment
+// Only runs for managed applications when publisherAdminObjectId is provided
+resource assignRbacRolesPublisherAdmin 'Microsoft.Resources/deploymentScripts@2020-10-01' = if (isManagedApplication && !empty(publisherAdminObjectId)) {
+  name: publisherAdminScriptName
+  location: location
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${uamiId}': {}
+    }
+  }
+  properties: {
+    forceUpdateTag: publisherAdminForceUpdateTagValue
+    retentionInterval: 'PT1H'
+    azPowerShellVersion: '11.0'
+    scriptContent: rbacPublisherAdminScript
+    supportingScriptUris: []
+    timeout: 'PT15M'
+    environmentVariables: [
+      {
+        name: 'RESOURCE_GROUP_ID'
+        value: resourceGroup().id
+      }
+      {
+        name: 'PUBLISHER_ADMIN_OBJECT_ID'
+        value: publisherAdminObjectId
+      }
+      {
+        name: 'PUBLISHER_ADMIN_PRINCIPAL_TYPE'
+        value: publisherAdminPrincipalType
+      }
+      {
+        name: 'KV_ID'
+        value: kvId
+      }
+      {
+        name: 'STORAGE_ID'
+        value: storageId
+      }
+      {
+        name: 'ACR_ID'
+        value: acrId
+      }
+      {
+        name: 'SEARCH_ID'
+        value: searchId
+      }
+      {
+        name: 'AI_ID'
+        value: aiId
+      }
+      {
+        name: 'AUTOMATION_ID'
+        value: automationId
+      }
+    ]
+  }
+}
+
 // ============================================================================
-// UAMI RBAC ASSIGNMENTS
+// RBAC ASSIGNMENTS MOVED TO POWERSHELL SCRIPTS
+// All role assignments are now performed by separate scripts:
+// - assign-rbac-roles-uami.ps1 for UAMI role assignments
+// - assign-rbac-roles-admin.ps1 for Customer Admin role assignments
+// Scripts are executed via deploymentScripts above and available as automation runbooks below
 // ============================================================================
 
-// UAMI: Contributor on Resource Group
-resource uamiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, uamiId, 'Contributor')
-  scope: resourceGroup()
+// Automation Runbook for UAMI RBAC role assignments
+// This runbook allows admins to re-apply UAMI RBAC assignments on-demand
+// Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
+resource rbacUamiRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (!empty(automationId) && !empty(automationName)) {
+  parent: automationAccount
+  name: 'assign-rbac-roles-uami'
+  location: location
+  tags: tags
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-    delegatedManagedIdentityResourceId: isManagedApplication ? uamiId : null
-  }
-}
-
-// UAMI: Log Analytics Contributor (if LAW provided)
-resource law 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = if (!empty(lawName)) {
-  name: lawName
-}
-
-resource uamiLawContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(lawName)) {
-  name: guid(law.id, uamiId, 'LAW-Contrib')
-  scope: law
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '73c42c96-874c-492b-b04d-ab87d138a893') // Log Analytics Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-    delegatedManagedIdentityResourceId: isManagedApplication ? uamiId : null
+    runbookType: 'PowerShell'
+    logVerbose: false
+    logProgress: true
+    description: 'Assigns all RBAC roles for UAMI. Can be run by admins to re-apply UAMI RBAC assignments. Parameters: ResourceGroupId, UamiPrincipalId, UamiId, LawId, LawName, KvId, StorageId, AcrId, SearchId, AiId, AutomationId, IsManagedApplication.'
   }
   dependsOn: [
-    law
+    automationAccount
   ]
 }
 
-// UAMI: Key Vault Secrets Officer
-resource kv 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
-  name: split(kvId, '/')[8]
+// UAMI Runbook draft - required parent for content
+resource rbacUamiRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = if (!empty(automationId) && !empty(automationName)) {
+  parent: rbacUamiRunbook
+  name: 'content'
 }
 
-resource uamiKvSecretsOfficer 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(kv.id, uamiPrincipalId, 'kv-secret-officer')
-  scope: kv
+// UAMI Runbook draft content (PowerShell script)
+// Note: After deployment, the runbook needs to be published via Azure Portal or API
+// Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name assign-rbac-roles-uami
+// The runbook will be in draft state until published
+resource rbacUamiRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = if (!empty(automationId) && !empty(automationName)) {
+  parent: rbacUamiRunbookDraft
+  name: 'content'
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7') // Key Vault Secrets Officer
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
+    content: rbacUamiScript
+  }
+}
+
+// Automation Runbook for Customer Admin RBAC role assignments
+// This runbook allows admins to re-apply Customer Admin RBAC assignments on-demand
+// Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
+resource rbacCustomerAdminRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (!empty(automationId) && !empty(automationName) && !empty(customerAdminObjectId)) {
+  parent: automationAccount
+  name: 'assign-rbac-roles-admin'
+  location: location
+  tags: tags
+  properties: {
+    runbookType: 'PowerShell'
+    logVerbose: false
+    logProgress: true
+    description: 'Assigns all RBAC roles for Customer Admin. Can be run by admins to re-apply Customer Admin RBAC assignments. Parameters: ResourceGroupId, CustomerAdminObjectId, CustomerAdminPrincipalType (User or Group, defaults to User), KvId, StorageId, AcrId, SearchId, AiId, AutomationId.'
   }
   dependsOn: [
-    kv
+    automationAccount
   ]
 }
 
-// UAMI: Storage Blob Data Contributor
-resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
-  name: split(storageId, '/')[8]
+// Customer Admin Runbook draft - required parent for content
+resource rbacCustomerAdminRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = if (!empty(automationId) && !empty(automationName) && !empty(customerAdminObjectId)) {
+  parent: rbacCustomerAdminRunbook
+  name: 'content'
 }
 
-resource uamiStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storage.id, uamiPrincipalId, 'st-blob-data-contrib')
-  scope: storage
+// Customer Admin Runbook draft content (PowerShell script)
+// Note: After deployment, the runbook needs to be published via Azure Portal or API
+// Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name assign-rbac-roles-admin
+// The runbook will be in draft state until published
+resource rbacCustomerAdminRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = if (!empty(automationId) && !empty(automationName) && !empty(customerAdminObjectId)) {
+  parent: rbacCustomerAdminRunbookDraft
+  name: 'content'
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
+    content: rbacCustomerAdminScript
+  }
+}
+
+// Automation Runbook for Publisher Admin RBAC role assignments
+// This runbook allows admins to re-apply Publisher Admin RBAC assignments on-demand
+// Only created for managed applications
+// Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
+resource rbacPublisherAdminRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (isManagedApplication && !empty(automationId) && !empty(automationName) && !empty(publisherAdminObjectId)) {
+  parent: automationAccount
+  name: 'assign-rbac-roles-publisher-admin'
+  location: location
+  tags: tags
+  properties: {
+    runbookType: 'PowerShell'
+    logVerbose: false
+    logProgress: true
+    description: 'Assigns all RBAC roles for Publisher Admin (same as Customer Admin). Can be run by admins to re-apply Publisher Admin RBAC assignments. Parameters: ResourceGroupId, PublisherAdminObjectId, PublisherAdminPrincipalType, KvId, StorageId, AcrId, SearchId, AiId, AutomationId.'
   }
   dependsOn: [
-    storage
+    automationAccount
   ]
 }
 
-// UAMI: Storage Queue Data Contributor
-resource uamiStorageQueueContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storage.id, uamiPrincipalId, 'st-queue-data-contrib')
-  scope: storage
+// Publisher Admin Runbook draft - required parent for content
+resource rbacPublisherAdminRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = if (isManagedApplication && !empty(automationId) && !empty(automationName) && !empty(publisherAdminObjectId)) {
+  parent: rbacPublisherAdminRunbook
+  name: 'content'
+}
+
+// Publisher Admin Runbook draft content (PowerShell script)
+// Note: After deployment, the runbook needs to be published via Azure Portal or API
+// Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name assign-rbac-roles-publisher-admin
+// The runbook will be in draft state until published
+resource rbacPublisherAdminRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = if (isManagedApplication && !empty(automationId) && !empty(automationName) && !empty(publisherAdminObjectId)) {
+  parent: rbacPublisherAdminRunbookDraft
+  name: 'content'
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88') // Storage Queue Data Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
+    content: rbacPublisherAdminScript
   }
-  dependsOn: [
-    storage
-  ]
-}
-
-// UAMI: Storage Table Data Contributor
-resource uamiStorageTableContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storage.id, uamiPrincipalId, 'st-table-data-contrib')
-  scope: storage
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3') // Storage Table Data Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    storage
-  ]
-}
-
-// UAMI: AcrPull
-resource acr 'Microsoft.ContainerRegistry/registries@2023-06-01-preview' existing = {
-  name: split(acrId, '/')[8]
-}
-
-resource uamiAcrPull 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(acr.id, uamiPrincipalId, 'acr-pull')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    acr
-  ]
-}
-
-// UAMI: AcrPush
-resource uamiAcrPush 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(acr.id, uamiPrincipalId, 'acr-push')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec') // AcrPush
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    acr
-  ]
-}
-
-// UAMI: Search Service Contributor
-resource search 'Microsoft.Search/searchServices@2023-11-01' existing = {
-  name: split(searchId, '/')[8]
-}
-
-resource uamiSearchContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(search.id, uamiPrincipalId, 'search-contrib')
-  scope: search
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772') // Search Service Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    search
-  ]
-}
-
-// UAMI: Cognitive Services Contributor
-resource ai 'Microsoft.CognitiveServices/accounts@2023-05-01' existing = {
-  name: split(aiId, '/')[8]
-}
-
-resource uamiAiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(ai.id, uamiPrincipalId, 'ai-contrib')
-  scope: ai
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908') // Cognitive Services Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    ai
-  ]
-}
-
-// UAMI: Automation Job Operator
-resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' existing = {
-  name: split(automationId, '/')[8]
-}
-
-resource uamiAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(automation.id, uamiPrincipalId, 'automation-job-operator')
-  scope: automation
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    automation
-  ]
 }
 
 // ============================================================================
-// ADMIN RBAC ASSIGNMENTS
+// LEGACY RBAC ASSIGNMENTS REMOVED
+// All RBAC assignments are now handled by the PowerShell script executed via deploymentScripts
+// The script creates all role assignments programmatically using Azure CLI
+// Legacy Bicep resources have been replaced with script execution for better maintainability
 // ============================================================================
-
-// Admin: Reader on Resource Group
-resource adminReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, adminObjectId, 'Reader')
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7') // Reader
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-}
-
-// Admin: Key Vault Secrets User (read-only access to secrets)
-resource adminKvSecretsUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(kv.id, adminObjectId, 'kv-secrets-user')
-  scope: kv
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6') // Key Vault Secrets User
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    kv
-  ]
-}
-
-// Admin: Storage Blob Data Reader
-resource adminStorageBlobReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storage.id, adminObjectId, 'st-blob-reader')
-  scope: storage
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1') // Storage Blob Data Reader
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    storage
-  ]
-}
-
-// Admin: Storage Queue Data Reader
-resource adminStorageQueueReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storage.id, adminObjectId, 'st-queue-reader')
-  scope: storage
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '19e7f393-937e-4f77-808e-945a386e9b0a') // Storage Queue Data Reader
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    storage
-  ]
-}
-
-// Admin: Storage Table Data Reader
-resource adminStorageTableReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(storage.id, adminObjectId, 'st-table-reader')
-  scope: storage
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '76199698-9eea-4c19-bc75-cec21354c015') // Storage Table Data Reader
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    storage
-  ]
-}
-
-// Admin: AcrPull (read-only access to images)
-resource adminAcrPull 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(acr.id, adminObjectId, 'acr-pull')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    acr
-  ]
-}
-
-// Admin: Search Service Reader
-resource adminSearchReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(search.id, adminObjectId, 'search-reader')
-  scope: search
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '88308d66-4209-4f3e-9b77-8200b49e9c22') // Search Service Reader
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    search
-  ]
-}
-
-// Admin: Cognitive Services User (read-only access)
-resource adminCognitiveServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(ai.id, adminObjectId, 'ai-user')
-  scope: ai
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908') // Cognitive Services User
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    ai
-  ]
-}
-
-// Admin: Automation Job Operator
-resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(adminObjectId)) {
-  name: guid(automation.id, adminObjectId, 'automation-job-operator')
-  scope: automation
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-  dependsOn: [
-    automation
-  ]
-}

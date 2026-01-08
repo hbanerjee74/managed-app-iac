@@ -24,11 +24,11 @@ param backupRetentionDays int
 @description('Log Analytics retention in days (RFC-64: retentionDays).')
 param retentionDays int
 
-@description('Admin Object ID.')
-param adminObjectId string
+@description('Customer Admin Object ID.')
+param customerAdminObjectId string
 
-@description('Admin Principal Type.')
-param adminPrincipalType string
+@description('Customer Admin Principal Type.')
+param customerAdminPrincipalType string
 
 // Include naming module
 module naming '../../../iac/lib/naming.bicep' = {

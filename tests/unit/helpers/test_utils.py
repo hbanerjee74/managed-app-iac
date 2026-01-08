@@ -293,18 +293,18 @@ def run_what_if(
         # 1. Not already in module params (module params take precedence)
         # 2. Parameter is declared in the Bicep template (to avoid ARM validation errors)
         if param_name not in module_params['parameters'] and param_name in declared_params:
-            # Special handling for adminObjectId: replace dummy value with current user's object ID
-            if param_name == 'adminObjectId':
+            # Special handling for customerAdminObjectId: replace dummy value with current user's object ID
+            if param_name == 'customerAdminObjectId':
                 current_value = param_value.get('value', '')
                 # If it's the dummy value, replace with current user's object ID
                 if current_value == '00000000-0000-0000-0000-000000000000':
                     try:
                         current_user_id = get_current_user_object_id()
                         module_params['parameters'][param_name] = {'value': current_user_id}
-                        print(f"Using current user's object ID for adminObjectId: {current_user_id}")
+                        print(f"Using current user's object ID for customerAdminObjectId: {current_user_id}")
                     except RuntimeError as e:
                         # If we can't get the current user ID, use the original value
-                        print(f"Warning: {e}. Using adminObjectId from params.dev.json")
+                        print(f"Warning: {e}. Using customerAdminObjectId from params.dev.json")
                         module_params['parameters'][param_name] = param_value
                 else:
                     # Use the value from params.dev.json as-is

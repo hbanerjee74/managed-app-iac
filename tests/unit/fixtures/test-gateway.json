@@ -1,0 +1,724 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.1-experimental",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+    "_EXPERIMENTAL_FEATURES_ENABLED": [
+      "Asserts"
+    ],
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "11492192328397970907"
+    }
+  },
+  "parameters": {
+    "subscriptionId": {
+      "type": "string",
+      "metadata": {
+        "description": "Subscription ID for constructing mock resource IDs."
+      }
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name for naming seed."
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment (RFC-64: location)."
+      }
+    },
+    "customerIpRanges": {
+      "type": "array",
+      "metadata": {
+        "description": "Customer IP ranges for WAF allowlist (RFC-64: customerIpRanges)."
+      }
+    },
+    "publisherIpRanges": {
+      "type": "array",
+      "metadata": {
+        "description": "Publisher IP ranges for WAF allowlist (RFC-64: publisherIpRanges)."
+      }
+    },
+    "appGwCapacity": {
+      "type": "int",
+      "metadata": {
+        "description": "Application Gateway capacity (RFC-64: appGwCapacity)."
+      }
+    },
+    "appGwSku": {
+      "type": "string",
+      "metadata": {
+        "description": "Application Gateway SKU (RFC-64: appGwSku)."
+      }
+    }
+  },
+  "variables": {
+    "mockNetworkOutputs": {
+      "subnetAppgwId": "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-appgw', parameters('subscriptionId'), parameters('resourceGroupName'))]"
+    },
+    "mockDiagnosticsOutputs": {
+      "lawId": "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.OperationalInsights/workspaces/test-law', parameters('subscriptionId'), parameters('resourceGroupName'))]"
+    }
+  },
+  "resources": {
+    "naming": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "naming",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "resourceGroupName": {
+            "value": "[parameters('resourceGroupName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "9599786196098502373"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "nano16": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(format('{0}{1}', substring(uniqueString(format('{0}-{1}-a', parameters('seed'), parameters('suffix'))), 0, 8), substring(uniqueString(format('{0}-{1}-b', parameters('seed'), parameters('suffix'))), 0, 8)))]"
+                  }
+                },
+                "nano8": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(substring(uniqueString(format('{0}-{1}', parameters('seed'), parameters('suffix'))), 0, 8))]"
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource group name used as seed for deterministic nanoid generation."
+              }
+            }
+          },
+          "variables": {
+            "seedPrefix": "[parameters('resourceGroupName')]",
+            "names": {
+              "uami": "[format('vd-uami-{0}', __bicep.nano16(variables('seedPrefix'), 'uami'))]",
+              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(variables('seedPrefix'), 'vnet'))]",
+              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappgw'))]",
+              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgaks'))]",
+              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappsvc'))]",
+              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgpe'))]",
+              "kv": "[format('vd-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'kv'))]",
+              "storage": "[format('vdst{0}', __bicep.nano8(variables('seedPrefix'), 'st'))]",
+              "acr": "[format('vdacr{0}', __bicep.nano8(variables('seedPrefix'), 'acr'))]",
+              "law": "[format('vd-law-{0}', __bicep.nano16(variables('seedPrefix'), 'law'))]",
+              "asp": "[format('vd-asp-{0}', __bicep.nano16(variables('seedPrefix'), 'asp'))]",
+              "agw": "[format('vd-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'agw'))]",
+              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'pipagw'))]",
+              "psql": "[format('vd-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'psql'))]",
+              "search": "[format('vd-search-{0}', __bicep.nano16(variables('seedPrefix'), 'search'))]",
+              "ai": "[format('vd-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'ai'))]",
+              "automation": "[format('vd-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'aa'))]",
+              "vm": "[format('vd-vm-{0}', __bicep.nano16(variables('seedPrefix'), 'vm'))]",
+              "bastion": "[format('vd-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'bastion'))]",
+              "pipBastion": "[format('vd-pip-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'pipbastion'))]",
+              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pekv'))]",
+              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pestblob'))]",
+              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pestqueue'))]",
+              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pesttable'))]",
+              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'peacr'))]",
+              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pesearch'))]",
+              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'peai'))]",
+              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'peaa'))]",
+              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnskv'))]",
+              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstblob'))]",
+              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstqueue'))]",
+              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssttable'))]",
+              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsacr'))]",
+              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssearch'))]",
+              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsai'))]",
+              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsaa'))]",
+              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'diagkv'))]",
+              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(variables('seedPrefix'), 'diagst'))]",
+              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'diagacr'))]",
+              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'diagagw'))]",
+              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'diagpsql'))]",
+              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(variables('seedPrefix'), 'diagsearch'))]",
+              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'diagai'))]",
+              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'diagaa'))]"
+            }
+          },
+          "resources": {},
+          "outputs": {
+            "names": {
+              "type": "object",
+              "value": "[variables('names')]"
+            }
+          }
+        }
+      }
+    },
+    "publicIp": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "publicIp",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "pipName": {
+            "value": "[reference('naming').outputs.names.value.pipAgw]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "7069138651985408903"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "pipName": {
+              "type": "string",
+              "metadata": {
+                "description": "Public IP name."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "resources": {
+            "pip": {
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('pipName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Static"
+              }
+            }
+          },
+          "outputs": {
+            "pipId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('pipName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    },
+    "wafPolicy": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "wafPolicy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "wafPolicyName": {
+            "value": "[format('{0}-waf', reference('naming').outputs.names.value.agw)]"
+          },
+          "customerIpRanges": {
+            "value": "[parameters('customerIpRanges')]"
+          },
+          "publisherIpRanges": {
+            "value": "[parameters('publisherIpRanges')]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "17654329828128695486"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "wafPolicyName": {
+              "type": "string",
+              "metadata": {
+                "description": "WAF Policy name."
+              }
+            },
+            "customerIpRanges": {
+              "type": "array",
+              "metadata": {
+                "description": "Customer IP ranges for WAF allowlist."
+              }
+            },
+            "publisherIpRanges": {
+              "type": "array",
+              "metadata": {
+                "description": "Publisher IP ranges for WAF allowlist."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "variables": {
+            "copy": [
+              {
+                "name": "wafAllowRules",
+                "count": "[length(variables('wafRules'))]",
+                "input": {
+                  "name": "[variables('wafRules')[copyIndex('wafAllowRules')].name]",
+                  "priority": "[variables('wafRules')[copyIndex('wafAllowRules')].priority]",
+                  "ruleType": "MatchRule",
+                  "action": "[variables('wafRules')[copyIndex('wafAllowRules')].action]",
+                  "state": "Enabled",
+                  "matchConditions": [
+                    {
+                      "matchVariables": [
+                        {
+                          "variableName": "RemoteAddr"
+                        }
+                      ],
+                      "operator": "IPMatch",
+                      "matchValues": "[variables('wafRules')[copyIndex('wafAllowRules')].cidrs]"
+                    }
+                  ]
+                }
+              }
+            ],
+            "wafRules": [
+              {
+                "name": "Allow-Customer",
+                "priority": 1,
+                "action": "Allow",
+                "cidrs": "[parameters('customerIpRanges')]"
+              },
+              {
+                "name": "Allow-Publisher",
+                "priority": 2,
+                "action": "Allow",
+                "cidrs": "[parameters('publisherIpRanges')]"
+              }
+            ],
+            "wafCustomRules": "[concat(variables('wafAllowRules'), createArray(createObject('name', 'Deny-All', 'priority', 3, 'ruleType', 'MatchRule', 'action', 'Block', 'state', 'Enabled', 'matchConditions', createArray(createObject('matchVariables', createArray(createObject('variableName', 'RemoteAddr')), 'operator', 'IPMatch', 'matchValues', createArray('0.0.0.0/0'))))))]"
+          },
+          "resources": {
+            "agwPolicy": {
+              "type": "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
+              "apiVersion": "2022-09-01",
+              "name": "[parameters('wafPolicyName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "policySettings": {
+                  "mode": "Prevention",
+                  "state": "Enabled",
+                  "requestBodyCheck": true
+                },
+                "customRules": "[variables('wafCustomRules')]",
+                "managedRules": {
+                  "managedRuleSets": [
+                    {
+                      "ruleSetType": "OWASP",
+                      "ruleSetVersion": "3.2"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "outputs": {
+            "wafPolicyId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies', parameters('wafPolicyName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    },
+    "gateway": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "gateway",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "agwName": {
+            "value": "[reference('naming').outputs.names.value.agw]"
+          },
+          "pipId": {
+            "value": "[reference('publicIp').outputs.pipId.value]"
+          },
+          "wafPolicyId": {
+            "value": "[reference('wafPolicy').outputs.wafPolicyId.value]"
+          },
+          "subnetAppgwId": {
+            "value": "[variables('mockNetworkOutputs').subnetAppgwId]"
+          },
+          "lawId": {
+            "value": "[variables('mockDiagnosticsOutputs').lawId]"
+          },
+          "appGwCapacity": {
+            "value": "[parameters('appGwCapacity')]"
+          },
+          "appGwSku": {
+            "value": "[parameters('appGwSku')]"
+          },
+          "diagAgwName": {
+            "value": "[reference('naming').outputs.names.value.diagAgw]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "2082390513536726496"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "agwName": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Gateway name."
+              }
+            },
+            "pipId": {
+              "type": "string",
+              "metadata": {
+                "description": "Public IP resource ID."
+              }
+            },
+            "wafPolicyId": {
+              "type": "string",
+              "metadata": {
+                "description": "WAF Policy resource ID."
+              }
+            },
+            "subnetAppgwId": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Gateway subnet ID."
+              }
+            },
+            "lawId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace resource ID."
+              }
+            },
+            "appGwCapacity": {
+              "type": "int",
+              "defaultValue": 1,
+              "metadata": {
+                "description": "Application Gateway capacity (from RFC-64 appGwCapacity display)."
+              }
+            },
+            "appGwSku": {
+              "type": "string",
+              "defaultValue": "WAF_v2",
+              "metadata": {
+                "description": "Application Gateway SKU (from RFC-64 appGwSku display)."
+              }
+            },
+            "diagAgwName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "resources": {
+            "appGw": {
+              "type": "Microsoft.Network/applicationGateways",
+              "apiVersion": "2021-08-01",
+              "name": "[parameters('agwName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "[parameters('appGwSku')]",
+                  "tier": "WAF_v2",
+                  "capacity": "[parameters('appGwCapacity')]"
+                },
+                "enableHttp2": true,
+                "gatewayIPConfigurations": [
+                  {
+                    "name": "appgw-ipconfig",
+                    "properties": {
+                      "subnet": {
+                        "id": "[parameters('subnetAppgwId')]"
+                      }
+                    }
+                  }
+                ],
+                "frontendIPConfigurations": [
+                  {
+                    "name": "appgw-feip",
+                    "properties": {
+                      "publicIPAddress": {
+                        "id": "[parameters('pipId')]"
+                      }
+                    }
+                  }
+                ],
+                "frontendPorts": [
+                  {
+                    "name": "https-port",
+                    "properties": {
+                      "port": 443
+                    }
+                  },
+                  {
+                    "name": "http-port",
+                    "properties": {
+                      "port": 80
+                    }
+                  }
+                ],
+                "backendAddressPools": [
+                  {
+                    "name": "placeholder-pool",
+                    "properties": {
+                      "backendAddresses": []
+                    }
+                  }
+                ],
+                "backendHttpSettingsCollection": [
+                  {
+                    "name": "default-setting",
+                    "properties": {
+                      "protocol": "Https",
+                      "port": 443,
+                      "pickHostNameFromBackendAddress": true,
+                      "requestTimeout": 60,
+                      "connectionDraining": {
+                        "enabled": true,
+                        "drainTimeoutInSec": 60
+                      }
+                    }
+                  }
+                ],
+                "httpListeners": [
+                  {
+                    "name": "placeholder-listener",
+                    "properties": {
+                      "frontendIPConfiguration": {
+                        "id": "[format('{0}/resourceGroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/frontendIPConfigurations/appgw-feip', subscription().id, resourceGroup().name, parameters('agwName'))]"
+                      },
+                      "frontendPort": {
+                        "id": "[format('{0}/resourceGroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/frontendPorts/http-port', subscription().id, resourceGroup().name, parameters('agwName'))]"
+                      },
+                      "protocol": "Http"
+                    }
+                  }
+                ],
+                "requestRoutingRules": [
+                  {
+                    "name": "placeholder-rule",
+                    "properties": {
+                      "ruleType": "Basic",
+                      "priority": 100,
+                      "httpListener": {
+                        "id": "[format('{0}/resourceGroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/httpListeners/placeholder-listener', subscription().id, resourceGroup().name, parameters('agwName'))]"
+                      },
+                      "backendAddressPool": {
+                        "id": "[format('{0}/resourceGroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/backendAddressPools/placeholder-pool', subscription().id, resourceGroup().name, parameters('agwName'))]"
+                      },
+                      "backendHttpSettings": {
+                        "id": "[format('{0}/resourceGroups/{1}/providers/Microsoft.Network/applicationGateways/{2}/backendHttpSettingsCollection/default-setting', subscription().id, resourceGroup().name, parameters('agwName'))]"
+                      }
+                    }
+                  }
+                ],
+                "probes": [],
+                "firewallPolicy": {
+                  "id": "[parameters('wafPolicyId')]"
+                }
+              }
+            },
+            "appGwDiag": {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.Network/applicationGateways/{0}', parameters('agwName'))]",
+              "name": "[parameters('diagAgwName')]",
+              "properties": {
+                "workspaceId": "[parameters('lawId')]",
+                "logs": [
+                  {
+                    "category": "ApplicationGatewayAccessLog",
+                    "enabled": true
+                  },
+                  {
+                    "category": "ApplicationGatewayPerformanceLog",
+                    "enabled": true
+                  },
+                  {
+                    "category": "ApplicationGatewayFirewallLog",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "appGw"
+              ]
+            }
+          },
+          "outputs": {
+            "appGwId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/applicationGateways', parameters('agwName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming",
+        "publicIp",
+        "wafPolicy"
+      ]
+    }
+  },
+  "outputs": {
+    "names": {
+      "type": "object",
+      "value": "[reference('naming').outputs.names.value]"
+    }
+  }
+}

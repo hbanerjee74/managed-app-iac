@@ -59,8 +59,8 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 - `resourceGroupName` (replaces `resourceGroup` and `mrgName`)
 - `location`
 - `contactEmail`
-- `adminObjectId`
-- `adminPrincipalType`
+- `customerAdminObjectId` - Customer admin Entra object ID
+- `customerAdminPrincipalType` - Principal type for customer admin (User or Group, defaults to User)
 
 **Network:**
 
@@ -83,6 +83,11 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 - `backupRetentionDays` - PostgreSQL backup retention (default: 7, range: 7-35)
 - `retentionDays` - Log Analytics retention (default: 30, range: 30-730)
 
+**Managed Application (optional):**
+
+- `publisherAdminObjectId` - Publisher admin Entra object ID (for managed applications only)
+- `publisherAdminPrincipalType` - Principal type for publisher admin (User or Group, defaults to User)
+
 For full parameter documentation, see RFC-64.
 
 ## `isManagedApplication` Parameter
@@ -93,9 +98,9 @@ The `isManagedApplication` parameter controls behavior differences between manag
 
 **Usage:**
 
-1. **RBAC Module** (`iac/modules/rbac.bicep`): Controls `delegatedManagedIdentityResourceId` property in role assignments
-   - `true`: Sets to UAMI ID (required for cross-tenant managed apps)
-   - `false`: Sets to `null` (same-tenant testing)
+1. **RBAC Module** (`iac/modules/rbac.bicep`): Controls `delegatedManagedIdentityResourceId` property in role assignments and Publisher Admin runbook creation
+   - `true`: Sets `delegatedManagedIdentityResourceId` to UAMI ID (required for cross-tenant managed apps) and creates Publisher Admin runbook
+   - `false`: Sets `delegatedManagedIdentityResourceId` to `null` (same-tenant testing) and skips Publisher Admin runbook creation
 
 2. **Main Template** (`iac/main.bicep`): Controls tag application logic
    - `false`: Uses `defaultTags` from metadata if individual tag params are empty
@@ -109,6 +114,154 @@ The `isManagedApplication` parameter controls behavior differences between manag
 ## Testing
 
 For comprehensive testing documentation, see [`tests/README.md`](tests/README.md).
+
+## Updating RBAC After Deployment
+
+RBAC role assignments are executed during deployment via PowerShell scripts and are also available as automation runbooks for on-demand updates. This allows you to re-apply RBAC assignments without redeploying the entire infrastructure.
+
+### Available Runbooks
+
+Three automation runbooks are created during deployment:
+
+1. **`assign-rbac-roles-uami`** - Re-applies all RBAC roles for the User-Assigned Managed Identity (UAMI)
+2. **`assign-rbac-roles-admin`** - Re-applies all RBAC roles for Customer Admin
+3. **`assign-rbac-roles-publisher-admin`** - Re-applies all RBAC roles for Publisher Admin (managed applications only)
+
+### Publishing Runbooks
+
+Runbooks are created in draft state and must be published before they can be executed. Publish runbooks via Azure Portal or Azure CLI:
+
+**Via Azure CLI:**
+
+```bash
+# Publish UAMI runbook
+az automation runbook publish \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-uami
+
+# Publish Customer Admin runbook
+az automation runbook publish \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-admin
+
+# Publish Publisher Admin runbook (managed applications only)
+az automation runbook publish \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-publisher-admin
+```
+
+**Via Azure Portal:**
+
+1. Navigate to your Automation Account in the Azure Portal
+2. Go to **Runbooks** under **Process Automation**
+3. Find the runbook (e.g., `assign-rbac-roles-uami`)
+4. Click **Edit** → **Publish** → **Yes**
+
+### Executing Runbooks
+
+Once published, runbooks can be executed on-demand to re-apply RBAC assignments:
+
+**Via Azure CLI:**
+
+```bash
+# Execute UAMI runbook
+az automation runbook start \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-uami
+
+# Execute Customer Admin runbook
+az automation runbook start \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-admin
+
+# Execute Publisher Admin runbook (managed applications only)
+az automation runbook start \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-publisher-admin
+```
+
+**Via Azure Portal:**
+
+1. Navigate to your Automation Account → **Runbooks**
+2. Select the runbook you want to execute
+3. Click **Start** → **OK**
+
+### Runbook Parameters
+
+Runbooks accept parameters when executed. The scripts use parameter defaults from environment variables (set during deployment), but parameters can also be passed explicitly when starting runbooks.
+
+**Required parameters for each runbook:**
+
+**`assign-rbac-roles-uami`:**
+- `ResourceGroupId` - Resource group resource ID
+- `UamiPrincipalId` - UAMI principal ID
+- `UamiId` - UAMI resource ID
+- `LawId` - Log Analytics Workspace resource ID
+- `LawName` - Log Analytics Workspace name
+- `KvId` - Key Vault resource ID
+- `StorageId` - Storage Account resource ID
+- `AcrId` - Container Registry resource ID
+- `SearchId` - Azure AI Search resource ID
+- `AiId` - Cognitive Services resource ID
+- `AutomationId` - Automation Account resource ID
+- `IsManagedApplication` - Boolean flag (true/false)
+
+**`assign-rbac-roles-admin` (Customer Admin):**
+- `ResourceGroupId` - Resource group resource ID
+- `CustomerAdminObjectId` - Customer admin Entra object ID
+- `CustomerAdminPrincipalType` - Principal type (User or Group)
+- `KvId` - Key Vault resource ID
+- `StorageId` - Storage Account resource ID
+- `AcrId` - Container Registry resource ID
+- `SearchId` - Azure AI Search resource ID
+- `AiId` - Cognitive Services resource ID
+- `AutomationId` - Automation Account resource ID
+
+**`assign-rbac-roles-publisher-admin` (Publisher Admin):**
+- Same parameters as Customer Admin runbook, but with `PublisherAdminObjectId` and `PublisherAdminPrincipalType`
+
+**Note**: When runbooks are executed via Azure Portal, you can pass these parameters in the **Start Runbook** dialog. When executed via Azure CLI, use the `--parameters` flag:
+
+```bash
+az automation runbook start \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-uami \
+  --parameters ResourceGroupId=<rg-id> UamiPrincipalId=<uami-principal-id> ...
+```
+
+### When to Use Runbooks
+
+Use automation runbooks to update RBAC assignments when:
+
+- **RBAC assignments were accidentally removed**: Re-apply roles without redeploying
+- **New resources were added**: Update RBAC to include new resources
+- **Role definitions changed**: Re-apply updated role assignments
+- **Troubleshooting**: Verify RBAC assignments are correct
+
+**Note**: Runbooks are idempotent - they can be executed multiple times safely. The scripts use deterministic GUID generation to ensure role assignments are consistent.
+
+### Troubleshooting
+
+**Runbook not found:**
+- Verify the Automation Account name and resource group are correct
+- Check that the runbook was created during deployment (check deployment outputs)
+
+**Runbook execution fails:**
+- Check Automation Account job history for error details
+- Verify the Automation Account has the required permissions (uses UAMI identity)
+- Ensure all required resources exist in the resource group
+
+**RBAC assignments not applied:**
+- Check runbook execution logs in Automation Account → **Jobs**
+- Verify the UAMI has sufficient permissions to create role assignments
+- Check Azure Activity Log for role assignment creation events
 
 ## Troubleshooting: SSH via Azure Bastion
 
@@ -233,6 +386,7 @@ Environment variables:
 
 ## Release Notes
 
+- 2026-01-08 — v0.7.2 RBAC refactoring: PowerShell scripts and automation runbooks: [docs/RELEASE-NOTES-2026-01-08-v0.7.2.md](docs/RELEASE-NOTES-2026-01-08-v0.7.2.md)
 - 2026-01-08 — v0.7.1 Troubleshooting infrastructure and customer admin data plane access: [docs/RELEASE-NOTES-2026-01-08-v0.7.1.md](docs/RELEASE-NOTES-2026-01-08-v0.7.1.md)
 - 2026-01-08 — v0.7.0 Module refactoring: Split security module into kv, storage, and acr modules: [docs/RELEASE-NOTES-2026-01-08-v0.7.0.md](docs/RELEASE-NOTES-2026-01-08-v0.7.0.md)
 - 2026-01-08 — v0.6.0 Test harness improvements and documentation consolidation: [docs/RELEASE-NOTES-2026-01-08-v0.6.0.md](docs/RELEASE-NOTES-2026-01-08-v0.6.0.md)

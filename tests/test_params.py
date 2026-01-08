@@ -13,7 +13,7 @@ def test_params_dev_has_required_keys():
     # Required parameters per main.bicep (RFC-64)
     required = {
         "contactEmail",
-        "adminObjectId",
+        "customerAdminObjectId",
         "vnetCidr",
         "customerIpRanges",
         "publisherIpRanges",
@@ -26,7 +26,7 @@ def test_params_dev_has_required_keys():
         "appGwSku",
         "storageGB",
         "backupRetentionDays",
-        "adminPrincipalType",
+        "customerAdminPrincipalType",
     }
 
     missing = sorted(required - values.keys())

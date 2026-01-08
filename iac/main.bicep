@@ -7,17 +7,17 @@ param resourceGroupName string = resourceGroup().name
 param location string = resourceGroup().location
 
 @description('Customer admin Entra object ID (RFC-64).')
-param adminObjectId string
+param customerAdminObjectId string
 
 @description('Contact email for notifications (RFC-64).')
 param contactEmail string
 
-@description('Principal type for adminObjectId (User or Group).')
+@description('Principal type for customerAdminObjectId (User or Group).')
 @allowed([
   'User'
   'Group'
 ])
-param adminPrincipalType string = 'User'
+param customerAdminPrincipalType string = 'User'
 
 @description('VNet address prefix (CIDR notation, e.g., 10.20.0.0/16). Subnets will be automatically derived as /24 subnets.')
 param vnetCidr string
@@ -116,6 +116,16 @@ param defaultTags object = {}
 
 @description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
 param isManagedApplication bool = true
+
+@description('Publisher admin Entra object ID (for managed applications only). Required when isManagedApplication is true.')
+param publisherAdminObjectId string = ''
+
+@description('Principal type for publisherAdminObjectId (User or Group).')
+@allowed([
+  'User'
+  'Group'
+])
+param publisherAdminPrincipalType string = 'User'
 
 // Naming helper to generate deterministic per-resource nanoids.
 module naming 'lib/naming.bicep' = {
@@ -476,8 +486,8 @@ module rbac 'modules/rbac.bicep' = {
     location: location
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     uamiId: identity.outputs.uamiId
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
+    customerAdminObjectId: customerAdminObjectId
+    customerAdminPrincipalType: customerAdminPrincipalType
     lawId: diagnostics.outputs.lawId
     lawName: naming.outputs.names.law
     kvId: kv.outputs.kvId
@@ -486,7 +496,10 @@ module rbac 'modules/rbac.bicep' = {
     searchId: search.outputs.searchId
     aiId: cognitiveServices.outputs.aiId
     automationId: automation.outputs.automationId
+    automationName: automation.outputs.automationName
     isManagedApplication: isManagedApplication
+    publisherAdminObjectId: publisherAdminObjectId
+    publisherAdminPrincipalType: publisherAdminPrincipalType
     tags: tags
   }
 }

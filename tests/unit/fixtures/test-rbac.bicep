@@ -9,11 +9,11 @@ param resourceGroupName string
 @description('Azure region for deployment (RFC-64: location).')
 param location string
 
-@description('Admin Object ID.')
-param adminObjectId string
+@description('Customer Admin Object ID.')
+param customerAdminObjectId string
 
-@description('Admin Principal Type.')
-param adminPrincipalType string
+@description('Customer Admin Principal Type.')
+param customerAdminPrincipalType string
 
 // Include naming module
 module naming '../../../iac/lib/naming.bicep' = {
@@ -48,8 +48,8 @@ module rbac '../../../iac/modules/rbac.bicep' = {
     location: location
     uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
     uamiId: mockIdentityOutputs.uamiId
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
+    customerAdminObjectId: customerAdminObjectId
+    customerAdminPrincipalType: customerAdminPrincipalType
     lawId: mockDiagnosticsOutputs.lawId
     lawName: naming.outputs.names.law
     kvId: mockKvId

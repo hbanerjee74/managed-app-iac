@@ -10,7 +10,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "2510257330912747196"
+      "templateHash": "12512699037035755225"
     }
   },
   "parameters": {
@@ -84,7 +84,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "2234470855925706244"
+              "templateHash": "9599786196098502373"
             }
           },
           "functions": [
@@ -132,55 +132,55 @@
               "metadata": {
                 "description": "Resource group name used as seed for deterministic nanoid generation."
               }
-            },
-            "seedPrefix": {
-              "type": "string",
-              "defaultValue": "[parameters('resourceGroupName')]"
             }
           },
           "variables": {
+            "seedPrefix": "[parameters('resourceGroupName')]",
             "names": {
-              "uami": "[format('vd-uami-{0}', __bicep.nano16(parameters('seedPrefix'), 'uami'))]",
-              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(parameters('seedPrefix'), 'vnet'))]",
-              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgappgw'))]",
-              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgaks'))]",
-              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgappsvc'))]",
-              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(parameters('seedPrefix'), 'nsgpe'))]",
-              "kv": "[format('vd-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'kv'))]",
-              "storage": "[format('vdst{0}', __bicep.nano8(parameters('seedPrefix'), 'st'))]",
-              "acr": "[format('vdacr{0}', __bicep.nano8(parameters('seedPrefix'), 'acr'))]",
-              "law": "[format('vd-law-{0}', __bicep.nano16(parameters('seedPrefix'), 'law'))]",
-              "asp": "[format('vd-asp-{0}', __bicep.nano16(parameters('seedPrefix'), 'asp'))]",
-              "agw": "[format('vd-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'agw'))]",
-              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'pipagw'))]",
-              "psql": "[format('vd-psql-{0}', __bicep.nano16(parameters('seedPrefix'), 'psql'))]",
-              "search": "[format('vd-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'search'))]",
-              "ai": "[format('vd-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'ai'))]",
-              "automation": "[format('vd-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'aa'))]",
-              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'pekv'))]",
-              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(parameters('seedPrefix'), 'pestblob'))]",
-              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(parameters('seedPrefix'), 'pestqueue'))]",
-              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(parameters('seedPrefix'), 'pesttable'))]",
-              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'peacr'))]",
-              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'pesearch'))]",
-              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'peai'))]",
-              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'peaa'))]",
-              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnskv'))]",
-              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsstblob'))]",
-              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsstqueue'))]",
-              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnssttable'))]",
-              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsacr'))]",
-              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnssearch'))]",
-              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsai'))]",
-              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'pdnsaa'))]",
-              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagkv'))]",
-              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagst'))]",
-              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagacr'))]",
-              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagagw'))]",
-              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagpsql'))]",
-              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagsearch'))]",
-              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagai'))]",
-              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(parameters('seedPrefix'), 'diagaa'))]"
+              "uami": "[format('vd-uami-{0}', __bicep.nano16(variables('seedPrefix'), 'uami'))]",
+              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(variables('seedPrefix'), 'vnet'))]",
+              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappgw'))]",
+              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgaks'))]",
+              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappsvc'))]",
+              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgpe'))]",
+              "kv": "[format('vd-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'kv'))]",
+              "storage": "[format('vdst{0}', __bicep.nano8(variables('seedPrefix'), 'st'))]",
+              "acr": "[format('vdacr{0}', __bicep.nano8(variables('seedPrefix'), 'acr'))]",
+              "law": "[format('vd-law-{0}', __bicep.nano16(variables('seedPrefix'), 'law'))]",
+              "asp": "[format('vd-asp-{0}', __bicep.nano16(variables('seedPrefix'), 'asp'))]",
+              "agw": "[format('vd-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'agw'))]",
+              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'pipagw'))]",
+              "psql": "[format('vd-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'psql'))]",
+              "search": "[format('vd-search-{0}', __bicep.nano16(variables('seedPrefix'), 'search'))]",
+              "ai": "[format('vd-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'ai'))]",
+              "automation": "[format('vd-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'aa'))]",
+              "vm": "[format('vd-vm-{0}', __bicep.nano16(variables('seedPrefix'), 'vm'))]",
+              "bastion": "[format('vd-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'bastion'))]",
+              "pipBastion": "[format('vd-pip-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'pipbastion'))]",
+              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pekv'))]",
+              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pestblob'))]",
+              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pestqueue'))]",
+              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pesttable'))]",
+              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'peacr'))]",
+              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pesearch'))]",
+              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'peai'))]",
+              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'peaa'))]",
+              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnskv'))]",
+              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstblob'))]",
+              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstqueue'))]",
+              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssttable'))]",
+              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsacr'))]",
+              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssearch'))]",
+              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsai'))]",
+              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsaa'))]",
+              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'diagkv'))]",
+              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(variables('seedPrefix'), 'diagst'))]",
+              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'diagacr'))]",
+              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'diagagw'))]",
+              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'diagpsql'))]",
+              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(variables('seedPrefix'), 'diagsearch'))]",
+              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'diagai'))]",
+              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'diagaa'))]"
             }
           },
           "resources": {},
@@ -240,7 +240,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "16561963488514203903"
+              "templateHash": "1852654252821930432"
             }
           },
           "functions": [
@@ -346,7 +346,8 @@
               "snet-psql",
               "snet-private-endpoints",
               "snet-appsvc",
-              "snet-aks"
+              "snet-aks",
+              "snet-bastion"
             ]
           },
           "resources": {
@@ -664,6 +665,10 @@
               "type": "string",
               "value": "[reference('vnet').subnets[4].id]"
             },
+            "subnetBastionId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[5].id]"
+            },
             "subnetAppgwPrefix": {
               "type": "string",
               "value": "[reference('vnet').subnets[0].properties.addressPrefix]"
@@ -683,6 +688,10 @@
             "subnetAksPrefix": {
               "type": "string",
               "value": "[reference('vnet').subnets[4].properties.addressPrefix]"
+            },
+            "subnetBastionPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[5].properties.addressPrefix]"
             },
             "vnetPrefixLengthValidated": {
               "type": "int",
@@ -1009,15 +1018,6 @@
           "uamiName": {
             "value": "[reference('naming').outputs.names.value.uami]"
           },
-          "adminObjectId": {
-            "value": "00000000-0000-0000-0000-000000000000"
-          },
-          "adminPrincipalType": {
-            "value": "User"
-          },
-          "lawName": {
-            "value": "[reference('naming').outputs.names.value.law]"
-          },
           "tags": {
             "value": {}
           }
@@ -1034,7 +1034,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "12979414484051055492"
+              "templateHash": "18026571156535126747"
             }
           },
           "parameters": {
@@ -1050,42 +1050,11 @@
                 "description": "Name for the user-assigned managed identity."
               }
             },
-            "adminObjectId": {
-              "type": "string",
-              "metadata": {
-                "description": "Customer admin Entra object ID."
-              }
-            },
-            "adminPrincipalType": {
-              "type": "string",
-              "defaultValue": "User",
-              "allowedValues": [
-                "User",
-                "Group"
-              ],
-              "metadata": {
-                "description": "Principal type for adminObjectId (User or Group)."
-              }
-            },
             "tags": {
               "type": "object",
               "defaultValue": {},
               "metadata": {
                 "description": "Optional tags to apply."
-              }
-            },
-            "lawName": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Optional Log Analytics Workspace name for RBAC wiring."
-              }
-            },
-            "isManagedApplication": {
-              "type": "bool",
-              "defaultValue": true,
-              "metadata": {
-                "description": "Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing."
               }
             }
           },
@@ -1096,53 +1065,6 @@
               "name": "[parameters('uamiName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]"
-            },
-            "uamiContributor": {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "name": "[guid(resourceGroup().id, resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), 'Contributor')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
-                "principalId": "[reference('vibedataUami').principalId]",
-                "principalType": "ServicePrincipal",
-                "delegatedManagedIdentityResourceId": "[if(parameters('isManagedApplication'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), null())]"
-              },
-              "dependsOn": [
-                "vibedataUami"
-              ]
-            },
-            "customerReader": {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "name": "[guid(resourceGroup().id, parameters('adminObjectId'), 'Reader')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
-                "principalId": "[parameters('adminObjectId')]",
-                "principalType": "[parameters('adminPrincipalType')]"
-              }
-            },
-            "law": {
-              "condition": "[not(empty(parameters('lawName')))]",
-              "existing": true,
-              "type": "Microsoft.OperationalInsights/workspaces",
-              "apiVersion": "2022-10-01",
-              "name": "[parameters('lawName')]"
-            },
-            "uamiLawContributor": {
-              "condition": "[not(empty(parameters('lawName')))]",
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('lawName'))]",
-              "name": "[guid(resourceId('Microsoft.OperationalInsights/workspaces', parameters('lawName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), 'LAW-Contrib')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '73c42c96-874c-492b-b04d-ab87d138a893')]",
-                "principalId": "[reference('vibedataUami').principalId]",
-                "principalType": "ServicePrincipal",
-                "delegatedManagedIdentityResourceId": "[if(parameters('isManagedApplication'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), null())]"
-              },
-              "dependsOn": [
-                "vibedataUami"
-              ]
             }
           },
           "outputs": {
@@ -1184,9 +1106,6 @@
           "subnetPeId": {
             "value": "[reference('network').outputs.subnetPeId.value]"
           },
-          "uamiPrincipalId": {
-            "value": "[reference('identity').outputs.uamiPrincipalId.value]"
-          },
           "lawId": {
             "value": "[reference('diagnostics').outputs.lawId.value]"
           },
@@ -1218,7 +1137,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "12249160970738221405"
+              "templateHash": "13643215782870213555"
             }
           },
           "parameters": {
@@ -1238,12 +1157,6 @@
               "type": "string",
               "metadata": {
                 "description": "Private Endpoints subnet ID."
-              }
-            },
-            "uamiPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "Principal ID of the UAMI for RBAC."
               }
             },
             "lawId": {
@@ -1352,20 +1265,6 @@
                 "peKv"
               ]
             },
-            "kvSecretsOfficer": {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('kvName'))]",
-              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('kvName')), parameters('uamiPrincipalId'), 'kv-secret-officer')]",
-              "properties": {
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')]",
-                "principalId": "[parameters('uamiPrincipalId')]",
-                "principalType": "ServicePrincipal"
-              },
-              "dependsOn": [
-                "kv"
-              ]
-            },
             "kvDiag": {
               "type": "Microsoft.Insights/diagnosticSettings",
               "apiVersion": "2021-05-01-preview",
@@ -1406,7 +1305,6 @@
       "dependsOn": [
         "diagnostics",
         "dns",
-        "identity",
         "naming",
         "network"
       ]
@@ -1467,7 +1365,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "18191436210119541180"
+              "templateHash": "17077746414087310608"
             }
           },
           "parameters": {
@@ -1592,8 +1490,8 @@
                 "tier": "[if(startsWith(parameters('computeTier'), 'Standard_B'), 'Burstable', 'GeneralPurpose')]"
               },
               "properties": {
-                "administratorLogin": "[reference('psqlAdminUsernameSecret').value]",
-                "administratorLoginPassword": "[reference('psqlAdminPasswordSecret').value]",
+                "administratorLogin": "[parameters('psqlAdminUsername')]",
+                "administratorLoginPassword": "[variables('psqlAdminPasswordValue')]",
                 "version": "16",
                 "storage": {
                   "storageSizeGB": "[parameters('storageGB')]",
@@ -1617,11 +1515,7 @@
                   "mode": "Disabled"
                 },
                 "createMode": "Default"
-              },
-              "dependsOn": [
-                "psqlAdminPasswordSecret",
-                "psqlAdminUsernameSecret"
-              ]
+              }
             },
             "psqlDiag": {
               "type": "Microsoft.Insights/diagnosticSettings",
