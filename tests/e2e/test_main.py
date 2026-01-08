@@ -230,31 +230,30 @@ def test_resource_group():
     Yields:
         str: Resource group name
     """
-    if not ENABLE_ACTUAL_DEPLOYMENT:
-        # For what-if tests, just return RG name from params
-        yield get_resource_group_from_params()
-        return
-    
-    # For actual deployment tests, create fresh RG
     rg_name = get_resource_group_from_params()
-    location = get_location_from_params()
     
-    try:
-        # Create RG (deletes existing if present)
-        create_resource_group(rg_name, location)
+    if not ENABLE_ACTUAL_DEPLOYMENT:
+        # For what-if tests, just yield RG name from params (no creation/deletion)
         yield rg_name
-    finally:
-        # Skip cleanup if KEEP_RESOURCE_GROUP is set
-        if KEEP_RESOURCE_GROUP:
-            print(f"\n⚠️  KEEP_RESOURCE_GROUP=true: Resource group '{rg_name}' was NOT deleted.")
-            print(f"   Manually delete with: az group delete --name {rg_name} --yes")
-            return
+    else:
+        # For actual deployment tests, create fresh RG
+        location = get_location_from_params()
         
-        # Always cleanup, even if test failed
         try:
-            delete_resource_group(rg_name)
-        except Exception as e:
-            print(f"Error during resource group cleanup: {e}")
+            # Create RG (deletes existing if present)
+            create_resource_group(rg_name, location)
+            yield rg_name
+        finally:
+            # Skip cleanup if KEEP_RESOURCE_GROUP is set
+            if KEEP_RESOURCE_GROUP:
+                print(f"\n⚠️  KEEP_RESOURCE_GROUP=true: Resource group '{rg_name}' was NOT deleted.")
+                print(f"   Manually delete with: az group delete --name {rg_name} --yes")
+            else:
+                # Always cleanup, even if test failed
+                try:
+                    delete_resource_group(rg_name)
+                except Exception as e:
+                    print(f"Error during resource group cleanup: {e}")
 
 
 class TestMainBicep:

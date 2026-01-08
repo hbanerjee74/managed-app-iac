@@ -30,7 +30,6 @@ MODULES = [
     ('storage', 'test-storage.bicep'),
     ('acr', 'test-acr.bicep'),
     ('automation', 'test-automation.bicep'),
-    ('logic', 'test-logic.bicep'),
     ('dns', 'test-dns.bicep'),
 ]
 

@@ -252,24 +252,6 @@ module compute 'modules/compute.bicep' = {
     location: location
     sku: sku
     aspName: naming.outputs.names.asp
-    appApiName: naming.outputs.names.appApi
-    appUiName: naming.outputs.names.appUi
-    funcName: naming.outputs.names.funcOps
-    subnetAppsvcId: network.outputs.subnetAppsvcId
-    subnetPeId: network.outputs.subnetPeId
-    uamiId: identity.outputs.uamiId
-    storageAccountName: naming.outputs.names.storage
-    lawId: diagnostics.outputs.lawId
-    zoneIds: dns.outputs.zoneIds
-    peAppApiName: naming.outputs.names.peAppApi
-    peAppUiName: naming.outputs.names.peAppUi
-    peFuncName: naming.outputs.names.peFunc
-    peAppApiDnsName: naming.outputs.names.peAppApiDns
-    peAppUiDnsName: naming.outputs.names.peAppUiDns
-    peFuncDnsName: naming.outputs.names.peFuncDns
-    diagAppApiName: naming.outputs.names.diagAppApi
-    diagAppUiName: naming.outputs.names.diagAppUi
-    diagFuncName: naming.outputs.names.diagFunc
     tags: tags
   }
 }
@@ -360,18 +342,6 @@ module automation 'modules/automation.bicep' = {
     peAutomationName: naming.outputs.names.peAutomation
     peAutomationDnsName: naming.outputs.names.peAutomationDns
     diagAutomationName: naming.outputs.names.diagAutomation
-    tags: tags
-  }
-}
-
-module logic 'modules/logic.bicep' = {
-  name: 'logic'
-  params: {
-    location: location
-    logicName: naming.outputs.names.logic
-    uamiId: identity.outputs.uamiId
-    lawId: diagnostics.outputs.lawId
-    diagLogicName: naming.outputs.names.diagLogic
     tags: tags
   }
 }
