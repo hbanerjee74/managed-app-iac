@@ -16,6 +16,8 @@ iac/**/*.json
 
 # Test output files
 tests/e2e/what-if-output.json
+tests/e2e/deployment-output.json
+tests/e2e/deployment-error.log
 tests/e2e/state_check/what-if.json
 
 # plan files create by Codex 

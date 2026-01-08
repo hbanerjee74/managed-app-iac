@@ -16,17 +16,17 @@ param publisherIpRanges array
 param tags object = {}
 
 var wafRules = [
-  // Customer allowlist
+  // Customer allowlist (RFC-71: priority range 100-199)
   {
     name: 'Allow-Customer'
-    priority: 100
+    priority: 1
     action: 'Allow'
     cidrs: customerIpRanges
   }
-  // Publisher allowlist
+  // Publisher allowlist (RFC-71: priority range 200-299)
   {
     name: 'Allow-Publisher'
-    priority: 200
+    priority: 2
     action: 'Allow'
     cidrs: publisherIpRanges
   }
@@ -45,7 +45,6 @@ var wafAllowRules = [for rule in wafRules: {
         }
       ]
       operator: 'IPMatch'
-      negationCondition: false
       matchValues: rule.cidrs
     }
   ]
@@ -54,7 +53,7 @@ var wafAllowRules = [for rule in wafRules: {
 var wafCustomRules = concat(wafAllowRules, [
   {
     name: 'Deny-All'
-    priority: 1000
+    priority: 3  // RFC-71: priority range 1000+ for deny rules
     ruleType: 'MatchRule'
     action: 'Block'
     matchConditions: [
@@ -65,7 +64,6 @@ var wafCustomRules = concat(wafAllowRules, [
           }
         ]
         operator: 'IPMatch'
-        negationCondition: false
         matchValues: [
           '0.0.0.0/0'
         ]

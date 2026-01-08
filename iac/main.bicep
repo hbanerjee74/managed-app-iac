@@ -93,6 +93,9 @@ param owner string = ''
 param purpose string = ''
 param created string = ''
 
+@description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
+param isManagedApplication bool = true
+
 // Naming helper to generate deterministic per-resource nanoids.
 module naming 'lib/naming.bicep' = {
   name: 'naming'
@@ -131,6 +134,7 @@ module identity 'modules/identity.bicep' = {
     adminObjectId: adminObjectId
     adminPrincipalType: adminPrincipalType
     lawName: naming.outputs.names.law
+    isManagedApplication: isManagedApplication
     tags: tags
   }
 }
