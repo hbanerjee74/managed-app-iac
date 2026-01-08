@@ -34,11 +34,17 @@ param publisherIpRanges array
 
 @description('App Service Plan SKU (RFC-64 sku).')
 @allowed([
+  'B1'
+  'B2'
+  'B3'
+  'S1'
+  'S2'
+  'S3'
   'P1v3'
   'P2v3'
   'P3v3'
 ])
-param sku string = 'P1v3'
+param sku string = 'B1'
 
 @description('AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30.')
 @allowed([
@@ -57,11 +63,15 @@ param computeTier string = 'GP_Standard_D2s_v3'
 
 @description('AI Services tier (RFC-64).')
 @allowed([
-  'S1'
-  'S2'
-  'S3'
+  'free'
+  'basic'
+  'standard'
+  'standard2'
+  'standard3'
+  'storage_optimized_l1'
+  'storage_optimized_l2'
 ])
-param aiServicesTier string = 'S1'
+param aiServicesTier string = 'basic'
 
 @description('Log Analytics retention in days (RFC-64 retentionDays display).')
 @minValue(30)
@@ -103,7 +113,6 @@ module naming 'lib/naming.bicep' = {
   name: 'naming'
   params: {
     resourceGroupName: resourceGroupName
-    purpose: 'platform'
   }
 }
 
@@ -194,19 +203,6 @@ module storage 'modules/storage.bicep' = {
     peStQueueDnsName: naming.outputs.names.peStQueueDns
     peStTableDnsName: naming.outputs.names.peStTableDns
     diagStName: naming.outputs.names.diagSt
-    tags: tags
-  }
-}
-
-module flowLogs 'modules/flow-logs.bicep' = {
-  name: 'flow-logs'
-  dependsOn: [network, storage, identity]
-  params: {
-    location: location
-    vnetId: network.outputs.vnetId
-    storageAccountId: storage.outputs.storageId
-    vnetFlowLogName: naming.outputs.names.vnetFlowLog
-    uamiId: identity.outputs.uamiId
     tags: tags
   }
 }

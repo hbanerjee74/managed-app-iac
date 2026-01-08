@@ -47,7 +47,7 @@ class TestBicepModules:
         This fixture runs what-if once per test function and caches the parsed output.
         Changed to function scope to match parametrized values scope.
         
-        Args:
+        
             module_name: Module name from parametrization
             bicep_file: Bicep file name from parametrization
         

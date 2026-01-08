@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Dict, Any, Set
 
@@ -34,29 +35,58 @@ def extract_bicep_parameters(bicep_file: Path) -> Set[str]:
         return set()
 
 
-def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tuple[bool, str]:
+def ensure_resource_group_exists(rg_name: str, location: str = 'eastus', max_wait_seconds: int = 300) -> tuple[bool, str]:
     """Ensure resource group exists, creating it if necessary.
+    
+    If the resource group is being deleted (deprovisioning), waits for deletion to complete
+    before creating a new one.
     
     Args:
         rg_name: Name of the resource group
         location: Azure region (default: eastus)
+        max_wait_seconds: Maximum time to wait for deletion to complete (default: 300 seconds)
     
     Returns:
         Tuple of (success: bool, message: str)
     """
+    import time
+    
     try:
-        # Check if RG exists
-        check_result = subprocess.run(
-            ['az', 'group', 'exists', '--name', rg_name],
+        # Check if RG exists and its provisioning state
+        show_result = subprocess.run(
+            ['az', 'group', 'show', '--name', rg_name, '--query', 'properties.provisioningState', '-o', 'tsv'],
             capture_output=True,
             text=True,
             check=False
         )
         
-        if check_result.stdout.strip().lower() == 'true':
-            return True, f"Resource group {rg_name} already exists"
+        # If RG exists, check its state
+        if show_result.returncode == 0:
+            state = show_result.stdout.strip()
+            if state == 'Succeeded':
+                return True, f"Resource group {rg_name} already exists"
+            elif state == 'Deleting':
+                # Wait for deletion to complete
+                print(f"Resource group {rg_name} is being deleted. Waiting for deletion to complete...")
+                start_time = time.time()
+                while time.time() - start_time < max_wait_seconds:
+                    check_result = subprocess.run(
+                        ['az', 'group', 'exists', '--name', rg_name],
+                        capture_output=True,
+                        text=True,
+                        check=False
+                    )
+                    if check_result.stdout.strip().lower() == 'false':
+                        print(f"Resource group {rg_name} deletion completed.")
+                        break
+                    time.sleep(5)
+                else:
+                    return False, f"Resource group {rg_name} deletion timed out after {max_wait_seconds} seconds"
+            else:
+                # RG exists but in an unexpected state
+                return False, f"Resource group {rg_name} is in unexpected state: {state}"
         
-        # Create RG if it doesn't exist
+        # RG doesn't exist, create it
         print(f"Resource group {rg_name} does not exist. Creating...")
         create_result = subprocess.run(
             ['az', 'group', 'create', '--name', rg_name, '--location', location],
@@ -67,6 +97,29 @@ def ensure_resource_group_exists(rg_name: str, location: str = 'eastus') -> tupl
         return True, f"Resource group {rg_name} created successfully"
         
     except subprocess.CalledProcessError as e:
+        # Check if error is due to RG being deleted
+        if 'ResourceGroupBeingDeleted' in e.stderr or 'deprovisioning' in e.stderr.lower():
+            print(f"Resource group {rg_name} is being deleted. Waiting for deletion to complete...")
+            start_time = time.time()
+            while time.time() - start_time < max_wait_seconds:
+                check_result = subprocess.run(
+                    ['az', 'group', 'exists', '--name', rg_name],
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+                if check_result.stdout.strip().lower() == 'false':
+                    # Deletion completed, try creating again
+                    print(f"Resource group {rg_name} deletion completed. Creating new resource group...")
+                    create_result = subprocess.run(
+                        ['az', 'group', 'create', '--name', rg_name, '--location', location],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+                    return True, f"Resource group {rg_name} created successfully after waiting for deletion"
+                time.sleep(5)
+            return False, f"Resource group {rg_name} deletion timed out after {max_wait_seconds} seconds"
         return False, f"Failed to create resource group: {e.stderr}"
     except FileNotFoundError:
         return False, "Azure CLI not found. Please install Azure CLI."
@@ -289,21 +342,47 @@ def run_what_if(
         json.dump(module_params, tmp_file, indent=2)
         tmp_params_file = tmp_file.name
     
+    # Retry logic for resource group deletion race condition
+    max_retries = 3
+    retry_delay = 10  # seconds
+    
     try:
-        result = subprocess.run(
-            [
-                'az', 'deployment', 'group', 'what-if',
-                '--resource-group', resource_group,
-                '--template-file', str(bicep_file),
-                '--parameters', f'@{tmp_params_file}',
-                '--output', 'json',
-                '--result-format', 'FullResourcePayloads',
-                '--no-pretty-print'
-            ],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        for attempt in range(max_retries):
+            try:
+                result = subprocess.run(
+                    [
+                        'az', 'deployment', 'group', 'what-if',
+                        '--resource-group', resource_group,
+                        '--template-file', str(bicep_file),
+                        '--parameters', f'@{tmp_params_file}',
+                        '--output', 'json',
+                        '--result-format', 'FullResourcePayloads',
+                        '--no-pretty-print'
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                break  # Success, exit retry loop
+            except subprocess.CalledProcessError as e:
+                # Check if error is due to RG being deleted
+                if ('ResourceGroupBeingDeleted' in e.stderr or 
+                    'deprovisioning' in e.stderr.lower() or
+                    'The content for this response was already consumed' in e.stderr):
+                    if attempt < max_retries - 1:
+                        print(f"Resource group {resource_group} is being deleted. Waiting {retry_delay} seconds before retry {attempt + 1}/{max_retries}...")
+                        time.sleep(retry_delay)
+                        # Ensure RG exists (will wait for deletion if needed)
+                        rg_success, _ = ensure_resource_group_exists(resource_group, location)
+                        if not rg_success:
+                            return False, f"Failed to ensure resource group exists after deletion: {resource_group}"
+                        continue
+                    else:
+                        return False, f"Resource group {resource_group} deletion issue persisted after {max_retries} retries: {e.stderr}"
+                else:
+                    # Different error, don't retry
+                    raise
+        
         # Filter out warnings from output (Azure CLI writes warnings to stderr, but they may be mixed)
         # Warnings typically start with "WARNING:" and are not part of JSON output
         # Also handle multi-line warnings and find the actual JSON content

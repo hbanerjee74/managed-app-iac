@@ -12,6 +12,9 @@ param aspName string
 @description('Optional tags to apply.')
 param tags object = {}
 
+// Determine tier based on SKU
+var tier = startsWith(sku, 'B') ? 'Basic' : startsWith(sku, 'S') ? 'Standard' : 'PremiumV3'
+
 resource asp 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: aspName
   location: location
@@ -19,7 +22,7 @@ resource asp 'Microsoft.Web/serverfarms@2023-12-01' = {
   tags: tags
   sku: {
     name: sku
-    tier: 'PremiumV3'
+    tier: tier
   }
   properties: {
     reserved: true

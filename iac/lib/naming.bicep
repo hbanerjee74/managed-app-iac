@@ -3,9 +3,6 @@ targetScope = 'resourceGroup'
 @description('Resource group name used as seed for deterministic nanoid generation.')
 param resourceGroupName string
 
-@description('Logical purpose string to include in names (e.g., platform).')
-param purpose string = 'platform'
-
 // helper to build deterministic nanoids per resource type
 param seedPrefix string = resourceGroupName
 
@@ -15,7 +12,6 @@ func nano8(seed string, suffix string) string => toLower(substring(uniqueString(
 var names = {
   uami: 'vd-uami-${nano16(seedPrefix, 'uami')}'
   vnet: 'vd-vnet-${nano16(seedPrefix, 'vnet')}'
-  vnetFlowLog: 'vd-flowlog-${nano16(seedPrefix, 'vnetflowlog')}'
   nsgAppgw: 'vd-nsg-appgw-${nano16(seedPrefix, 'nsgappgw')}'
   nsgAks: 'vd-nsg-aks-${nano16(seedPrefix, 'nsgaks')}'
   nsgAppsvc: 'vd-nsg-appsvc-${nano16(seedPrefix, 'nsgappsvc')}'
