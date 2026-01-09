@@ -38,9 +38,9 @@ See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 
 ## Identities & RBAC
 
-- Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push). Automation Job Operator assigned to `adminObjectId`.
+- Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push). Automation Job Operator assigned to deployer identity.
 - `adminPrincipalType` param (User/Group) for RG Reader assignment.
-- **Managed Application Requirements**: All role assignments use `delegatedManagedIdentityResourceId` property for cross-tenant scenarios. Includes 30-second propagation delay after UAMI creation to allow identity propagation across tenants.
+- **Single-Tenant Deployment**: All role assignments are created directly without delegated managed identity for single-tenant deployments.
 - **Scope**: All RBAC assignments occur at resource group scope (subscription-scope roles like Cost Management Reader are not assigned).
 
 ## Postgres Roles
@@ -49,7 +49,7 @@ See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 
 ## App Gateway
 
-- WAF_v2 with customer/publisher IP allowlists and deny-all; connection draining enabled.
+- WAF_v2 with customer IP allowlist and deny-all; connection draining enabled.
 - **Placeholder resources**: Minimal placeholder backend pool, listener, and routing rule added to satisfy Azure validation requirements (see `.vibedata/spec-changes.md` section 12). Actual app endpoints should be configured when ready.
 
 ## Tests & Quality

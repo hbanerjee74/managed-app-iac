@@ -1,6 +1,6 @@
-# Managed Application IaC for PRD-30
+# Infrastructure as Code for PRD-30
 
-This repository contains the Bicep-based infrastructure for PRD-30 (managed application), aligned to RFC-42, RFC-64, and RFC-71. The modules include resource-level validation tooling for marketplace deployment.
+This repository contains the Bicep-based infrastructure for PRD-30, aligned to RFC-42, RFC-64, and RFC-71. The modules include resource-level validation tooling for single-tenant deployment.
 
 ## Prerequisites
 
@@ -13,13 +13,12 @@ This repository contains the Bicep-based infrastructure for PRD-30 (managed appl
 
 ```text
 iac/
-  main.bicep          # Resource group-scope entrypoint for managed application deployment
+  main.bicep          # Resource group-scope entrypoint for single-tenant deployment
   modules/            # Domain modules (identity, network, dns, kv, storage, acr, psql, app, gateway, search, cognitive-services, automation, diagnostics, rbac, bastion, vm-jumphost)
   lib/                # Shared helpers (naming per RFC-71, constants)
 scripts/              # PowerShell scripts for RBAC assignments and PostgreSQL role creation
   assign-rbac-roles-uami.ps1
   assign-rbac-roles-admin.ps1
-  assign-rbac-roles-publisher-admin.ps1
   create-psql-roles.ps1
   ssh-via-bastion.sh  # SSH utility for VM jump host access via Azure Bastion
 tests/
@@ -65,8 +64,8 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 - `resourceGroupName` (replaces `resourceGroup` and `mrgName`)
 - `location`
 - `contactEmail`
-- `customerAdminObjectId` - Customer admin Entra object ID
-- `customerAdminPrincipalType` - Principal type for customer admin (User or Group, defaults to User)
+- `customerAdminObjectId` - Customer admin Entra object ID (will be overridden by deployer identity for single-tenant deployments)
+- `customerAdminPrincipalType` - Principal type for customer admin (User or Group)
 
 **Network:**
 
@@ -76,7 +75,8 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 **Compute:**
 
 - `sku` - App Service Plan SKU (allowed: B1, B2, B3, S1, S2, S3, P1v3, P2v3, P3v3)
-- `computeTier` - PostgreSQL compute tier (allowed: Standard_B1ms, Standard_B1s, Standard_B2ms, Standard_B2s, GP_Standard_D2s_v3, GP_Standard_D4s_v3)
+- `psqlComputeTier` - PostgreSQL compute tier (allowed: Standard_B1ms, Standard_B1s, Standard_B2ms, Standard_B2s, GP_Standard_D2s_v3, GP_Standard_D4s_v3)
+- `jumpHostComputeTier` - Jump host VM compute tier (allowed: Standard_A1_v2, Standard_A1, Standard_A2_v2, Standard_A4_v2, Standard_B1s, Standard_B2s, Standard_B1ms, Standard_B2ms)
 - `aiServicesTier` - AI services tier (allowed: free, basic, standard, standard2, standard3, storage_optimized_l1, storage_optimized_l2)
 - `nodeSize` - AKS node size (allowed: Standard_D4s_v3, Standard_D8s_v3, Standard_D16s_v3) - Note: Currently unused as AKS deployment is out of scope
 
@@ -88,33 +88,7 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 - `backupRetentionDays` - PostgreSQL backup retention (default: 7, range: 7-35)
 - `retentionDays` - Log Analytics retention (default: 30, range: 30-730)
 
-**Managed Application (optional):**
-
-- `publisherAdminObjectId` - Publisher admin Entra object ID (for managed applications only)
-- `publisherAdminPrincipalType` - Principal type for publisher admin (User or Group, defaults to User)
-
 For full parameter documentation, see RFC-64.
-
-## `isManagedApplication` Parameter
-
-The `isManagedApplication` parameter controls behavior differences between managed application deployments (cross-tenant) and same-tenant testing scenarios.
-
-**Default**: `true` (managed application scenario)
-
-**Usage:**
-
-1. **RBAC Module** (`iac/modules/rbac.bicep`): Controls `delegatedManagedIdentityResourceId` property in role assignments and Publisher Admin runbook creation
-   - `true`: Sets `delegatedManagedIdentityResourceId` to UAMI ID (required for cross-tenant managed apps) and creates Publisher Admin runbook
-   - `false`: Sets `delegatedManagedIdentityResourceId` to `null` (same-tenant testing) and skips Publisher Admin runbook creation
-
-2. **Main Template** (`iac/main.bicep`): Controls tag application logic
-   - `false`: Uses `defaultTags` from metadata if individual tag params are empty
-   - `true`: Always uses individual tag parameters (ignores `defaultTags`)
-
-**Configuration:**
-
-- **Managed Application** (Production): Set `isManagedApplication: true` in metadata
-- **Same-Tenant Testing** (Development): Set `isManagedApplication: false` in metadata and provide `defaultTags`
 
 ## Testing
 
@@ -128,11 +102,10 @@ Automation runbooks are created and published during deployment, but they must b
 
 ### Available Runbooks
 
-Three automation runbooks are created during deployment:
+Two automation runbooks are created during deployment:
 
 1. **`assign-rbac-roles-uami`** - Re-applies all RBAC roles for the User-Assigned Managed Identity (UAMI)
 2. **`assign-rbac-roles-admin`** - Re-applies all RBAC roles for Customer Admin
-3. **`assign-rbac-roles-publisher-admin`** - Re-applies all RBAC roles for Publisher Admin (managed applications only)
 
 ### Publishing Runbooks
 
@@ -152,12 +125,6 @@ az automation runbook publish \
   --automation-account-name <automation-account-name> \
   --resource-group <resource-group> \
   --name assign-rbac-roles-admin
-
-# Publish Publisher Admin runbook (managed applications only)
-az automation runbook publish \
-  --automation-account-name <automation-account-name> \
-  --resource-group <resource-group> \
-  --name assign-rbac-roles-publisher-admin
 ```
 
 **Via Azure Portal:**
@@ -185,12 +152,6 @@ az automation runbook start \
   --automation-account-name <automation-account-name> \
   --resource-group <resource-group> \
   --name assign-rbac-roles-admin
-
-# Execute Publisher Admin runbook (managed applications only)
-az automation runbook start \
-  --automation-account-name <automation-account-name> \
-  --resource-group <resource-group> \
-  --name assign-rbac-roles-publisher-admin
 ```
 
 **Via Azure Portal:**
@@ -217,7 +178,6 @@ Runbooks accept parameters when executed. The scripts use parameter defaults fro
 - `SearchId` - Azure AI Search resource ID
 - `AiId` - Cognitive Services resource ID
 - `AutomationId` - Automation Account resource ID
-- `IsManagedApplication` - Boolean flag (true/false)
 
 **`assign-rbac-roles-admin` (Customer Admin):**
 - `ResourceGroupId` - Resource group resource ID
@@ -229,9 +189,6 @@ Runbooks accept parameters when executed. The scripts use parameter defaults fro
 - `SearchId` - Azure AI Search resource ID
 - `AiId` - Cognitive Services resource ID
 - `AutomationId` - Automation Account resource ID
-
-**`assign-rbac-roles-publisher-admin` (Publisher Admin):**
-- Same parameters as Customer Admin runbook, but with `PublisherAdminObjectId` and `PublisherAdminPrincipalType`
 
 **Note**: When runbooks are executed via Azure Portal, you can pass these parameters in the **Start Runbook** dialog. When executed via Azure CLI, use the `--parameters` flag:
 
@@ -394,6 +351,7 @@ Environment variables:
 
 ## Release Notes
 
+- 2026-01-09 — v0.8.0 Single-tenant deployment simplification: [docs/RELEASE-NOTES-2026-01-09-v0.8.0.md](docs/RELEASE-NOTES-2026-01-09-v0.8.0.md)
 - 2026-01-08 — v0.7.2 RBAC refactoring: PowerShell scripts and automation runbooks: [docs/RELEASE-NOTES-2026-01-08-v0.7.2.md](docs/RELEASE-NOTES-2026-01-08-v0.7.2.md)
 - 2026-01-08 — v0.7.1 Troubleshooting infrastructure and customer admin data plane access: [docs/RELEASE-NOTES-2026-01-08-v0.7.1.md](docs/RELEASE-NOTES-2026-01-08-v0.7.1.md)
 - 2026-01-08 — v0.7.0 Module refactoring: Split security module into kv, storage, and acr modules: [docs/RELEASE-NOTES-2026-01-08-v0.7.0.md](docs/RELEASE-NOTES-2026-01-08-v0.7.0.md)
