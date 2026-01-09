@@ -19,6 +19,12 @@ param adminPassword string
 @description('Key Vault name for storing VM admin password.')
 param kvName string
 
+@description('VM admin username secret name in Key Vault.')
+param vmAdminUsernameSecretName string
+
+@description('VM admin password secret name in Key Vault.')
+param vmAdminPasswordSecretName string
+
 @description('VM size.')
 @allowed([
   'Standard_A1_v2'

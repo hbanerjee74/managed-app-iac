@@ -349,6 +349,8 @@ module psql 'modules/psql.bicep' = {
     kvName: naming.outputs.names.kv
     psqlAdminUsername: psqlAdminUsername
     psqlAdminPassword: psqlAdminPasswordValue
+    psqlAdminUsernameSecretName: secrets.outputs.psqlAdminUsernameSecretName
+    psqlAdminPasswordSecretName: secrets.outputs.psqlAdminPasswordSecretName
     tags: tags
   }
 }
@@ -526,6 +528,8 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
     kvName: naming.outputs.names.kv
     adminUsername: vmAdminUsername
     adminPassword: vmAdminPasswordValue
+    vmAdminUsernameSecretName: secrets.outputs.vmAdminUsernameSecretName
+    vmAdminPasswordSecretName: secrets.outputs.vmAdminPasswordSecretName
     vmSize: jumpHostComputeTier
     tags: tags
   }

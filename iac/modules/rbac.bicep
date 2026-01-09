@@ -17,13 +17,13 @@ param customerAdminObjectId string
   'User'
   'Group'
 ])
-param customerAdminPrincipalType string = 'User'
+param customerAdminPrincipalType string
 
 @description('Log Analytics Workspace resource ID.')
-param lawId string = ''
+param lawId string
 
 @description('Log Analytics Workspace name.')
-param lawName string = ''
+param lawName string
 
 @description('Key Vault resource ID.')
 param kvId string
@@ -44,31 +44,31 @@ param aiId string
 param automationId string
 
 @description('Automation Account name (for runbook creation).')
-param automationName string = ''
+param automationName string
 
 @description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
-param isManagedApplication bool = true
+param isManagedApplication bool
 
 @description('Publisher admin Entra object ID (for managed applications only).')
-param publisherAdminObjectId string = ''
+param publisherAdminObjectId string
 
 @description('Principal type for publisherAdminObjectId (User or Group).')
 @allowed([
   'User'
   'Group'
 ])
-param publisherAdminPrincipalType string = 'User'
+param publisherAdminPrincipalType string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 // Load PowerShell scripts from files
 var rbacUamiScript = loadTextContent('../../scripts/assign-rbac-roles-uami.ps1')
 var rbacCustomerAdminScript = loadTextContent('../../scripts/assign-rbac-roles-admin.ps1')
 var rbacPublisherAdminScript = loadTextContent('../../scripts/assign-rbac-roles-publisher-admin.ps1')
 
-// Reference Automation Account (if provided)
-resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' existing = if (!empty(automationId) && !empty(automationName)) {
+// Reference Automation Account
+resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' existing = {
   name: automationName
 }
 
@@ -84,7 +84,7 @@ resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' 
 // Automation Runbook for UAMI RBAC role assignments
 // This runbook allows admins to re-apply UAMI RBAC assignments on-demand
 // Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
-resource rbacUamiRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (!empty(automationId) && !empty(automationName)) {
+resource rbacUamiRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = {
   parent: automationAccount
   name: 'assign-rbac-roles-uami'
   location: location
@@ -105,7 +105,7 @@ resource rbacUamiRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-
 // Automation Runbook for Customer Admin RBAC role assignments
 // This runbook allows admins to re-apply Customer Admin RBAC assignments on-demand
 // Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
-resource rbacCustomerAdminRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (!empty(automationId) && !empty(automationName) && !empty(customerAdminObjectId)) {
+resource rbacCustomerAdminRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (!empty(customerAdminObjectId)) {
   parent: automationAccount
   name: 'assign-rbac-roles-admin'
   location: location
@@ -127,7 +127,7 @@ resource rbacCustomerAdminRunbook 'Microsoft.Automation/automationAccounts/runbo
 // This runbook allows admins to re-apply Publisher Admin RBAC assignments on-demand
 // Only created for managed applications
 // Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
-resource rbacPublisherAdminRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (isManagedApplication && !empty(automationId) && !empty(automationName) && !empty(publisherAdminObjectId)) {
+resource rbacPublisherAdminRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (isManagedApplication && !empty(publisherAdminObjectId)) {
   parent: automationAccount
   name: 'assign-rbac-roles-publisher-admin'
   location: location
@@ -157,7 +157,7 @@ var uploadRunbooksScriptNameSuffix = substring(uploadRunbooksForceUpdateTagValue
 var uploadRunbooksScriptName = 'upload-rbac-runbooks-${uploadRunbooksScriptNameSuffix}'
 
 // Deployment script to upload runbook content and publish all RBAC runbooks
-resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@2020-10-01' = if (!empty(automationId) && !empty(automationName)) {
+resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: uploadRunbooksScriptName
   location: location
   kind: 'AzurePowerShell'

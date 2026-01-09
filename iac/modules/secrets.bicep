@@ -57,3 +57,9 @@ resource psqlAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' 
     value: psqlAdminPassword
   }
 }
+
+// Output secret names for use in other modules
+output vmAdminUsernameSecretName string = vmAdminUsernameSecret.name
+output vmAdminPasswordSecretName string = vmAdminPasswordSecret.name
+output psqlAdminUsernameSecretName string = psqlAdminUsernameSecret.name
+output psqlAdminPasswordSecretName string = psqlAdminPasswordSecret.name

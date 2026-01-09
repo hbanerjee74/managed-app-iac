@@ -37,6 +37,12 @@ param psqlAdminUsername string
 @secure()
 param psqlAdminPassword string
 
+@description('PostgreSQL admin username secret name in Key Vault.')
+param psqlAdminUsernameSecretName string
+
+@description('PostgreSQL admin password secret name in Key Vault.')
+param psqlAdminPasswordSecretName string
+
 @description('Tags to apply.')
 param tags object
 
