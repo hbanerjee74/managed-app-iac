@@ -62,10 +62,8 @@ param publisherAdminPrincipalType string
 @description('Tags to apply.')
 param tags object
 
-// Load PowerShell scripts from files
-var rbacUamiScript = loadTextContent('../../scripts/assign-rbac-roles-uami.ps1')
-var rbacCustomerAdminScript = loadTextContent('../../scripts/assign-rbac-roles-admin.ps1')
-var rbacPublisherAdminScript = loadTextContent('../../scripts/assign-rbac-roles-publisher-admin.ps1')
+// PowerShell scripts are located in scripts/ directory
+// Runbook content must be uploaded manually after deployment (see comments below)
 
 // Reference Automation Account
 resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' existing = {
@@ -100,7 +98,7 @@ resource rbacUamiRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-
   ]
 }
 
-// UAMI Runbook draft content will be uploaded via deployment script below
+// UAMI Runbook content must be uploaded manually after deployment (see instructions below)
 
 // Automation Runbook for Customer Admin RBAC role assignments
 // This runbook allows admins to re-apply Customer Admin RBAC assignments on-demand
@@ -121,7 +119,7 @@ resource rbacCustomerAdminRunbook 'Microsoft.Automation/automationAccounts/runbo
   ]
 }
 
-// Customer Admin Runbook draft content will be uploaded via deployment script below
+// Customer Admin Runbook content must be uploaded manually after deployment (see instructions below)
 
 // Automation Runbook for Publisher Admin RBAC role assignments
 // This runbook allows admins to re-apply Publisher Admin RBAC assignments on-demand
@@ -143,232 +141,47 @@ resource rbacPublisherAdminRunbook 'Microsoft.Automation/automationAccounts/runb
   ]
 }
 
-// Publisher Admin Runbook draft content will be uploaded via deployment script below
+// Publisher Admin Runbook content must be uploaded manually after deployment (see instructions below)
 
 // ============================================================================
-// UPLOAD AND PUBLISH RUNBOOKS
-// Deployment script to upload runbook content and publish all runbooks
-// Runbook content cannot be set via Bicep draft/content resource, so we use Azure CLI
-// This ensures runbooks are immediately available for execution without manual publishing
 // ============================================================================
-
-var uploadRunbooksForceUpdateTagValue = guid(resourceGroup().id, automationId, 'upload-rbac-runbooks')
-var uploadRunbooksScriptNameSuffix = substring(uploadRunbooksForceUpdateTagValue, 0, 8)
-var uploadRunbooksScriptName = 'upload-rbac-runbooks-${uploadRunbooksScriptNameSuffix}'
-
-// Deployment script to upload runbook content and publish all RBAC runbooks
-resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: uploadRunbooksScriptName
-  location: location
-  kind: 'AzurePowerShell'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${uamiId}': {}
-    }
-  }
-  properties: {
-    forceUpdateTag: uploadRunbooksForceUpdateTagValue
-    retentionInterval: 'PT1H'
-    azPowerShellVersion: '11.0'
-    scriptContent: '''
-      $ErrorActionPreference = "Stop"
-      
-      $AutomationAccountName = "${automationName}"
-      $ResourceGroupName = "${resourceGroup().name}"
-      $HasCustomerAdmin = "$env:HAS_CUSTOMER_ADMIN"
-      $IsManagedApp = "$env:IS_MANAGED_APPLICATION"
-      $HasPublisherAdmin = "$env:HAS_PUBLISHER_ADMIN"
-      
-      # Verify Azure CLI is available and authenticated
-      Write-Host "Checking Azure CLI availability..." -ForegroundColor Cyan
-      $azVersion = az version --output json 2>&1
-      if ($LASTEXITCODE -ne 0) {
-        Write-Error "Azure CLI is not available or not working properly"
-        Write-Host "Azure CLI check output: $azVersion" -ForegroundColor Red
-        exit 1
-      }
-      Write-Host "Azure CLI is available" -ForegroundColor Green
-      
-      # Check authentication
-      Write-Host "Checking Azure CLI authentication..." -ForegroundColor Cyan
-      $accountInfo = az account show --output json 2>&1
-      if ($LASTEXITCODE -ne 0) {
-        Write-Error "Azure CLI is not authenticated"
-        Write-Host "Account check output: $accountInfo" -ForegroundColor Red
-        exit 1
-      }
-      Write-Host "Azure CLI is authenticated" -ForegroundColor Green
-      
-      # Create temporary files for runbook content
-      $TempDir = $env:TEMP
-      $UamiScriptPath = Join-Path $TempDir "assign-rbac-roles-uami.ps1"
-      $CustomerAdminScriptPath = Join-Path $TempDir "assign-rbac-roles-admin.ps1"
-      $PublisherAdminScriptPath = Join-Path $TempDir "assign-rbac-roles-publisher-admin.ps1"
-      
-      Write-Host "Uploading and publishing RBAC runbooks..." -ForegroundColor Cyan
-      Write-Host "Automation Account: $AutomationAccountName" -ForegroundColor Cyan
-      Write-Host "Resource Group: $ResourceGroupName" -ForegroundColor Cyan
-      
-      # Write UAMI script content to temp file from environment variable
-      $env:UAMI_SCRIPT_CONTENT | Out-File -FilePath $UamiScriptPath -Encoding utf8
-      
-      # Upload and publish UAMI runbook
-      Write-Host "Uploading content for assign-rbac-roles-uami runbook..." -ForegroundColor Yellow
-      try {
-        $uploadOutput = az automation runbook replace-content `
-          --automation-account-name $AutomationAccountName `
-          --resource-group $ResourceGroupName `
-          --name assign-rbac-roles-uami `
-          --content-path $UamiScriptPath `
-          2>&1
-        if ($LASTEXITCODE -eq 0) {
-          Write-Host "Successfully uploaded content for assign-rbac-roles-uami" -ForegroundColor Green
-          
-          Write-Host "Publishing assign-rbac-roles-uami runbook..." -ForegroundColor Yellow
-          $publishOutput = az automation runbook publish `
-            --automation-account-name $AutomationAccountName `
-            --resource-group $ResourceGroupName `
-            --name assign-rbac-roles-uami `
-            2>&1
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Successfully published assign-rbac-roles-uami" -ForegroundColor Green
-          } else {
-            Write-Error "Failed to publish assign-rbac-roles-uami (exit code: $LASTEXITCODE)"
-            Write-Host "Publish output: $publishOutput" -ForegroundColor Red
-            exit 1
-          }
-        } else {
-          Write-Error "Failed to upload content for assign-rbac-roles-uami (exit code: $LASTEXITCODE)"
-          Write-Host "Upload output: $uploadOutput" -ForegroundColor Red
-          exit 1
-        }
-      } catch {
-        Write-Error "Failed to upload/publish assign-rbac-roles-uami: $_"
-        exit 1
-      }
-      
-      # Upload and publish Customer Admin runbook (if customerAdminObjectId is provided)
-      if ($HasCustomerAdmin -eq "True") {
-        # Write Customer Admin script content to temp file from environment variable
-        $env:CUSTOMER_ADMIN_SCRIPT_CONTENT | Out-File -FilePath $CustomerAdminScriptPath -Encoding utf8
-        
-        Write-Host "Uploading content for assign-rbac-roles-admin runbook..." -ForegroundColor Yellow
-        try {
-          $uploadOutput = az automation runbook replace-content `
-            --automation-account-name $AutomationAccountName `
-            --resource-group $ResourceGroupName `
-            --name assign-rbac-roles-admin `
-            --content-path $CustomerAdminScriptPath `
-            2>&1
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Successfully uploaded content for assign-rbac-roles-admin" -ForegroundColor Green
-            
-            Write-Host "Publishing assign-rbac-roles-admin runbook..." -ForegroundColor Yellow
-            $publishOutput = az automation runbook publish `
-              --automation-account-name $AutomationAccountName `
-              --resource-group $ResourceGroupName `
-              --name assign-rbac-roles-admin `
-              2>&1
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Successfully published assign-rbac-roles-admin" -ForegroundColor Green
-            } else {
-              Write-Error "Failed to publish assign-rbac-roles-admin (exit code: $LASTEXITCODE)"
-              Write-Host "Publish output: $publishOutput" -ForegroundColor Red
-              exit 1
-            }
-          } else {
-            Write-Error "Failed to upload content for assign-rbac-roles-admin (exit code: $LASTEXITCODE)"
-            Write-Host "Upload output: $uploadOutput" -ForegroundColor Red
-            exit 1
-          }
-        } catch {
-          Write-Error "Failed to upload/publish assign-rbac-roles-admin: $_"
-          exit 1
-        }
-      } else {
-        Write-Host "Skipping assign-rbac-roles-admin (customerAdminObjectId not provided)" -ForegroundColor Gray
-      }
-      
-      # Upload and publish Publisher Admin runbook (if managed application and publisherAdminObjectId is provided)
-      if ($IsManagedApp -eq "True" -and $HasPublisherAdmin -eq "True") {
-        # Write Publisher Admin script content to temp file from environment variable
-        $env:PUBLISHER_ADMIN_SCRIPT_CONTENT | Out-File -FilePath $PublisherAdminScriptPath -Encoding utf8
-        
-        Write-Host "Uploading content for assign-rbac-roles-publisher-admin runbook..." -ForegroundColor Yellow
-        try {
-          $uploadOutput = az automation runbook replace-content `
-            --automation-account-name $AutomationAccountName `
-            --resource-group $ResourceGroupName `
-            --name assign-rbac-roles-publisher-admin `
-            --content-path $PublisherAdminScriptPath `
-            2>&1
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Successfully uploaded content for assign-rbac-roles-publisher-admin" -ForegroundColor Green
-            
-            Write-Host "Publishing assign-rbac-roles-publisher-admin runbook..." -ForegroundColor Yellow
-            $publishOutput = az automation runbook publish `
-              --automation-account-name $AutomationAccountName `
-              --resource-group $ResourceGroupName `
-              --name assign-rbac-roles-publisher-admin `
-              2>&1
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Successfully published assign-rbac-roles-publisher-admin" -ForegroundColor Green
-            } else {
-              Write-Error "Failed to publish assign-rbac-roles-publisher-admin (exit code: $LASTEXITCODE)"
-              Write-Host "Publish output: $publishOutput" -ForegroundColor Red
-              exit 1
-            }
-          } else {
-            Write-Error "Failed to upload content for assign-rbac-roles-publisher-admin (exit code: $LASTEXITCODE)"
-            Write-Host "Upload output: $uploadOutput" -ForegroundColor Red
-            exit 1
-          }
-        } catch {
-          Write-Error "Failed to upload/publish assign-rbac-roles-publisher-admin: $_"
-          exit 1
-        }
-      } else {
-        Write-Host "Skipping assign-rbac-roles-publisher-admin (not a managed application or publisherAdminObjectId not provided)" -ForegroundColor Gray
-      }
-      
-      Write-Host "Runbook upload and publishing completed" -ForegroundColor Cyan
-    '''
-    supportingScriptUris: []
-    timeout: 'PT15M'
-    environmentVariables: [
-      {
-        name: 'HAS_CUSTOMER_ADMIN'
-        value: string(!empty(customerAdminObjectId))
-      }
-      {
-        name: 'IS_MANAGED_APPLICATION'
-        value: string(isManagedApplication)
-      }
-      {
-        name: 'HAS_PUBLISHER_ADMIN'
-        value: string(!empty(publisherAdminObjectId))
-      }
-      {
-        name: 'UAMI_SCRIPT_CONTENT'
-        value: rbacUamiScript
-      }
-      {
-        name: 'CUSTOMER_ADMIN_SCRIPT_CONTENT'
-        value: rbacCustomerAdminScript
-      }
-      {
-        name: 'PUBLISHER_ADMIN_SCRIPT_CONTENT'
-        value: rbacPublisherAdminScript
-      }
-    ]
-  }
-  dependsOn: [
-    rbacUamiRunbook
-    rbacCustomerAdminRunbook
-    rbacPublisherAdminRunbook
-  ]
-}
+// RUNBOOK CONTENT UPLOAD
+// Runbook content must be uploaded and published manually after deployment
+// Use the following Azure CLI commands:
+//
+// For assign-rbac-roles-uami:
+//   az automation runbook replace-content \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name assign-rbac-roles-uami \
+//     --content-path scripts/assign-rbac-roles-uami.ps1
+//   az automation runbook publish \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name assign-rbac-roles-uami
+//
+// For assign-rbac-roles-admin (if customerAdminObjectId is provided):
+//   az automation runbook replace-content \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name assign-rbac-roles-admin \
+//     --content-path scripts/assign-rbac-roles-admin.ps1
+//   az automation runbook publish \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name assign-rbac-roles-admin
+//
+// For assign-rbac-roles-publisher-admin (if managed application and publisherAdminObjectId is provided):
+//   az automation runbook replace-content \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name assign-rbac-roles-publisher-admin \
+//     --content-path scripts/assign-rbac-roles-publisher-admin.ps1
+//   az automation runbook publish \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name assign-rbac-roles-publisher-admin
+// ============================================================================
 
 // ============================================================================
 // RBAC ASSIGNMENTS VIA RUNBOOKS
