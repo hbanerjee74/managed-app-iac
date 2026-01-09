@@ -52,7 +52,7 @@ param sku string = 'B1'
 ])
 param nodeSize string = 'Standard_D4s_v3'
 
-@description('VM jump host size.')
+@description('Jump host VM compute tier.')
 @allowed([
   'Standard_A1_v2'
   'Standard_A1'
@@ -63,7 +63,7 @@ param nodeSize string = 'Standard_D4s_v3'
   'Standard_B1ms'
   'Standard_B2ms'
 ])
-param vmSize string = 'Standard_A1_v2'
+param jumpHostComputeTier string = 'Standard_A1_v2'
 
 @description('PostgreSQL compute tier (RFC-64 computeTier).')
 @allowed([
@@ -74,7 +74,7 @@ param vmSize string = 'Standard_A1_v2'
   'GP_Standard_D2s_v3'
   'GP_Standard_D4s_v3'
 ])
-param computeTier string = 'Standard_B1ms'
+param psqlComputeTier string = 'Standard_B1ms'
 
 @description('AI Services tier (RFC-64).')
 @allowed([
@@ -306,7 +306,7 @@ module psql 'modules/psql.bicep' = {
   params: {
     location: location
     psqlName: naming.outputs.names.psql
-    computeTier: computeTier
+    computeTier: psqlComputeTier
     backupRetentionDays: backupRetentionDays
     storageGB: storageGB
     subnetPsqlId: network.outputs.subnetPsqlId
@@ -489,7 +489,7 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
     subnetId: network.outputs.subnetPeId
     kvName: naming.outputs.names.kv
     adminPassword: vmAdminPassword
-    vmSize: vmSize
+    vmSize: jumpHostComputeTier
     tags: tags
   }
 }
