@@ -389,6 +389,64 @@ Environment variables:
   PORT                   SSH port
 ```
 
+## Tips
+
+### 1. Hard Delete Log Analytics Workspace Before Resource Group Deletion
+
+When deleting a resource group, Log Analytics Workspace (LAW) requires a hard delete before the resource group can be deleted. Use the following command:
+
+```bash
+az monitor log-analytics workspace delete --force \
+  --resource-group <resource-group-name> \
+  --workspace-name <workspace-name>
+```
+
+**Example:**
+
+```bash
+az monitor log-analytics workspace delete --force \
+  --resource-group test-rg-sg \
+  --workspace-name vd-law-svrjppuq375biisy
+```
+
+After the LAW is hard deleted, you can proceed with deleting the resource group.
+
+### 2. Purge Deleted Cognitive Services
+
+When Cognitive Services accounts are soft-deleted, they must be purged before you can recreate them with the same name. Use the following steps:
+
+**Step 1: List deleted accounts (filter by name):**
+
+```bash
+az cognitiveservices account list-deleted \
+  --subscription <subscription-id> \
+  --query "[?name=='<account-name>']"
+```
+
+**Step 2: Purge the soft-deleted account:**
+
+```bash
+az cognitiveservices account purge \
+  --subscription <subscription-id> \
+  --name <account-name> \
+  --location <location>
+```
+
+**Example:**
+
+```bash
+# List deleted accounts
+az cognitiveservices account list-deleted \
+  --subscription bb18b309-4a01-46a2-8e81-6e639b591005 \
+  --query "[?name=='vd-ai-fkbboe3tqdoetjuu']"
+
+# Purge the deleted account
+az cognitiveservices account purge \
+  --subscription bb18b309-4a01-46a2-8e81-6e639b591005 \
+  --name vd-ai-fkbboe3tqdoetjuu \
+  --location southeastasia
+```
+
 ## Documentation
 
 - **Testing**: See [`tests/README.md`](tests/README.md) for comprehensive test documentation
