@@ -6,8 +6,8 @@ param resourceGroupName string = resourceGroup().name
 @description('Azure region for deployment. Defaults to current resource group location from ARM context.')
 param location string = resourceGroup().location
 
-@description('Customer admin Entra object ID (RFC-64). Defaults to deployer identity when isManagedApplication is false.')
-param customerAdminObjectId string = ''
+@description('Customer admin Entra object ID (RFC-64). Required parameter; will be overridden by deployer identity when isManagedApplication is false.')
+param customerAdminObjectId string
 
 @description('Contact email for notifications (RFC-64).')
 param contactEmail string
@@ -149,10 +149,10 @@ module naming 'lib/naming.bicep' = {
 }
 
 // Determine effective customer admin object ID:
-// - If isManagedApplication is false and customerAdminObjectId is empty, use deployer identity
+// - If isManagedApplication is false, always use deployer identity (overrides params.dev.json value)
 // - Otherwise, use provided customerAdminObjectId (required for managed applications)
 var deployerInfo = az.deployer()
-var effectiveCustomerAdminObjectId = !isManagedApplication && empty(customerAdminObjectId) ? deployerInfo.objectId : customerAdminObjectId
+var effectiveCustomerAdminObjectId = !isManagedApplication ? deployerInfo.objectId : customerAdminObjectId
 
 // Use default tags from metadata when isManagedApplication is false and individual tag params are empty
 var effectiveTags = !isManagedApplication && empty(environment) && empty(owner) && empty(purpose) && empty(created) ? defaultTags : union(

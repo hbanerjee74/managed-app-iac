@@ -15,7 +15,7 @@
   },
   "parameters": {
     "contactEmail": { "value": "dev@example.com" },
-    "customerAdminObjectId": { "value": "00000000-0000-0000-0000-000000000000" },
+    "customerAdminObjectId": { "value": "00000000-0000-0000-0000-000000000000" }, // Default value; will be overridden by deployer identity for non-managed apps
     "customerAdminPrincipalType": { "value": "User" },
     "publisherAdminObjectId": { "value": "" },
     "publisherAdminPrincipalType": { "value": "User" },
