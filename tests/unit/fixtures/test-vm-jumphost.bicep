@@ -79,7 +79,7 @@ module vmJumphost '../../../iac/modules/vm-jumphost.bicep' = {
     adminPassword: 'test-password-123'
     vmAdminUsernameSecretName: secrets.outputs.vmAdminUsernameSecretName
     vmAdminPasswordSecretName: secrets.outputs.vmAdminPasswordSecretName
-    vmSize: 'Standard_A1_v2'
+    vmSize: 'Standard_B2s'
     imagePublisher: 'Canonical'
     imageOffer: '0001-com-ubuntu-server-jammy'
     imageSku: '22_04-lts-gen2'

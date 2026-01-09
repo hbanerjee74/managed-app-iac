@@ -13,7 +13,7 @@ param location string
 param vnetCidr string
 
 @description('PostgreSQL compute tier (RFC-64: computeTier).')
-param computeTier string
+param psqlComputeTier string
 
 @description('PostgreSQL storage in GB (RFC-64: storageGB).')
 param storageGB int
@@ -121,7 +121,7 @@ module psql '../../../iac/modules/psql.bicep' = {
   params: {
     location: location
     psqlName: naming.outputs.names.psql
-    computeTier: computeTier
+    computeTier: psqlComputeTier
     backupRetentionDays: backupRetentionDays
     storageGB: storageGB
     subnetPsqlId: network.outputs.subnetPsqlId

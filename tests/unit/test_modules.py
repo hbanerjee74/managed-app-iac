@@ -71,6 +71,9 @@ class TestBicepModules:
             # Check if it's an authentication issue (should skip, not fail)
             if "not logged in" in output.lower() or "authentication" in output.lower():
                 pytest.skip(f"Azure CLI not configured - skipping what-if cache for {module_name}")
+            # Skip if SKU is not available (transient Azure capacity issue)
+            if "skunotavailable" in output.lower() or "sku not available" in output.lower() or "capacity restrictions" in output.lower():
+                pytest.skip(f"VM SKU not available in test location - skipping what-if cache for {module_name} (transient Azure capacity issue)")
             # For other failures, return None (tests can check for this)
             return None
         
@@ -99,9 +102,14 @@ class TestBicepModules:
             # Try running it once more to get the error message
             bicep_path = FIXTURES_DIR / bicep_file
             success, output = run_what_if(bicep_path)
-            if not success and "not logged in" in output.lower():
-                pytest.skip(f"Azure CLI not configured - skipping what-if test for {module_name}")
-            pytest.fail(f"What-if failed for {module_name}: {output}")
+            if not success:
+                if "not logged in" in output.lower():
+                    pytest.skip(f"Azure CLI not configured - skipping what-if test for {module_name}")
+                # Skip if SKU is not available (transient Azure capacity issue)
+                if "skunotavailable" in output.lower() or "sku not available" in output.lower() or "capacity restrictions" in output.lower():
+                    pytest.skip(f"VM SKU not available in test location - skipping what-if test for {module_name} (transient Azure capacity issue)")
+            if not success:
+                pytest.fail(f"What-if failed for {module_name}: {output}")
         
         # Verify cached output has expected structure
         assert 'status' in cached_what_if_output, f"Cached what-if output missing 'status' for {module_name}"
