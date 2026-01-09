@@ -103,7 +103,7 @@ resource psqlRolesRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023
 // Runbook draft - required parent for content
 resource psqlRolesRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = {
   parent: psqlRolesRunbook
-  name: 'content'
+  name: 'draft'
   dependsOn: [
     psqlRolesRunbook
   ]
