@@ -415,21 +415,20 @@ After the LAW is hard deleted, you can proceed with deleting the resource group.
 
 When Cognitive Services accounts are soft-deleted, they must be purged before you can recreate them with the same name. Use the following steps:
 
-**Step 1: List deleted accounts (filter by name):**
+**Step 1: List deleted accounts:**
 
 ```bash
 az cognitiveservices account list-deleted \
-  --subscription <subscription-id> \
-  --query "[?name=='<account-name>']"
+  --subscription <subscription-id>
 ```
 
 **Step 2: Purge the soft-deleted account:**
 
 ```bash
 az cognitiveservices account purge \
-  --subscription <subscription-id> \
+  --location <location> \
   --name <account-name> \
-  --location <location>
+  --resource-group <resource-group-name>
 ```
 
 **Example:**
@@ -437,14 +436,13 @@ az cognitiveservices account purge \
 ```bash
 # List deleted accounts
 az cognitiveservices account list-deleted \
-  --subscription bb18b309-4a01-46a2-8e81-6e639b591005 \
-  --query "[?name=='vd-ai-fkbboe3tqdoetjuu']"
+  --subscription bb18b309-4a01-46a2-8e81-6e639b591005
 
 # Purge the deleted account
 az cognitiveservices account purge \
-  --subscription bb18b309-4a01-46a2-8e81-6e639b591005 \
-  --name vd-ai-fkbboe3tqdoetjuu \
-  --location southeastasia
+  --location "eastus" \
+  --name "vd-ai-i4zqxp3uzyvsqqqh" \
+  --resource-group "test-rg"
 ```
 
 ## Documentation
