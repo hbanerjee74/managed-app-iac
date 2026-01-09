@@ -25,8 +25,8 @@ param peKvDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagKvName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource kv 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: kvName

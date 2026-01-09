@@ -38,17 +38,17 @@ param vmAdminPasswordSecretName string
 ])
 param vmSize string
 
-@description('VM image publisher (default: Canonical).')
-param imagePublisher string = 'Canonical'
+@description('VM image publisher.')
+param imagePublisher string
 
-@description('VM image offer (default: 0001-com-ubuntu-server-jammy).')
-param imageOffer string = '0001-com-ubuntu-server-jammy'
+@description('VM image offer.')
+param imageOffer string
 
-@description('VM image SKU (default: 22_04-lts-gen2).')
-param imageSku string = '22_04-lts-gen2'
+@description('VM image SKU.')
+param imageSku string
 
-@description('VM image version (default: latest).')
-param imageVersion string = 'latest'
+@description('VM image version.')
+param imageVersion string
 
 @description('Tags to apply.')
 param tags object

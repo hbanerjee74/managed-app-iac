@@ -15,8 +15,8 @@ param nsgAksName string
 param nsgAppsvcName string
 param nsgPeName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 // Subnet prefix length is fixed at /24
 var subnetPrefixLength = 24

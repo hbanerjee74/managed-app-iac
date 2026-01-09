@@ -6,8 +6,8 @@ param location string
 @description('Name for the user-assigned managed identity.')
 param uamiName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 // Create the user-assigned managed identity (name provided by parent, includes suffix).
 resource vibedataUami 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {

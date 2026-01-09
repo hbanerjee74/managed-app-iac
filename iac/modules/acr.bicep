@@ -25,8 +25,8 @@ param peAcrDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagAcrName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-06-01-preview' = {
   name: acrName

@@ -29,8 +29,8 @@ param peStTableDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagStName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 var storageSuffix = environment().suffixes.storage
 var blobZone = 'privatelink.blob.${storageSuffix}'

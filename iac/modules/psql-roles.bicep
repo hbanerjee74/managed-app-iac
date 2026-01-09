@@ -19,13 +19,13 @@ param uamiId string
 param kvName string
 
 @description('Automation Account resource ID (for runbook creation).')
-param automationId string = ''
+param automationId string
 
 @description('Automation Account name (for runbook creation).')
-param automationName string = ''
+param automationName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 var serverHost = '${psqlName}.postgres.database.azure.com'
 // Generate unique script name to avoid conflicts with running scripts
@@ -38,8 +38,8 @@ var scriptName = 'psql-create-roles-${scriptNameSuffix}'
 // Load PowerShell script from file
 var psqlRolesScript = loadTextContent('../../scripts/create-psql-roles.ps1')
 
-// Reference Automation Account (if provided)
-resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' existing = if (!empty(automationId)) {
+// Reference Automation Account
+resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' existing = {
   name: automationName
 }
 

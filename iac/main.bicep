@@ -121,6 +121,18 @@ param vmAdminUsername string = 'azureuser'
 @secure()
 param vmAdminPassword string = ''
 
+@description('VM image publisher.')
+param vmImagePublisher string = 'Canonical'
+
+@description('VM image offer.')
+param vmImageOffer string = '0001-com-ubuntu-server-jammy'
+
+@description('VM image SKU.')
+param vmImageSku string = '22_04-lts-gen2'
+
+@description('VM image version.')
+param vmImageVersion string = 'latest'
+
 @description('PostgreSQL admin username.')
 param psqlAdminUsername string = 'psqladmin'
 
@@ -531,6 +543,10 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
     vmAdminUsernameSecretName: secrets.outputs.vmAdminUsernameSecretName
     vmAdminPasswordSecretName: secrets.outputs.vmAdminPasswordSecretName
     vmSize: jumpHostComputeTier
+    imagePublisher: vmImagePublisher
+    imageOffer: vmImageOffer
+    imageSku: vmImageSku
+    imageVersion: vmImageVersion
     tags: tags
   }
 }

@@ -25,8 +25,8 @@ param peAiDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagAiName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource ai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: aiName

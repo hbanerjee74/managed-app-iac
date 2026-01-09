@@ -12,8 +12,8 @@ param customerIpRanges array
 @description('Publisher IP ranges for WAF allowlist.')
 param publisherIpRanges array
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 var wafRules = [
   // Customer allowlist (RFC-71: priority range 100-199)

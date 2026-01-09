@@ -28,8 +28,8 @@ param peSearchDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagSearchName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource search 'Microsoft.Search/searchServices@2023-11-01' = {
   name: searchName

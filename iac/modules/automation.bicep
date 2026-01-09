@@ -12,8 +12,8 @@ param lawId string
 @description('Diagnostic setting name from naming helper.')
 param diagAutomationName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
   name: automationName
