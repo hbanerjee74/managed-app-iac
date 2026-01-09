@@ -89,28 +89,11 @@ This release refactors RBAC role assignments from Bicep resources to PowerShell 
 - **Purpose**: Enables publisher admin to troubleshoot and monitor customer resources
 - **Parameters**: Publisher Admin Object ID and Principal Type passed via environment variables
 
-#### Test Infrastructure Updates
-- **Parameter validation**: Updated `tests/test_params.py` to validate `customerAdminObjectId` and `customerAdminPrincipalType`
-- **Test fixtures**: Updated all test fixture Bicep files to use new parameter names:
-  - `tests/unit/fixtures/test-rbac.bicep`
-  - `tests/unit/fixtures/test-psql-roles.bicep`
-  - `tests/unit/fixtures/test-automation.bicep`
-  - `tests/unit/fixtures/test-identity.bicep`
-- **Test utilities**: Updated `tests/unit/helpers/test_utils.py` to handle `customerAdminObjectId` placeholder replacement
-- **Parameter file**: Updated `tests/fixtures/params.dev.json` with new parameter names and Publisher Admin parameters
-
-#### Documentation Updates
-- **README.md**: Added comprehensive "Updating RBAC After Deployment" section with:
-  - Runbook publishing instructions
-  - Runbook execution commands
-  - Parameter documentation for each runbook
-  - Troubleshooting guidance
 
 ### Verification
 
 - ✅ All Bicep modules compile successfully (no errors)
 - ✅ All PowerShell scripts validated for syntax and logic
-- ✅ All test fixtures updated and compile successfully
 - ✅ Parameter validation tests pass
 - ✅ Deterministic GUID generation verified for idempotency
 - ✅ Deployment scripts configured with correct identity and parameters
@@ -118,20 +101,12 @@ This release refactors RBAC role assignments from Bicep resources to PowerShell 
 
 ### Impact
 
-#### Improved Maintainability
-- **Centralized logic**: RBAC assignment logic consolidated in PowerShell scripts
-- **Easier updates**: Role assignments can be updated by modifying scripts without Bicep changes
-- **Better testing**: Scripts can be tested independently of Bicep deployment
 
 #### Operational Benefits
 - **On-demand updates**: RBAC assignments can be re-applied via automation runbooks without full redeployment
 - **Troubleshooting**: Runbooks enable quick RBAC fixes if assignments are accidentally removed
 - **Audit trail**: Runbook execution logged in Automation Account job history
 
-#### Clarity Improvements
-- **Naming consistency**: `customerAdmin*` naming clearly distinguishes Customer Admin from Publisher Admin
-- **Documentation**: Comprehensive runbook documentation in README
-- **Parameter clarity**: Explicit parameter names reduce confusion about admin roles
 
 ### Related Issues
 
@@ -157,7 +132,6 @@ This release refactors RBAC role assignments from Bicep resources to PowerShell 
   "publisherAdminObjectId": { "value": "<publisher-admin-object-id>" },
   "publisherAdminPrincipalType": { "value": "User" }
   ```
-- Test fixtures: All test fixtures updated to use new parameter names
 - PowerShell scripts: Located in `scripts/` directory, can be executed independently for testing
 
 **For operators:**
@@ -188,14 +162,6 @@ This release refactors RBAC role assignments from Bicep resources to PowerShell 
 - `iac/modules/rbac.bicep` (refactored to use PowerShell scripts and automation runbooks)
 - `iac/main.bicep` (updated parameter names: `adminObjectId` → `customerAdminObjectId`, `adminPrincipalType` → `customerAdminPrincipalType`; added Publisher Admin parameters)
 - `tests/fixtures/params.dev.json` (renamed admin parameters, added Publisher Admin parameters)
-- `tests/test_params.py` (updated required parameter validation)
-- `tests/unit/helpers/test_utils.py` (updated placeholder replacement logic)
-- `tests/unit/fixtures/test-rbac.bicep` (updated parameter names)
-- `tests/unit/fixtures/test-psql-roles.bicep` (updated parameter names)
-- `tests/unit/fixtures/test-automation.bicep` (updated parameter names)
-- `tests/unit/fixtures/test-identity.bicep` (updated parameter names)
-- `README.md` (added "Updating RBAC After Deployment" section)
-- `AGENTS.md` (updated parameter references)
 
 **Removed:**
 - All explicit `Microsoft.Authorization/roleAssignments` resources from `rbac.bicep` (replaced with PowerShell script execution)

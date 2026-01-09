@@ -46,19 +46,6 @@ This release centralizes parameter management by removing all hardcoded defaults
   - `psql-roles.bicep`: All parameters now mandatory (removed conditional checks for `automationId`, `automationName`)
 - **Impact**: `main.bicep` must now provide all RBAC-related outputs to these modules
 
-#### Code Quality Improvements
-
-##### Explicit Dependencies
-- **All `dependsOn` dependencies are now explicit**: Added explicit `dependsOn` declarations for all resources that reference other resources, improving clarity and maintainability.
-- **Modules updated**: All 15+ modules updated with explicit dependencies:
-  - Private endpoints depend on their target resources
-  - DNS zone groups depend on their parent private endpoints
-  - Diagnostic settings depend on their scoped resources
-  - Child resources depend on their parent resources
-  - VMs depend on network interfaces
-  - Bastion depends on public IP
-  - Secrets depend on Key Vault
-- **Benefits**: Better deployment ordering, clearer dependencies, improved maintainability
 
 ### Verification
 
@@ -66,7 +53,6 @@ This release centralizes parameter management by removing all hardcoded defaults
 - ✅ All test fixtures updated with mandatory parameters
 - ✅ All 19 module compilation tests pass
 - ✅ Main Bicep template compiles successfully
-- ✅ Explicit dependencies verified for all resources
 - ✅ Secrets module creates all required credentials
 - ✅ Parameter validation tests pass
 
@@ -75,10 +61,8 @@ This release centralizes parameter management by removing all hardcoded defaults
 #### Improved Maintainability
 - **Centralized parameter management**: All parameters flow through `main.bicep` → `params.dev.json`, making it easier to track and manage configuration
 - **Consistent parameter handling**: No hidden defaults, all parameters explicitly defined
-- **Clearer dependencies**: Explicit `dependsOn` declarations make resource dependencies obvious
 
 #### Operational Benefits
-- **Better deployment reliability**: Explicit dependencies ensure correct deployment ordering
 - **Easier troubleshooting**: All parameters visible in `params.dev.json`, no hidden defaults
 - **Consistent credential management**: Centralized secrets module ensures consistent secret naming and management
 
@@ -92,7 +76,6 @@ This release centralizes parameter management by removing all hardcoded defaults
 - Parameter centralization and removal of hardcoded defaults
 - Centralized credential management via secrets module
 - Mandatory RBAC parameters for clearer contracts
-- Explicit dependencies for better deployment reliability
 
 ### Migration Notes
 
@@ -110,7 +93,6 @@ This release centralizes parameter management by removing all hardcoded defaults
 **For operators:**
 - **Parameter validation**: All parameters must be provided in parameter files (no module defaults)
 - **Credential management**: VM and PostgreSQL admin credentials are auto-generated if not provided, stored in Key Vault via `secrets.bicep` module
-- **Deployment reliability**: Explicit dependencies ensure correct deployment ordering
 
 ### Files Changed
 
@@ -119,12 +101,12 @@ This release centralizes parameter management by removing all hardcoded defaults
 
 **Modified:**
 - `iac/main.bicep` (credential generation logic, secrets module call, all parameters passed explicitly)
-- `iac/modules/vm-jumphost.bicep` (removed defaults, added explicit dependsOn)
-- `iac/modules/psql.bicep` (removed defaults, added explicit dependsOn)
-- `iac/modules/gateway.bicep` (removed defaults, added explicit dependsOn)
-- `iac/modules/rbac.bicep` (removed defaults, made all parameters mandatory, added explicit dependsOn)
-- `iac/modules/psql-roles.bicep` (removed defaults, made all parameters mandatory, added explicit dependsOn)
-- All other modules (removed `tags` defaults, added explicit dependsOn where needed)
+- `iac/modules/vm-jumphost.bicep` (removed defaults)
+- `iac/modules/psql.bicep` (removed defaults)
+- `iac/modules/gateway.bicep` (removed defaults)
+- `iac/modules/rbac.bicep` (removed defaults, made all parameters mandatory)
+- `iac/modules/psql-roles.bicep` (removed defaults, made all parameters mandatory)
+- All other modules (removed `tags` defaults)
 - `tests/fixtures/params.dev.json` (added VM image parameters)
 - `tests/unit/fixtures/test-psql.bicep` (added secrets module, mandatory parameters)
 - `tests/unit/fixtures/test-vm-jumphost.bicep` (added secrets module, mandatory parameters)
