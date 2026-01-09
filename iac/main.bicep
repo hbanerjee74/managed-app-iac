@@ -557,21 +557,17 @@ var deployerObjectId = deployerInfo.objectId
 // Determine principal type: if userPrincipalName is empty, it's likely a ServicePrincipal
 var deployerPrincipalType = empty(deployerInfo.userPrincipalName) ? 'ServicePrincipal' : 'User'
 
-resource automationAccountForRbac 'Microsoft.Automation/automationAccounts@2023-11-01' existing = if (!isManagedApplication) {
-  name: automation.outputs.automationName
-}
-
 resource deployerAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!isManagedApplication) {
-  name: guid(automationAccountForRbac.id, deployerObjectId, 'automation-job-operator')
-  scope: automationAccountForRbac
+  name: guid(resourceGroup().id, 'automation', deployerObjectId, 'automation-job-operator')
+  scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
     principalId: deployerObjectId
     principalType: deployerPrincipalType
+    delegatedManagedIdentityResourceId: automation.outputs.automationId
   }
   dependsOn: [
     automation
-    automationAccountForRbac
   ]
 }
 
