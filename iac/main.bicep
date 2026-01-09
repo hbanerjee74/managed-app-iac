@@ -154,6 +154,11 @@ module naming 'lib/naming.bicep' = {
 var deployerInfo = az.deployer()
 var effectiveCustomerAdminObjectId = !isManagedApplication ? deployerInfo.objectId : customerAdminObjectId
 
+// Determine effective publisher admin object ID:
+// - If isManagedApplication is false, set to empty (not used for non-managed apps)
+// - Otherwise, use provided publisherAdminObjectId (optional for managed applications)
+var effectivePublisherAdminObjectId = !isManagedApplication ? '' : publisherAdminObjectId
+
 // Use default tags from metadata when isManagedApplication is false and individual tag params are empty
 var effectiveTags = !isManagedApplication && empty(environment) && empty(owner) && empty(purpose) && empty(created) ? defaultTags : union(
   empty(environment) ? {} : { environment: environment },
@@ -542,7 +547,7 @@ module rbac 'modules/rbac.bicep' = {
     automationId: automation.outputs.automationId
     automationName: automation.outputs.automationName
     isManagedApplication: isManagedApplication
-    publisherAdminObjectId: publisherAdminObjectId
+    publisherAdminObjectId: effectivePublisherAdminObjectId
     publisherAdminPrincipalType: publisherAdminPrincipalType
     tags: tags
   }

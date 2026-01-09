@@ -17,8 +17,6 @@
     "contactEmail": { "value": "dev@example.com" },
     "customerAdminObjectId": { "value": "00000000-0000-0000-0000-000000000000" },
     "customerAdminPrincipalType": { "value": "User" },
-    "publisherAdminObjectId": { "value": "" },
-    "publisherAdminPrincipalType": { "value": "User" },
     "vnetCidr": { "value": "10.20.0.0/16" },
     "customerIpRanges": { "value": ["203.0.113.0/24"] },
     "publisherIpRanges": { "value": ["198.51.100.0/24"] },
