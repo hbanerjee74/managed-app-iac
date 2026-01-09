@@ -27,60 +27,18 @@ param automationName string
 @description('Tags to apply.')
 param tags object
 
-var serverHost = '${psqlName}.postgres.database.azure.com'
-// Generate unique script name to avoid conflicts with running scripts
-// Use forceUpdateTag in the name to ensure each deployment attempt gets a unique script resource
-// This prevents conflicts when a previous script is still running or in a non-terminal state
-var forceUpdateTagValue = guid(subscription().id, psqlId, 'psql-create-roles')
-var scriptNameSuffix = substring(forceUpdateTagValue, 0, 8)
-var scriptName = 'psql-create-roles-${scriptNameSuffix}'
-
-// Load PowerShell script from file (used by deployment script for initial role creation)
-var psqlRolesScript = loadTextContent('../../scripts/create-psql-roles.ps1')
+// PowerShell script is located in scripts/create-psql-roles.ps1
+// Runbook content must be uploaded manually after deployment (see instructions below)
 
 // Reference Automation Account
 resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' existing = {
   name: automationName
 }
 
-// Deployment script for initial role creation during deployment
-resource createPgRoles 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: scriptName
-  location: location
-  kind: 'AzurePowerShell'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${uamiId}': {}
-    }
-  }
-  properties: {
-    forceUpdateTag: forceUpdateTagValue
-    retentionInterval: 'PT1H'
-    azPowerShellVersion: '11.0'
-    scriptContent: psqlRolesScript
-    supportingScriptUris: []
-    timeout: 'PT10M'
-    environmentVariables: [
-      {
-        name: 'SERVER_HOST'
-        //disable-next-line no-hardcoded-env-urls
-        value: serverHost
-      }
-      {
-        name: 'KV_NAME'
-        value: kvName
-      }
-      {
-        name: 'UAMI_CLIENT_ID'
-        value: uamiClientId
-      }
-    ]
-  }
-}
-
 // PostgreSQL Role Creation Runbook
 // This runbook allows admins to create PostgreSQL roles on-demand
+// PostgreSQL roles are NOT created automatically during deployment
+// Owner must manually upload runbook content, publish, and execute the runbook to create roles
 // The runbook accepts parameters: ServerHost, KvName, UamiClientId
 // These can be passed when starting the runbook job, or defaults can be configured
 // Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
@@ -101,21 +59,31 @@ resource psqlRolesRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023
 }
 
 // ============================================================================
-// RUNBOOK CONTENT UPLOAD
+// RUNBOOK CONTENT UPLOAD AND EXECUTION
+// PostgreSQL roles are NOT created automatically during deployment
 // Runbook content must be uploaded and published manually after deployment
+// Owner must then manually execute the published runbook to create roles
 // Use the following Azure CLI commands:
 //
-// For create-postgresql-roles:
+// 1. Upload runbook content:
 //   az automation runbook replace-content \
 //     --automation-account-name <automation-account-name> \
 //     --resource-group <resource-group> \
 //     --name create-postgresql-roles \
 //     --content-path scripts/create-psql-roles.ps1
+//
+// 2. Publish runbook:
 //   az automation runbook publish \
 //     --automation-account-name <automation-account-name> \
 //     --resource-group <resource-group> \
 //     --name create-postgresql-roles
 //
-// Note: The deployment script (createPgRoles) above creates roles during deployment.
-// The runbook is for on-demand role creation/re-application after deployment.
+// 3. Execute runbook (after publishing):
+//   az automation runbook start \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name create-postgresql-roles \
+//     --parameters SERVER_HOST=<psql-name>.postgres.database.azure.com KV_NAME=<kv-name> UAMI_CLIENT_ID=<uami-client-id>
+//
+// Runbook is idempotent and can be executed multiple times safely
 // ============================================================================
