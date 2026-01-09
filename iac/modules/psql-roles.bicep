@@ -84,7 +84,7 @@ resource createPgRoles 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
 // The runbook accepts parameters: ServerHost, KvName, UamiClientId
 // These can be passed when starting the runbook job, or defaults can be configured
 // Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
-resource psqlRolesRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (!empty(automationId) && !empty(automationName)) {
+resource psqlRolesRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = {
   parent: automation
   name: 'create-postgresql-roles'
   location: location
