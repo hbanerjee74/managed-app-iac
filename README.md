@@ -121,9 +121,11 @@ The `isManagedApplication` parameter controls behavior differences between manag
 
 For comprehensive testing documentation, see [`tests/README.md`](tests/README.md).
 
-## Updating RBAC After Deployment
+## RBAC Role Assignments
 
-RBAC role assignments are executed during deployment via PowerShell scripts and are also available as automation runbooks for on-demand updates. This allows you to re-apply RBAC assignments without redeploying the entire infrastructure.
+**Important**: RBAC role assignments are **not executed automatically** during deployment. The owner must manually execute the published runbooks to assign RBAC roles after deployment.
+
+Automation runbooks are created and published during deployment, but they must be manually executed to assign RBAC roles. This allows you to review and debug the RBAC assignments before applying them.
 
 ### Available Runbooks
 
@@ -135,7 +137,7 @@ Three automation runbooks are created during deployment:
 
 ### Publishing Runbooks
 
-Runbooks are created in draft state and must be published before they can be executed. Publish runbooks via Azure Portal or Azure CLI:
+Runbooks are automatically published during deployment. They are ready to execute immediately after deployment completes.
 
 **Via Azure CLI:**
 
@@ -166,9 +168,9 @@ az automation runbook publish \
 3. Find the runbook (e.g., `assign-rbac-roles-uami`)
 4. Click **Edit** → **Publish** → **Yes**
 
-### Executing Runbooks
+### Executing Runbooks (Required After Deployment)
 
-Once published, runbooks can be executed on-demand to re-apply RBAC assignments:
+**After deployment, you must manually execute the runbooks to assign RBAC roles.** Runbooks can be executed on-demand to assign RBAC roles:
 
 **Via Azure CLI:**
 
@@ -244,8 +246,9 @@ az automation runbook start \
 
 ### When to Use Runbooks
 
-Use automation runbooks to update RBAC assignments when:
+**After initial deployment, you must execute the runbooks to assign RBAC roles.** Runbooks are also useful for:
 
+- **Initial RBAC assignment**: Execute runbooks immediately after deployment to assign RBAC roles
 - **RBAC assignments were accidentally removed**: Re-apply roles without redeploying
 - **New resources were added**: Update RBAC to include new resources
 - **Role definitions changed**: Re-apply updated role assignments
