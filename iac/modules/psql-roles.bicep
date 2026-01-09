@@ -101,7 +101,7 @@ resource psqlRolesRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023
 }
 
 // Runbook draft - required parent for content
-resource psqlRolesRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = if (!empty(automationId) && !empty(automationName)) {
+resource psqlRolesRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = {
   parent: psqlRolesRunbook
   name: 'content'
 }
@@ -110,7 +110,7 @@ resource psqlRolesRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks
 // Note: After deployment, the runbook needs to be published via Azure Portal or API
 // Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name create-postgresql-roles
 // The runbook will be in draft state until published
-resource psqlRolesRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = if (!empty(automationId) && !empty(automationName)) {
+resource psqlRolesRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = {
   parent: psqlRolesRunbookDraft
   name: 'content'
   properties: {
