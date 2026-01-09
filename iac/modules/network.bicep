@@ -48,13 +48,14 @@ var validatedPrefixLength = validPrefixLengths[prefixLengthIndex >= 0 ? prefixLe
 // Accessing vnetOctets[3] will fail if there aren't 4 octets - this is validated during parsing
 
 // Define subnet names (matching current order)
+// Note: Azure Bastion requires subnet name to be exactly 'AzureBastionSubnet'
 var subnetNames = [
   'snet-appgw'
   'snet-psql'
   'snet-private-endpoints'
   'snet-appsvc'
   'snet-aks'
-  'snet-bastion'
+  'AzureBastionSubnet'
 ]
 
 // Calculate subnet CIDR based on index

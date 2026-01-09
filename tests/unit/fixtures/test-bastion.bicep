@@ -19,7 +19,7 @@ module naming '../../../iac/lib/naming.bicep' = {
 
 // Mock dependency outputs
 var mockNetworkOutputs = {
-  subnetBastionId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-bastion'
+  subnetBastionId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/AzureBastionSubnet'
 }
 
 // Module under test
