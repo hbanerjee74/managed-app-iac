@@ -11,9 +11,9 @@ def test_params_dev_has_required_keys():
     values = data.get("parameters", {})
 
     # Required parameters per main.bicep (RFC-64)
+    # Note: customerAdminObjectId is optional (defaults to deployer identity for non-managed apps)
     required = {
         "contactEmail",
-        "customerAdminObjectId",
         "vnetCidr",
         "customerIpRanges",
         "publisherIpRanges",

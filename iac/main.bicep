@@ -6,8 +6,8 @@ param resourceGroupName string = resourceGroup().name
 @description('Azure region for deployment. Defaults to current resource group location from ARM context.')
 param location string = resourceGroup().location
 
-@description('Customer admin Entra object ID (RFC-64).')
-param customerAdminObjectId string
+@description('Customer admin Entra object ID (RFC-64). Defaults to deployer identity when isManagedApplication is false.')
+param customerAdminObjectId string = ''
 
 @description('Contact email for notifications (RFC-64).')
 param contactEmail string
@@ -147,6 +147,12 @@ module naming 'lib/naming.bicep' = {
     resourceGroupName: resourceGroupName
   }
 }
+
+// Determine effective customer admin object ID:
+// - If isManagedApplication is false and customerAdminObjectId is empty, use deployer identity
+// - Otherwise, use provided customerAdminObjectId (required for managed applications)
+var deployerInfo = az.deployer()
+var effectiveCustomerAdminObjectId = !isManagedApplication && empty(customerAdminObjectId) ? deployerInfo.objectId : customerAdminObjectId
 
 // Use default tags from metadata when isManagedApplication is false and individual tag params are empty
 var effectiveTags = !isManagedApplication && empty(environment) && empty(owner) && empty(purpose) && empty(created) ? defaultTags : union(
@@ -485,7 +491,6 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
 
 // Grant Automation Job Operator role to deployer identity (non-managed app only)
 // This allows the identity running the deployment script to execute automation runbooks
-var deployerInfo = az.deployer()
 var deployerObjectId = deployerInfo.objectId
 // Determine principal type: if userPrincipalName is empty, it's likely a ServicePrincipal
 var deployerPrincipalType = empty(deployerInfo.userPrincipalName) ? 'ServicePrincipal' : 'User'
@@ -525,7 +530,7 @@ module rbac 'modules/rbac.bicep' = {
     location: location
     uamiPrincipalId: identity.outputs.uamiPrincipalId
     uamiId: identity.outputs.uamiId
-    customerAdminObjectId: customerAdminObjectId
+    customerAdminObjectId: effectiveCustomerAdminObjectId
     customerAdminPrincipalType: customerAdminPrincipalType
     lawId: diagnostics.outputs.lawId
     lawName: naming.outputs.names.law
