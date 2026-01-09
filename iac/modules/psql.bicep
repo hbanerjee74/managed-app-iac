@@ -16,10 +16,10 @@ param subnetPsqlId string
 param lawId string
 
 @description('PostgreSQL storage size (GB).')
-param storageGB int = 128
+param storageGB int
 
 @description('PostgreSQL backup retention days.')
-param backupRetentionDays int = 7
+param backupRetentionDays int
 
 @description('DNS zone resource IDs map (from dns module).')
 param zoneIds object
@@ -30,40 +30,19 @@ param diagPsqlName string
 @description('Key Vault name for storing admin credentials.')
 param kvName string
 
-@description('PostgreSQL admin username (optional, defaults to psqladmin).')
-param psqlAdminUsername string = 'psqladmin'
+@description('PostgreSQL admin username.')
+param psqlAdminUsername string
 
-@description('PostgreSQL admin password (optional, auto-generated if not provided).')
+@description('PostgreSQL admin password.')
 @secure()
-param psqlAdminPassword string = ''
+param psqlAdminPassword string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 // Reference Key Vault resource
 resource kv 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: kvName
-}
-
-// Generate secure password if not provided
-var psqlAdminPasswordValue = empty(psqlAdminPassword) ? guid(subscription().id, kv.id, 'psql-admin-password') : psqlAdminPassword
-
-// Create PostgreSQL admin username secret in Key Vault
-resource psqlAdminUsernameSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: kv
-  name: 'psql-admin-username'
-  properties: {
-    value: psqlAdminUsername
-  }
-}
-
-// Create PostgreSQL admin password secret in Key Vault
-resource psqlAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: kv
-  name: 'psql-admin-password'
-  properties: {
-    value: psqlAdminPasswordValue
-  }
 }
 
 resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
@@ -76,7 +55,7 @@ resource psql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
   }
   properties: {
     administratorLogin: psqlAdminUsername
-    administratorLoginPassword: psqlAdminPasswordValue
+    administratorLoginPassword: psqlAdminPassword
     version: '16'
     storage: {
       storageSizeGB: storageGB

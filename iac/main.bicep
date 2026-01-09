@@ -114,9 +114,19 @@ param storageGB int
 @maxValue(35)
 param backupRetentionDays int
 
-@description('VM admin password for jump host.')
+@description('VM admin username for jump host.')
+param vmAdminUsername string = 'azureuser'
+
+@description('VM admin password for jump host (auto-generated if not provided).')
 @secure()
 param vmAdminPassword string = ''
+
+@description('PostgreSQL admin username.')
+param psqlAdminUsername string = 'psqladmin'
+
+@description('PostgreSQL admin password (auto-generated if not provided).')
+@secure()
+param psqlAdminPassword string = ''
 
 @description('Optional tags: environment (dev/release/prod), owner, purpose, created (ISO8601).')
 param environment string = ''
@@ -248,6 +258,28 @@ module kv 'modules/kv.bicep' = {
   }
 }
 
+// Generate VM admin password if not provided
+var kvId = kv.outputs.kvId
+var vmAdminPasswordValue = empty(vmAdminPassword) ? guid(subscription().id, kvId, 'vm-admin-password') : vmAdminPassword
+
+// Generate PostgreSQL admin password if not provided
+var psqlAdminPasswordValue = empty(psqlAdminPassword) ? guid(subscription().id, kvId, 'psql-admin-password') : psqlAdminPassword
+
+// Create admin credentials secrets in Key Vault
+module secrets 'modules/secrets.bicep' = {
+  name: 'secrets'
+  dependsOn: [
+    kv
+  ]
+  params: {
+    kvName: naming.outputs.names.kv
+    vmAdminUsername: vmAdminUsername
+    vmAdminPassword: vmAdminPasswordValue
+    psqlAdminUsername: psqlAdminUsername
+    psqlAdminPassword: psqlAdminPasswordValue
+  }
+}
+
 module storage 'modules/storage.bicep' = {
   name: 'storage'
   dependsOn: [
@@ -302,6 +334,7 @@ module psql 'modules/psql.bicep' = {
     diagnostics
     dns
     kv
+    secrets
   ]
   params: {
     location: location
@@ -314,6 +347,8 @@ module psql 'modules/psql.bicep' = {
     zoneIds: dns.outputs.zoneIds
     diagPsqlName: naming.outputs.names.diagPsql
     kvName: naming.outputs.names.kv
+    psqlAdminUsername: psqlAdminUsername
+    psqlAdminPassword: psqlAdminPasswordValue
     tags: tags
   }
 }
@@ -482,13 +517,15 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
     naming
     network
     kv
+    secrets
   ]
   params: {
     location: location
     vmName: naming.outputs.names.vm
     subnetId: network.outputs.subnetPeId
     kvName: naming.outputs.names.kv
-    adminPassword: vmAdminPassword
+    adminUsername: vmAdminUsername
+    adminPassword: vmAdminPasswordValue
     vmSize: jumpHostComputeTier
     tags: tags
   }

@@ -19,16 +19,16 @@ param subnetAppgwId string
 param lawId string
 
 @description('Application Gateway capacity (from RFC-64 appGwCapacity display).')
-param appGwCapacity int = 1
+param appGwCapacity int
 
 @description('Application Gateway SKU (from RFC-64 appGwSku display).')
-param appGwSku string = 'WAF_v2'
+param appGwSku string
 
 @description('Diagnostic setting name from naming helper.')
 param diagAgwName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource appGw 'Microsoft.Network/applicationGateways@2021-08-01' = {
   name: agwName

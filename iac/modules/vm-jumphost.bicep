@@ -10,16 +10,16 @@ param vmName string
 param subnetId string
 
 @description('Admin username for VM.')
-param adminUsername string = 'azureuser'
+param adminUsername string
 
-@description('Admin password for VM (secure parameter, auto-generated if not provided).')
+@description('Admin password for VM (secure parameter).')
 @secure()
-param adminPassword string = ''
+param adminPassword string
 
 @description('Key Vault name for storing VM admin password.')
 param kvName string
 
-@description('VM size (default: Standard_A1_v2).')
+@description('VM size.')
 @allowed([
   'Standard_A1_v2'
   'Standard_A1'
@@ -30,7 +30,7 @@ param kvName string
   'Standard_B1ms'
   'Standard_B2ms'
 ])
-param vmSize string = 'Standard_A1_v2'
+param vmSize string
 
 @description('VM image publisher (default: Canonical).')
 param imagePublisher string = 'Canonical'
@@ -44,24 +44,12 @@ param imageSku string = '22_04-lts-gen2'
 @description('VM image version (default: latest).')
 param imageVersion string = 'latest'
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 // Reference Key Vault
 resource kv 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: kvName
-}
-
-// Generate secure password if not provided
-var vmAdminPasswordValue = empty(adminPassword) ? guid(subscription().id, kv.id, 'vm-admin-password') : adminPassword
-
-// Create VM admin password secret in Key Vault
-resource vmAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: kv
-  name: 'vm-admin-password'
-  properties: {
-    value: vmAdminPasswordValue
-  }
 }
 
 // Network interface for VM
@@ -112,7 +100,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
     osProfile: {
       computerName: vmName
       adminUsername: adminUsername
-      adminPassword: vmAdminPasswordValue
+      adminPassword: adminPassword
       linuxConfiguration: {
         disablePasswordAuthentication: false
         ssh: {
