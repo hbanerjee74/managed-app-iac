@@ -14,7 +14,7 @@ This repository contains the Bicep-based infrastructure for PRD-30, aligned to R
 ```text
 iac/
   main.bicep          # Resource group-scope entrypoint for single-tenant deployment
-  modules/            # Domain modules (identity, network, dns, kv, storage, acr, psql, app, gateway, search, cognitive-services, automation, diagnostics, rbac, bastion, vm-jumphost)
+  modules/            # Domain modules (identity, network, dns, kv, storage, acr, psql, app, gateway, search, cognitive-services, automation, diagnostics, bastion, vm-jumphost)
   lib/                # Shared helpers (naming per RFC-71, constants)
 scripts/              # PowerShell scripts for RBAC assignments and PostgreSQL role creation
   assign-rbac-roles-uami.ps1

@@ -472,27 +472,6 @@ module automation 'modules/automation.bicep' = {
   }
 }
 
-module psqlRoles 'modules/psql-roles.bicep' = {
-  name: 'psql-roles'
-  dependsOn: [
-    psql
-    identity
-    automation
-    kv
-  ]
-  params: {
-    location: location
-    psqlId: psql.outputs.psqlId
-    psqlName: psql.outputs.psqlName
-    uamiClientId: identity.outputs.uamiClientId
-    uamiId: identity.outputs.uamiId
-    kvName: naming.outputs.names.kv
-    automationId: automation.outputs.automationId
-    automationName: automation.outputs.automationName
-    tags: tags
-  }
-}
-
 module bastion 'modules/bastion.bicep' = {
   name: 'bastion'
   dependsOn: [
@@ -536,38 +515,10 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
 
 // Grant Automation Job Operator role to deployer identity
 // This is handled inside the automation module where the resource can be properly scoped
-
-module rbac 'modules/rbac.bicep' = {
-  name: 'rbac'
-  dependsOn: [
-    naming
-    identity
-    diagnostics
-    kv
-    storage
-    acr
-    search
-    cognitiveServices
-    automation
-  ]
-  params: {
-    location: location
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
-    uamiId: identity.outputs.uamiId
-    customerAdminObjectId: effectiveCustomerAdminObjectId
-    customerAdminPrincipalType: customerAdminPrincipalType
-    lawId: diagnostics.outputs.lawId
-    lawName: naming.outputs.names.law
-    kvId: kv.outputs.kvId
-    storageId: storage.outputs.storageId
-    acrId: acr.outputs.acrId
-    searchId: search.outputs.searchId
-    aiId: cognitiveServices.outputs.aiId
-    automationId: automation.outputs.automationId
-    automationName: automation.outputs.automationName
-    tags: tags
-  }
-}
+//
+// Note: RBAC role assignments and PostgreSQL role creation are performed via runbooks
+// Runbooks are NOT created in Bicep per RFC-71 Section 12.2 (Automation Account deployed empty)
+// See README.md for instructions on creating and executing runbooks
 
 output names object = naming.outputs.names
 output lawId string = diagnostics.outputs.lawId

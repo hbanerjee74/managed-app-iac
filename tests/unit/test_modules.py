@@ -20,7 +20,6 @@ MODULES = [
     ('diagnostics', 'test-diagnostics.bicep'),
     ('network', 'test-network.bicep'),
     ('psql', 'test-psql.bicep'),
-    ('psql-roles', 'test-psql-roles.bicep'),
     ('app', 'test-app.bicep'),
     ('public-ip', 'test-public-ip.bicep'),
     ('waf-policy', 'test-waf-policy.bicep'),
@@ -35,7 +34,6 @@ MODULES = [
     ('dns', 'test-dns.bicep'),
     ('bastion', 'test-bastion.bicep'),
     ('vm-jumphost', 'test-vm-jumphost.bicep'),
-    ('rbac', 'test-rbac.bicep'),
 ]
 
 FIXTURES_DIR = Path(__file__).parent / 'fixtures'
