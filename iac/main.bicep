@@ -559,13 +559,13 @@ var deployerPrincipalType = empty(deployerInfo.userPrincipalName) ? 'ServicePrin
 
 resource deployerAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!isManagedApplication) {
   name: guid(resourceGroup().id, 'automation', deployerObjectId, 'automation-job-operator')
-  scope: resourceGroup()
+  scope: automation.outputs.automationId
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
     principalId: deployerObjectId
-    // When delegatedManagedIdentityResourceId is set, principalType must be null/empty or 'ServicePrincipal', not 'User'
-    principalType: deployerPrincipalType == 'ServicePrincipal' ? 'ServicePrincipal' : null
-    delegatedManagedIdentityResourceId: automation.outputs.automationId
+    principalType: deployerPrincipalType
+    // delegatedManagedIdentityResourceId is only for cross-tenant (managed application) scenarios
+    // For same-tenant (non-managed app), assign role directly without delegated managed identity
   }
   dependsOn: [
     automation
