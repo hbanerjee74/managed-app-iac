@@ -180,6 +180,26 @@ resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@202
       $IsManagedApp = "$env:IS_MANAGED_APPLICATION"
       $HasPublisherAdmin = "$env:HAS_PUBLISHER_ADMIN"
       
+      # Verify Azure CLI is available and authenticated
+      Write-Host "Checking Azure CLI availability..." -ForegroundColor Cyan
+      $azVersion = az version --output json 2>&1
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Azure CLI is not available or not working properly"
+        Write-Host "Azure CLI check output: $azVersion" -ForegroundColor Red
+        exit 1
+      }
+      Write-Host "Azure CLI is available" -ForegroundColor Green
+      
+      # Check authentication
+      Write-Host "Checking Azure CLI authentication..." -ForegroundColor Cyan
+      $accountInfo = az account show --output json 2>&1
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Azure CLI is not authenticated"
+        Write-Host "Account check output: $accountInfo" -ForegroundColor Red
+        exit 1
+      }
+      Write-Host "Azure CLI is authenticated" -ForegroundColor Green
+      
       # Create temporary files for runbook content
       $TempDir = $env:TEMP
       $UamiScriptPath = Join-Path $TempDir "assign-rbac-roles-uami.ps1"
@@ -187,6 +207,8 @@ resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@202
       $PublisherAdminScriptPath = Join-Path $TempDir "assign-rbac-roles-publisher-admin.ps1"
       
       Write-Host "Uploading and publishing RBAC runbooks..." -ForegroundColor Cyan
+      Write-Host "Automation Account: $AutomationAccountName" -ForegroundColor Cyan
+      Write-Host "Resource Group: $ResourceGroupName" -ForegroundColor Cyan
       
       # Write UAMI script content to temp file from environment variable
       $env:UAMI_SCRIPT_CONTENT | Out-File -FilePath $UamiScriptPath -Encoding utf8
@@ -194,31 +216,36 @@ resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@202
       # Upload and publish UAMI runbook
       Write-Host "Uploading content for assign-rbac-roles-uami runbook..." -ForegroundColor Yellow
       try {
-        az automation runbook replace-content `
+        $uploadOutput = az automation runbook replace-content `
           --automation-account-name $AutomationAccountName `
           --resource-group $ResourceGroupName `
           --name assign-rbac-roles-uami `
           --content-path $UamiScriptPath `
-          --output none 2>&1 | Out-Null
+          2>&1
         if ($LASTEXITCODE -eq 0) {
           Write-Host "Successfully uploaded content for assign-rbac-roles-uami" -ForegroundColor Green
           
           Write-Host "Publishing assign-rbac-roles-uami runbook..." -ForegroundColor Yellow
-          az automation runbook publish `
+          $publishOutput = az automation runbook publish `
             --automation-account-name $AutomationAccountName `
             --resource-group $ResourceGroupName `
             --name assign-rbac-roles-uami `
-            --output none 2>&1 | Out-Null
+            2>&1
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Successfully published assign-rbac-roles-uami" -ForegroundColor Green
           } else {
-            Write-Warning "Failed to publish assign-rbac-roles-uami (exit code: $LASTEXITCODE)"
+            Write-Error "Failed to publish assign-rbac-roles-uami (exit code: $LASTEXITCODE)"
+            Write-Host "Publish output: $publishOutput" -ForegroundColor Red
+            exit 1
           }
         } else {
-          Write-Warning "Failed to upload content for assign-rbac-roles-uami (exit code: $LASTEXITCODE)"
+          Write-Error "Failed to upload content for assign-rbac-roles-uami (exit code: $LASTEXITCODE)"
+          Write-Host "Upload output: $uploadOutput" -ForegroundColor Red
+          exit 1
         }
       } catch {
-        Write-Warning "Failed to upload/publish assign-rbac-roles-uami: $_"
+        Write-Error "Failed to upload/publish assign-rbac-roles-uami: $_"
+        exit 1
       }
       
       # Upload and publish Customer Admin runbook (if customerAdminObjectId is provided)
@@ -228,31 +255,36 @@ resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@202
         
         Write-Host "Uploading content for assign-rbac-roles-admin runbook..." -ForegroundColor Yellow
         try {
-          az automation runbook replace-content `
+          $uploadOutput = az automation runbook replace-content `
             --automation-account-name $AutomationAccountName `
             --resource-group $ResourceGroupName `
             --name assign-rbac-roles-admin `
             --content-path $CustomerAdminScriptPath `
-            --output none 2>&1 | Out-Null
+            2>&1
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Successfully uploaded content for assign-rbac-roles-admin" -ForegroundColor Green
             
             Write-Host "Publishing assign-rbac-roles-admin runbook..." -ForegroundColor Yellow
-            az automation runbook publish `
+            $publishOutput = az automation runbook publish `
               --automation-account-name $AutomationAccountName `
               --resource-group $ResourceGroupName `
               --name assign-rbac-roles-admin `
-              --output none 2>&1 | Out-Null
+              2>&1
             if ($LASTEXITCODE -eq 0) {
               Write-Host "Successfully published assign-rbac-roles-admin" -ForegroundColor Green
             } else {
-              Write-Warning "Failed to publish assign-rbac-roles-admin (exit code: $LASTEXITCODE)"
+              Write-Error "Failed to publish assign-rbac-roles-admin (exit code: $LASTEXITCODE)"
+              Write-Host "Publish output: $publishOutput" -ForegroundColor Red
+              exit 1
             }
           } else {
-            Write-Warning "Failed to upload content for assign-rbac-roles-admin (exit code: $LASTEXITCODE)"
+            Write-Error "Failed to upload content for assign-rbac-roles-admin (exit code: $LASTEXITCODE)"
+            Write-Host "Upload output: $uploadOutput" -ForegroundColor Red
+            exit 1
           }
         } catch {
-          Write-Warning "Failed to upload/publish assign-rbac-roles-admin: $_"
+          Write-Error "Failed to upload/publish assign-rbac-roles-admin: $_"
+          exit 1
         }
       } else {
         Write-Host "Skipping assign-rbac-roles-admin (customerAdminObjectId not provided)" -ForegroundColor Gray
@@ -265,31 +297,36 @@ resource uploadAndPublishRbacRunbooks 'Microsoft.Resources/deploymentScripts@202
         
         Write-Host "Uploading content for assign-rbac-roles-publisher-admin runbook..." -ForegroundColor Yellow
         try {
-          az automation runbook replace-content `
+          $uploadOutput = az automation runbook replace-content `
             --automation-account-name $AutomationAccountName `
             --resource-group $ResourceGroupName `
             --name assign-rbac-roles-publisher-admin `
             --content-path $PublisherAdminScriptPath `
-            --output none 2>&1 | Out-Null
+            2>&1
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Successfully uploaded content for assign-rbac-roles-publisher-admin" -ForegroundColor Green
             
             Write-Host "Publishing assign-rbac-roles-publisher-admin runbook..." -ForegroundColor Yellow
-            az automation runbook publish `
+            $publishOutput = az automation runbook publish `
               --automation-account-name $AutomationAccountName `
               --resource-group $ResourceGroupName `
               --name assign-rbac-roles-publisher-admin `
-              --output none 2>&1 | Out-Null
+              2>&1
             if ($LASTEXITCODE -eq 0) {
               Write-Host "Successfully published assign-rbac-roles-publisher-admin" -ForegroundColor Green
             } else {
-              Write-Warning "Failed to publish assign-rbac-roles-publisher-admin (exit code: $LASTEXITCODE)"
+              Write-Error "Failed to publish assign-rbac-roles-publisher-admin (exit code: $LASTEXITCODE)"
+              Write-Host "Publish output: $publishOutput" -ForegroundColor Red
+              exit 1
             }
           } else {
-            Write-Warning "Failed to upload content for assign-rbac-roles-publisher-admin (exit code: $LASTEXITCODE)"
+            Write-Error "Failed to upload content for assign-rbac-roles-publisher-admin (exit code: $LASTEXITCODE)"
+            Write-Host "Upload output: $uploadOutput" -ForegroundColor Red
+            exit 1
           }
         } catch {
-          Write-Warning "Failed to upload/publish assign-rbac-roles-publisher-admin: $_"
+          Write-Error "Failed to upload/publish assign-rbac-roles-publisher-admin: $_"
+          exit 1
         }
       } else {
         Write-Host "Skipping assign-rbac-roles-publisher-admin (not a managed application or publisherAdminObjectId not provided)" -ForegroundColor Gray
