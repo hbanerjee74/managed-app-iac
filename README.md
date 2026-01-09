@@ -445,6 +445,30 @@ az cognitiveservices account purge \
   --resource-group "test-rg"
 ```
 
+### 3. Find Available VM SKUs in a Region
+
+If a VM SKU is not available in your region or zone, use this command to find available VM shapes:
+
+```bash
+az vm list-skus \
+  --location <location> \
+  --size <size-prefix> \
+  --all \
+  --output table
+```
+
+**Example:**
+
+```bash
+az vm list-skus \
+  --location centralus \
+  --size Standard_D \
+  --all \
+  --output table
+```
+
+This command lists all available VM SKUs matching the size prefix (e.g., `Standard_D`) in the specified location, helping you find an alternative when your preferred SKU is unavailable.
+
 ## Documentation
 
 - **Testing**: See [`tests/README.md`](tests/README.md) for comprehensive test documentation
