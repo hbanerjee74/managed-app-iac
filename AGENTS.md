@@ -8,7 +8,7 @@
 ## Project Structure
 
 - `iac/main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters to RG modules.
-- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `kv`, `storage`, `acr`, `psql`, `compute`, `gateway`, `search`, `cognitive-services`, `automation`, `diagnostics`).
+- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `kv`, `storage`, `acr`, `psql`, `app`, `gateway`, `search`, `cognitive-services`, `automation`, `diagnostics`).
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
 - `tests/fixtures/params.dev.json` — single source of truth for RG name, location, subscription ID, and all parameters.
 - `tests/test_params.py` — required param presence check.

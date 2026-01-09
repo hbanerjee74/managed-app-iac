@@ -21,7 +21,7 @@ MODULES = [
     ('network', 'test-network.bicep'),
     ('psql', 'test-psql.bicep'),
     ('psql-roles', 'test-psql-roles.bicep'),
-    ('compute', 'test-compute.bicep'),
+    ('app', 'test-app.bicep'),
     ('public-ip', 'test-public-ip.bicep'),
     ('waf-policy', 'test-waf-policy.bicep'),
     ('gateway', 'test-gateway.bicep'),

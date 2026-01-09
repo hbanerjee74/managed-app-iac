@@ -307,8 +307,8 @@ module psql 'modules/psql.bicep' = {
   }
 }
 
-module compute 'modules/compute.bicep' = {
-  name: 'compute'
+module app 'modules/app.bicep' = {
+  name: 'app'
   dependsOn: [
     naming
   ]
