@@ -58,6 +58,7 @@ param nodeSize string
   'Standard_B2s'
   'Standard_B1ms'
   'Standard_B2ms'
+  'Standard_D2ds_v4'
 ])
 param jumpHostComputeTier string
 

@@ -26,16 +26,6 @@ param vmAdminUsernameSecretName string
 param vmAdminPasswordSecretName string
 
 @description('VM size.')
-@allowed([
-  'Standard_A1_v2'
-  'Standard_A1'
-  'Standard_A2_v2'
-  'Standard_A4_v2'
-  'Standard_B1s'
-  'Standard_B2s'
-  'Standard_B1ms'
-  'Standard_B2ms'
-])
 param vmSize string
 
 @description('VM image publisher.')
