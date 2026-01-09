@@ -64,6 +64,9 @@ resource peAcr 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    acr
+  ]
 }
 
 resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -79,6 +82,9 @@ resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-
       }
     ]
   }
+  dependsOn: [
+    peAcr
+  ]
 }
 
 // RBAC assignments moved to consolidated rbac.bicep module
@@ -106,6 +112,9 @@ resource acrDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    acr
+  ]
 }
 
 output acrId string = acr.id

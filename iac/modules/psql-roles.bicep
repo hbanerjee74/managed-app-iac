@@ -104,6 +104,9 @@ resource psqlRolesRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023
 resource psqlRolesRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = {
   parent: psqlRolesRunbook
   name: 'content'
+  dependsOn: [
+    psqlRolesRunbook
+  ]
 }
 
 // Runbook draft content (PowerShell script)
@@ -116,4 +119,7 @@ resource psqlRolesRunbookContent 'Microsoft.Automation/automationAccounts/runboo
   properties: {
     content: psqlRolesScript
   }
+  dependsOn: [
+    psqlRolesRunbookDraft
+  ]
 }

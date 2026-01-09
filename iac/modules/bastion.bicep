@@ -49,6 +49,9 @@ resource bastion 'Microsoft.Network/bastionHosts@2023-04-01' = {
       }
     ]
   }
+  dependsOn: [
+    pipBastion
+  ]
 }
 
 output bastionId string = bastion.id

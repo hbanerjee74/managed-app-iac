@@ -71,6 +71,9 @@ resource peKv 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -86,6 +89,9 @@ resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
       }
     ]
   }
+  dependsOn: [
+    peKv
+  ]
 }
 
 // RBAC assignments moved to consolidated rbac.bicep module
@@ -109,6 +115,9 @@ resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 output kvId string = kv.id

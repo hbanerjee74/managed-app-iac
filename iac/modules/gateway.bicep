@@ -165,6 +165,9 @@ resource appGwDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = 
       }
     ]
   }
+  dependsOn: [
+    appGw
+  ]
 }
 
 // TODO: deploy Application Gateway WAF_v2 with rules per PRD-30.

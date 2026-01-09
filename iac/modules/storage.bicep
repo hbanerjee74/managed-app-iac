@@ -111,6 +111,9 @@ resource peStBlob 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -126,6 +129,9 @@ resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
       }
     ]
   }
+  dependsOn: [
+    peStBlob
+  ]
 }
 
 resource peStQueue 'Microsoft.Network/privateEndpoints@2023-05-01' = {
@@ -148,6 +154,9 @@ resource peStQueue 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -163,6 +172,9 @@ resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
       }
     ]
   }
+  dependsOn: [
+    peStQueue
+  ]
 }
 
 resource peStTable 'Microsoft.Network/privateEndpoints@2023-05-01' = {
@@ -185,6 +197,9 @@ resource peStTable 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -200,6 +215,9 @@ resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
       }
     ]
   }
+  dependsOn: [
+    peStTable
+  ]
 }
 
 // RBAC assignments moved to consolidated rbac.bicep module
@@ -219,6 +237,9 @@ resource stDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 output storageId string = st.id

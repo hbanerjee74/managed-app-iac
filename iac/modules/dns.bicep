@@ -43,6 +43,10 @@ resource vnetLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-0
     }
   }
   tags: tags
+  dependsOn: [
+    vnet
+    privateZones
+  ]
 }]
 
 output zoneIds object = {

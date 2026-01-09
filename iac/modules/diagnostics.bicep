@@ -50,6 +50,9 @@ resource customTable 'Microsoft.OperationalInsights/workspaces/tables@2021-12-01
       ]
     }
   }
+  dependsOn: [
+    law
+  ]
 }
 
 output lawId string = law.id

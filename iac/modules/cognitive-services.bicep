@@ -62,6 +62,9 @@ resource peAi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    ai
+  ]
 }
 
 resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -77,6 +80,9 @@ resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
       }
     ]
   }
+  dependsOn: [
+    peAi
+  ]
 }
 
 // Diagnostic settings
@@ -94,6 +100,9 @@ resource aiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    ai
+  ]
 }
 
 // RBAC assignments moved to consolidated rbac.bicep module

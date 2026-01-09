@@ -29,6 +29,9 @@ resource vmAdminUsernameSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = 
   properties: {
     value: vmAdminUsername
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 // Create VM admin password secret in Key Vault
@@ -38,6 +41,9 @@ resource vmAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = 
   properties: {
     value: vmAdminPassword
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 // Create PostgreSQL admin username secret in Key Vault
@@ -47,6 +53,9 @@ resource psqlAdminUsernameSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' 
   properties: {
     value: psqlAdminUsername
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 // Create PostgreSQL admin password secret in Key Vault
@@ -56,6 +65,9 @@ resource psqlAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' 
   properties: {
     value: psqlAdminPassword
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 // Output secret names for use in other modules

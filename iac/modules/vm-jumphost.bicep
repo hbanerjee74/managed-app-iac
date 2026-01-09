@@ -122,6 +122,9 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
       ]
     }
   }
+  dependsOn: [
+    nic
+  ]
 }
 
 // Note: VM is created in deallocated (stopped) state by default.

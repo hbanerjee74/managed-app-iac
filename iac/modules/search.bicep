@@ -66,6 +66,9 @@ resource peSearch 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    search
+  ]
 }
 
 resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -81,6 +84,9 @@ resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
       }
     ]
   }
+  dependsOn: [
+    peSearch
+  ]
 }
 
 resource searchDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
@@ -96,6 +102,9 @@ resource searchDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' =
       }
     ]
   }
+  dependsOn: [
+    search
+  ]
 }
 
 // RBAC assignments moved to consolidated rbac.bicep module

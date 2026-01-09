@@ -55,6 +55,9 @@ resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-previe
       }
     ]
   }
+  dependsOn: [
+    automation
+  ]
 }
 
 // RBAC assignments moved to consolidated rbac.bicep module
