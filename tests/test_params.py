@@ -19,7 +19,6 @@ def test_params_dev_has_required_keys():
         "customerAdminObjectId",
         "vnetCidr",
         "customerIpRanges",
-        "publisherIpRanges",
         "sku",
         "nodeSize",
         "psqlComputeTier",

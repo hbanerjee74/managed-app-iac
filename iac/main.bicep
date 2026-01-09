@@ -6,7 +6,7 @@ param resourceGroupName string = resourceGroup().name
 @description('Azure region for deployment. Defaults to current resource group location from ARM context.')
 param location string = resourceGroup().location
 
-@description('Customer admin Entra object ID (RFC-64). Required parameter; will be overridden by deployer identity when isManagedApplication is false.')
+@description('Customer admin Entra object ID (RFC-64). Will be overridden by deployer identity for single-tenant deployments.')
 param customerAdminObjectId string
 
 @description('Contact email for notifications (RFC-64).')
@@ -25,10 +25,6 @@ param vnetCidr string
 @description('Customer IP ranges for WAF allowlist (RFC-64).')
 @minLength(1)
 param customerIpRanges array
-
-@description('Publisher IP ranges for WAF allowlist (RFC-64).')
-@minLength(1)
-param publisherIpRanges array
 
 @description('App Service Plan SKU (RFC-64 sku).')
 @allowed([
@@ -146,21 +142,8 @@ param owner string = ''
 param purpose string = ''
 param created string = ''
 
-@description('Default tags for non-managed application scenarios (from metadata.defaultTags).')
+@description('Default tags for single-tenant deployments (from metadata.defaultTags).')
 param defaultTags object = {}
-
-@description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
-param isManagedApplication bool = true
-
-@description('Publisher admin Entra object ID (for managed applications only). Required when isManagedApplication is true.')
-param publisherAdminObjectId string = ''
-
-@description('Principal type for publisherAdminObjectId (User or Group).')
-@allowed([
-  'User'
-  'Group'
-])
-param publisherAdminPrincipalType string = 'User'
 
 // Naming helper to generate deterministic per-resource nanoids.
 module naming 'lib/naming.bicep' = {
@@ -170,19 +153,12 @@ module naming 'lib/naming.bicep' = {
   }
 }
 
-// Determine effective customer admin object ID:
-// - If isManagedApplication is false, always use deployer identity (overrides params.dev.json value)
-// - Otherwise, use provided customerAdminObjectId (required for managed applications)
+// Always use deployer identity for customer admin (single-tenant deployment)
 var deployerInfo = az.deployer()
-var effectiveCustomerAdminObjectId = !isManagedApplication ? deployerInfo.objectId : customerAdminObjectId
+var effectiveCustomerAdminObjectId = deployerInfo.objectId
 
-// Determine effective publisher admin object ID:
-// - If isManagedApplication is false, set to empty (not used for non-managed apps)
-// - Otherwise, use provided publisherAdminObjectId (optional for managed applications)
-var effectivePublisherAdminObjectId = !isManagedApplication ? '' : publisherAdminObjectId
-
-// Use default tags from metadata when isManagedApplication is false and individual tag params are empty
-var effectiveTags = !isManagedApplication && empty(environment) && empty(owner) && empty(purpose) && empty(created) ? defaultTags : union(
+// Use default tags from metadata when individual tag params are empty
+var effectiveTags = empty(environment) && empty(owner) && empty(purpose) && empty(created) ? defaultTags : union(
   empty(environment) ? {} : { environment: environment },
   empty(owner) ? {} : { owner: owner },
   empty(purpose) ? {} : { purpose: purpose },
@@ -403,7 +379,6 @@ module wafPolicy 'modules/waf-policy.bicep' = {
     location: location
     wafPolicyName: wafPolicyName
     customerIpRanges: customerIpRanges
-    publisherIpRanges: publisherIpRanges
     tags: tags
   }
 }
@@ -474,6 +449,12 @@ module cognitiveServices 'modules/cognitive-services.bicep' = {
   }
 }
 
+// Grant Automation Job Operator role to deployer identity
+// This allows the identity running the deployment script to execute automation runbooks
+var deployerObjectId = deployerInfo.objectId
+// Determine principal type: if userPrincipalName is empty, it's likely a ServicePrincipal
+var deployerPrincipalType = empty(deployerInfo.userPrincipalName) ? 'ServicePrincipal' : 'User'
+
 module automation 'modules/automation.bicep' = {
   name: 'automation'
   dependsOn: [
@@ -485,6 +466,8 @@ module automation 'modules/automation.bicep' = {
     automationName: naming.outputs.names.automation
     lawId: diagnostics.outputs.lawId
     diagAutomationName: naming.outputs.names.diagAutomation
+    deployerObjectId: deployerObjectId
+    deployerPrincipalType: deployerPrincipalType
     tags: tags
   }
 }
@@ -551,31 +534,8 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
   }
 }
 
-// Grant Automation Job Operator role to deployer identity (non-managed app only)
-// This allows the identity running the deployment script to execute automation runbooks
-var deployerObjectId = deployerInfo.objectId
-// Determine principal type: if userPrincipalName is empty, it's likely a ServicePrincipal
-var deployerPrincipalType = empty(deployerInfo.userPrincipalName) ? 'ServicePrincipal' : 'User'
-
-// Reference Automation Account for role assignment scope (non-managed app only)
-resource automationAccountForDeployerRbac 'Microsoft.Automation/automationAccounts@2023-11-01' existing = if (!isManagedApplication) {
-  name: automation.outputs.automationName
-}
-
-resource deployerAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!isManagedApplication) {
-  name: guid(resourceGroup().id, 'automation', deployerObjectId, 'automation-job-operator')
-  scope: automationAccountForDeployerRbac
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
-    principalId: deployerObjectId
-    principalType: deployerPrincipalType
-    // Role assignments are created directly without delegated managed identity for single-tenant deployments
-  }
-  dependsOn: [
-    automation
-    automationAccountForDeployerRbac
-  ]
-}
+// Grant Automation Job Operator role to deployer identity
+// This is handled inside the automation module where the resource can be properly scoped
 
 module rbac 'modules/rbac.bicep' = {
   name: 'rbac'
@@ -605,9 +565,6 @@ module rbac 'modules/rbac.bicep' = {
     aiId: cognitiveServices.outputs.aiId
     automationId: automation.outputs.automationId
     automationName: automation.outputs.automationName
-    isManagedApplication: isManagedApplication
-    publisherAdminObjectId: effectivePublisherAdminObjectId
-    publisherAdminPrincipalType: publisherAdminPrincipalType
     tags: tags
   }
 }

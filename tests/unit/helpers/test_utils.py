@@ -330,18 +330,7 @@ def run_what_if(
             # If subscription ID not found, skip adding it (will fail with clear error)
             pass
     
-    # Handle isManagedApplication from metadata if available (deployment context)
-    # Only add if declared in template
-    if 'isManagedApplication' in declared_params and 'isManagedApplication' not in module_params['parameters']:
-        try:
-            params_data = load_json_file(SHARED_PARAMS_FILE)
-            is_managed_app = params_data.get('metadata', {}).get('isManagedApplication', True)
-            module_params['parameters']['isManagedApplication'] = {'value': is_managed_app}
-        except Exception:
-            # If not found, use default True (managed application)
-            module_params['parameters']['isManagedApplication'] = {'value': True}
-
-    # Handle defaultTags from metadata if available (for non-managed app scenarios)
+    # Handle defaultTags from metadata if available (for single-tenant deployments)
     # Only add if declared in template
     if 'defaultTags' in declared_params and 'defaultTags' not in module_params['parameters']:
         try:

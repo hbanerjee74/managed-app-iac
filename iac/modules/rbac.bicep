@@ -46,19 +46,6 @@ param automationId string
 @description('Automation Account name (for runbook creation).')
 param automationName string
 
-@description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
-param isManagedApplication bool
-
-@description('Publisher admin Entra object ID (for managed applications only).')
-param publisherAdminObjectId string
-
-@description('Principal type for publisherAdminObjectId (User or Group).')
-@allowed([
-  'User'
-  'Group'
-])
-param publisherAdminPrincipalType string
-
 @description('Tags to apply.')
 param tags object
 
@@ -76,7 +63,6 @@ resource automationAccount 'Microsoft.Automation/automationAccounts@2023-11-01' 
 // Runbooks are created and published during deployment, but must be manually executed by the owner
 // - assign-rbac-roles-uami.ps1 for UAMI role assignments
 // - assign-rbac-roles-admin.ps1 for Customer Admin role assignments
-// - assign-rbac-roles-publisher-admin.ps1 for Publisher Admin role assignments
 // ============================================================================
 
 // Automation Runbook for UAMI RBAC role assignments
@@ -121,28 +107,6 @@ resource rbacCustomerAdminRunbook 'Microsoft.Automation/automationAccounts/runbo
 
 // Customer Admin Runbook content must be uploaded manually after deployment (see instructions below)
 
-// Automation Runbook for Publisher Admin RBAC role assignments
-// This runbook allows admins to re-apply Publisher Admin RBAC assignments on-demand
-// Only created for managed applications
-// Naming follows RFC-42 convention: kebab-case with {action}-{target} pattern
-resource rbacPublisherAdminRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = if (isManagedApplication && !empty(publisherAdminObjectId)) {
-  parent: automationAccount
-  name: 'assign-rbac-roles-publisher-admin'
-  location: location
-  tags: tags
-  properties: {
-    runbookType: 'PowerShell'
-    logVerbose: false
-    logProgress: true
-    description: 'Assigns all RBAC roles for Publisher Admin (same as Customer Admin). Can be run by admins to re-apply Publisher Admin RBAC assignments. Parameters: ResourceGroupId, PublisherAdminObjectId, PublisherAdminPrincipalType, KvId, StorageId, AcrId, SearchId, AiId, AutomationId.'
-  }
-  dependsOn: [
-    automationAccount
-  ]
-}
-
-// Publisher Admin Runbook content must be uploaded manually after deployment (see instructions below)
-
 // ============================================================================
 // ============================================================================
 // RUNBOOK CONTENT UPLOAD
@@ -170,17 +134,6 @@ resource rbacPublisherAdminRunbook 'Microsoft.Automation/automationAccounts/runb
 //     --automation-account-name <automation-account-name> \
 //     --resource-group <resource-group> \
 //     --name assign-rbac-roles-admin
-//
-// For assign-rbac-roles-publisher-admin (if managed application and publisherAdminObjectId is provided):
-//   az automation runbook replace-content \
-//     --automation-account-name <automation-account-name> \
-//     --resource-group <resource-group> \
-//     --name assign-rbac-roles-publisher-admin \
-//     --content-path scripts/assign-rbac-roles-publisher-admin.ps1
-//   az automation runbook publish \
-//     --automation-account-name <automation-account-name> \
-//     --resource-group <resource-group> \
-//     --name assign-rbac-roles-publisher-admin
 // ============================================================================
 
 // ============================================================================

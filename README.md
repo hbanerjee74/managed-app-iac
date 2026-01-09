@@ -71,7 +71,6 @@ See `tests/fixtures/params.dev.json` for all available parameters. Key parameter
 **Network:**
 
 - `customerIpRanges` - IP ranges for WAF allowlist
-- `publisherIpRanges` - IP ranges for WAF allowlist
 - **Note:** VNet and subnet CIDRs are hardcoded in `network.bicep` (VNet: `10.20.0.0/16`, subnets: `/24`). The `servicesVnetCidr` parameter has been removed to simplify deployment and avoid Azure `cidrSubnet` limitations.
 
 **Compute:**

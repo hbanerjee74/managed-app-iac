@@ -15,6 +15,16 @@ param diagAutomationName string
 @description('Tags to apply.')
 param tags object
 
+@description('Deployer object ID for Automation Job Operator role assignment.')
+param deployerObjectId string = ''
+
+@description('Deployer principal type (User or ServicePrincipal).')
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param deployerPrincipalType string = 'User'
+
 resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
   name: automationName
   location: location
@@ -28,6 +38,22 @@ resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
     }
     disableLocalAuth: true
   }
+}
+
+// Grant Automation Job Operator role to deployer identity
+// This allows the identity running the deployment script to execute automation runbooks
+resource deployerAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(deployerObjectId)) {
+  name: guid(resourceGroup().id, 'automation', deployerObjectId, 'automation-job-operator')
+  scope: automation
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
+    principalId: deployerObjectId
+    principalType: deployerPrincipalType
+    // Role assignments are created directly without delegated managed identity for single-tenant deployments
+  }
+  dependsOn: [
+    automation
+  ]
 }
 
 output automationId string = automation.id
