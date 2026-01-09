@@ -563,7 +563,8 @@ resource deployerAutomationJobOperator 'Microsoft.Authorization/roleAssignments@
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
     principalId: deployerObjectId
-    principalType: deployerPrincipalType
+    // When delegatedManagedIdentityResourceId is set, principalType must be null/empty or 'ServicePrincipal', not 'User'
+    principalType: deployerPrincipalType == 'ServicePrincipal' ? 'ServicePrincipal' : null
     delegatedManagedIdentityResourceId: automation.outputs.automationId
   }
   dependsOn: [
