@@ -35,7 +35,7 @@ var forceUpdateTagValue = guid(subscription().id, psqlId, 'psql-create-roles')
 var scriptNameSuffix = substring(forceUpdateTagValue, 0, 8)
 var scriptName = 'psql-create-roles-${scriptNameSuffix}'
 
-// Load PowerShell script from file
+// Load PowerShell script from file (used by deployment script for initial role creation)
 var psqlRolesScript = loadTextContent('../../scripts/create-psql-roles.ps1')
 
 // Reference Automation Account
@@ -100,26 +100,22 @@ resource psqlRolesRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023
   ]
 }
 
-// Runbook draft - required parent for content
-resource psqlRolesRunbookDraft 'Microsoft.Automation/automationAccounts/runbooks/draft@2019-06-01' = {
-  parent: psqlRolesRunbook
-  name: 'draft'
-  dependsOn: [
-    psqlRolesRunbook
-  ]
-}
-
-// Runbook draft content (PowerShell script)
-// Note: After deployment, the runbook needs to be published via Azure Portal or API
-// Admin can publish it manually or via: az automation runbook publish --automation-account-name <name> --resource-group <rg> --name create-postgresql-roles
-// The runbook will be in draft state until published
-resource psqlRolesRunbookContent 'Microsoft.Automation/automationAccounts/runbooks/draft/content@2019-06-01' = {
-  parent: psqlRolesRunbookDraft
-  name: 'content'
-  properties: {
-    content: psqlRolesScript
-  }
-  dependsOn: [
-    psqlRolesRunbookDraft
-  ]
-}
+// ============================================================================
+// RUNBOOK CONTENT UPLOAD
+// Runbook content must be uploaded and published manually after deployment
+// Use the following Azure CLI commands:
+//
+// For create-postgresql-roles:
+//   az automation runbook replace-content \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name create-postgresql-roles \
+//     --content-path scripts/create-psql-roles.ps1
+//   az automation runbook publish \
+//     --automation-account-name <automation-account-name> \
+//     --resource-group <resource-group> \
+//     --name create-postgresql-roles
+//
+// Note: The deployment script (createPgRoles) above creates roles during deployment.
+// The runbook is for on-demand role creation/re-application after deployment.
+// ============================================================================
