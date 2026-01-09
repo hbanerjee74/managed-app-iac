@@ -12,6 +12,8 @@ def test_params_dev_has_required_keys():
 
     # Required parameters per main.bicep (RFC-64)
     # Note: customerAdminObjectId has a default in params.dev.json but will be overridden by deployer identity for non-managed apps
+    # Note: The following parameters must be provided from params.dev.json (no hardcoded defaults in main.bicep):
+    # sku, nodeSize, jumpHostComputeTier, psqlComputeTier, aiServicesTier, retentionDays, appGwCapacity, appGwSku, storageGB, backupRetentionDays
     required = {
         "contactEmail",
         "customerAdminObjectId",

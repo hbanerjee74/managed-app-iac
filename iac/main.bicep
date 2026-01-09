@@ -42,7 +42,7 @@ param publisherIpRanges array
   'P2v3'
   'P3v3'
 ])
-param sku string = 'B1'
+param sku string
 
 @description('AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30.')
 @allowed([
@@ -50,7 +50,7 @@ param sku string = 'B1'
   'Standard_D8s_v3'
   'Standard_D16s_v3'
 ])
-param nodeSize string = 'Standard_D4s_v3'
+param nodeSize string
 
 @description('Jump host VM compute tier.')
 @allowed([
@@ -63,7 +63,7 @@ param nodeSize string = 'Standard_D4s_v3'
   'Standard_B1ms'
   'Standard_B2ms'
 ])
-param jumpHostComputeTier string = 'Standard_A1_v2'
+param jumpHostComputeTier string
 
 @description('PostgreSQL compute tier (RFC-64 computeTier).')
 @allowed([
@@ -74,7 +74,7 @@ param jumpHostComputeTier string = 'Standard_A1_v2'
   'GP_Standard_D2s_v3'
   'GP_Standard_D4s_v3'
 ])
-param psqlComputeTier string = 'Standard_B1ms'
+param psqlComputeTier string
 
 @description('AI Services tier (RFC-64).')
 @allowed([
@@ -86,33 +86,33 @@ param psqlComputeTier string = 'Standard_B1ms'
   'storage_optimized_l1'
   'storage_optimized_l2'
 ])
-param aiServicesTier string = 'basic'
+param aiServicesTier string
 
 @description('Log Analytics retention in days (RFC-64 retentionDays display).')
 @minValue(30)
 @maxValue(730)
-param retentionDays int = 30
+param retentionDays int
 
 @description('Application Gateway capacity (RFC-64 appGwCapacity display).')
 @minValue(1)
 @maxValue(10)
-param appGwCapacity int = 1
+param appGwCapacity int
 
 @description('Application Gateway SKU (RFC-64 appGwSku display).')
 @allowed([
   'WAF_v2'
 ])
-param appGwSku string = 'WAF_v2'
+param appGwSku string
 
 @description('PostgreSQL storage in GB (RFC-64 storageGB display).')
 @minValue(32)
 @maxValue(16384)
-param storageGB int = 128
+param storageGB int
 
 @description('PostgreSQL backup retention days (RFC-64 backupRetentionDays display).')
 @minValue(7)
 @maxValue(35)
-param backupRetentionDays int = 7
+param backupRetentionDays int
 
 @description('VM admin password for jump host.')
 @secure()
