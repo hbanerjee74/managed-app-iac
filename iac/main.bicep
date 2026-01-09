@@ -17,7 +17,7 @@ param contactEmail string
   'User'
   'Group'
 ])
-param customerAdminPrincipalType string = 'User'
+param customerAdminPrincipalType string
 
 @description('VNet address prefix (CIDR notation, e.g., 10.20.0.0/16). Subnets will be automatically derived as /24 subnets.')
 param vnetCidr string
