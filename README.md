@@ -96,20 +96,64 @@ For comprehensive testing documentation, see [`tests/README.md`](tests/README.md
 
 ## RBAC Role Assignments
 
-**Important**: RBAC role assignments are **not executed automatically** during deployment. The owner must manually execute the published runbooks to assign RBAC roles after deployment.
+**Important**: RBAC role assignments are **not executed automatically** during deployment. The owner must manually create, publish, and execute runbooks to assign RBAC roles after deployment.
 
-Automation runbooks are created and published during deployment, but they must be manually executed to assign RBAC roles. This allows you to review and debug the RBAC assignments before applying them.
+Per RFC-71 Section 12.2, Automation Account is deployed empty (no runbooks embedded in Bicep). Runbooks must be created manually after deployment.
 
 ### Available Runbooks
 
-Two automation runbooks are created during deployment:
+Two automation runbooks should be created manually after deployment:
 
 1. **`assign-rbac-roles-uami`** - Re-applies all RBAC roles for the User-Assigned Managed Identity (UAMI)
 2. **`assign-rbac-roles-admin`** - Re-applies all RBAC roles for Customer Admin
 
-### Publishing Runbooks
+### Creating and Publishing Runbooks
 
-Runbooks are automatically published during deployment. They are ready to execute immediately after deployment completes.
+Runbooks are NOT created in Bicep. You must manually create them, upload content, and publish them before they can be executed.
+
+**Step 1: Create Runbook**
+
+**Via Azure CLI:**
+
+```bash
+# Create UAMI runbook
+az automation runbook create \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-uami \
+  --type PowerShell \
+  --description "Assigns all RBAC roles for UAMI. Can be run by admins to re-apply UAMI RBAC assignments. Parameters: ResourceGroupId, UamiPrincipalId, UamiId, LawId, LawName, KvId, StorageId, AcrId, SearchId, AiId, AutomationId."
+
+# Create Customer Admin runbook
+az automation runbook create \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-admin \
+  --type PowerShell \
+  --description "Assigns all RBAC roles for Customer Admin. Can be run by admins to re-apply Customer Admin RBAC assignments. Parameters: ResourceGroupId, CustomerAdminObjectId, CustomerAdminPrincipalType (User or Group, defaults to User), KvId, StorageId, AcrId, SearchId, AiId, AutomationId."
+```
+
+**Step 2: Upload Runbook Content**
+
+**Via Azure CLI:**
+
+```bash
+# Upload content for UAMI runbook
+az automation runbook replace-content \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-uami \
+  --content-path scripts/assign-rbac-roles-uami.ps1
+
+# Upload content for Customer Admin runbook
+az automation runbook replace-content \
+  --automation-account-name <automation-account-name> \
+  --resource-group <resource-group> \
+  --name assign-rbac-roles-admin \
+  --content-path scripts/assign-rbac-roles-admin.ps1
+```
+
+**Step 3: Publish Runbooks**
 
 **Via Azure CLI:**
 
@@ -131,8 +175,10 @@ az automation runbook publish \
 
 1. Navigate to your Automation Account in the Azure Portal
 2. Go to **Runbooks** under **Process Automation**
-3. Find the runbook (e.g., `assign-rbac-roles-uami`)
-4. Click **Edit** → **Publish** → **Yes**
+3. Click **+ Create a runbook**
+4. Enter name (e.g., `assign-rbac-roles-uami`), select **PowerShell** as type, and create
+5. Click **Edit** → Upload the PowerShell script content from `scripts/` directory → **Save**
+6. Click **Publish** → **Yes**
 
 ### Executing Runbooks (Required After Deployment)
 
@@ -216,7 +262,7 @@ az automation runbook start \
 
 **Runbook not found:**
 - Verify the Automation Account name and resource group are correct
-- Check that the runbook was created during deployment (check deployment outputs)
+- Ensure the runbook was created manually after deployment (see "Creating and Publishing Runbooks" section above)
 
 **Runbook execution fails:**
 - Check Automation Account job history for error details
