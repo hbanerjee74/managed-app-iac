@@ -14,8 +14,14 @@ This repository contains the Bicep-based infrastructure for PRD-30 (managed appl
 ```text
 iac/
   main.bicep          # Resource group-scope entrypoint for managed application deployment
-  modules/            # Domain modules (identity, network, kv, storage, acr, psql, app, gateway, search, cognitive-services, automation, diagnostics, rbac)
+  modules/            # Domain modules (identity, network, dns, kv, storage, acr, psql, app, gateway, search, cognitive-services, automation, diagnostics, rbac, bastion, vm-jumphost)
   lib/                # Shared helpers (naming per RFC-71, constants)
+scripts/              # PowerShell scripts for RBAC assignments and PostgreSQL role creation
+  assign-rbac-roles-uami.ps1
+  assign-rbac-roles-admin.ps1
+  assign-rbac-roles-publisher-admin.ps1
+  create-psql-roles.ps1
+  ssh-via-bastion.sh  # SSH utility for VM jump host access via Azure Bastion
 tests/
   fixtures/
     params.dev.json   # Sample parameters for local testing

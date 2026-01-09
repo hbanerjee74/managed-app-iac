@@ -8,8 +8,9 @@
 ## Project Structure
 
 - `iac/main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters to RG modules.
-- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `kv`, `storage`, `acr`, `psql`, `app`, `gateway`, `search`, `cognitive-services`, `automation`, `diagnostics`).
+- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `kv`, `storage`, `acr`, `psql`, `app`, `gateway`, `search`, `cognitive-services`, `automation`, `diagnostics`, `rbac`, `bastion`, `vm-jumphost`).
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
+- `scripts/` — PowerShell scripts for RBAC assignments (`assign-rbac-roles-uami.ps1`, `assign-rbac-roles-admin.ps1`, `assign-rbac-roles-publisher-admin.ps1`), PostgreSQL role creation (`create-psql-roles.ps1`), and SSH utility for VM jump host (`ssh-via-bastion.sh`).
 - `tests/fixtures/params.dev.json` — single source of truth for RG name, location, subscription ID, and all parameters.
 - `tests/test_params.py` — required param presence check.
 - `tests/unit/` — unit tests for individual modules (what-if mode, auto-creates RG if needed).
