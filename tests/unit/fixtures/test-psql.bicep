@@ -89,11 +89,27 @@ module kv '../../../iac/modules/kv.bicep' = {
   }
 }
 
+// Create secrets module for admin credentials
+module secrets '../../../iac/modules/secrets.bicep' = {
+  name: 'secrets'
+  dependsOn: [
+    kv
+  ]
+  params: {
+    kvName: naming.outputs.names.kv
+    vmAdminUsername: 'azureuser'
+    vmAdminPassword: 'test-password-123'
+    psqlAdminUsername: 'psqladmin'
+    psqlAdminPassword: 'test-psql-password-123'
+  }
+}
+
 // Module under test
 module psql '../../../iac/modules/psql.bicep' = {
   name: 'psql'
   dependsOn: [
     kv
+    secrets
   ]
   params: {
     location: location
@@ -106,6 +122,10 @@ module psql '../../../iac/modules/psql.bicep' = {
     zoneIds: dns.outputs.zoneIds
     diagPsqlName: naming.outputs.names.diagPsql
     kvName: naming.outputs.names.kv
+    psqlAdminUsername: 'psqladmin'
+    psqlAdminPassword: 'test-psql-password-123'
+    psqlAdminUsernameSecretName: secrets.outputs.psqlAdminUsernameSecretName
+    psqlAdminPasswordSecretName: secrets.outputs.psqlAdminPasswordSecretName
     tags: {}
   }
 }

@@ -96,11 +96,27 @@ module kv '../../../iac/modules/kv.bicep' = {
   }
 }
 
+// Create secrets module for admin credentials
+module secrets '../../../iac/modules/secrets.bicep' = {
+  name: 'secrets'
+  dependsOn: [
+    kv
+  ]
+  params: {
+    kvName: naming.outputs.names.kv
+    vmAdminUsername: 'azureuser'
+    vmAdminPassword: 'test-password-123'
+    psqlAdminUsername: 'psqladmin'
+    psqlAdminPassword: 'test-psql-password-123'
+  }
+}
+
 // Dependency module for psql (provides psqlId and psqlName)
 module psql '../../../iac/modules/psql.bicep' = {
   name: 'psql'
   dependsOn: [
     kv
+    secrets
   ]
   params: {
     location: location
@@ -113,6 +129,25 @@ module psql '../../../iac/modules/psql.bicep' = {
     zoneIds: dns.outputs.zoneIds
     diagPsqlName: naming.outputs.names.diagPsql
     kvName: naming.outputs.names.kv
+    psqlAdminUsername: 'psqladmin'
+    psqlAdminPassword: 'test-psql-password-123'
+    psqlAdminUsernameSecretName: secrets.outputs.psqlAdminUsernameSecretName
+    psqlAdminPasswordSecretName: secrets.outputs.psqlAdminPasswordSecretName
+    tags: {}
+  }
+}
+
+// Create automation module for runbook creation
+module automation '../../../iac/modules/automation.bicep' = {
+  name: 'automation'
+  dependsOn: [
+    diagnostics
+  ]
+  params: {
+    location: location
+    automationName: naming.outputs.names.automation
+    lawId: diagnostics.outputs.lawId
+    diagAutomationName: naming.outputs.names.diagAutomation
     tags: {}
   }
 }
@@ -125,6 +160,7 @@ module psqlRoles '../../../iac/modules/psql-roles.bicep' = {
   dependsOn: [
     psql
     kv
+    automation
   ]
   params: {
     location: location
@@ -133,6 +169,9 @@ module psqlRoles '../../../iac/modules/psql-roles.bicep' = {
     uamiClientId: identity.outputs.uamiClientId
     uamiId: identity.outputs.uamiId
     kvName: naming.outputs.names.kv
+    automationId: automation.outputs.automationId
+    automationName: automation.outputs.automationName
+    tags: {}
   }
 }
 

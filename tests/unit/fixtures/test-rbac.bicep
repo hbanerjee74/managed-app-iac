@@ -58,7 +58,10 @@ module rbac '../../../iac/modules/rbac.bicep' = {
     searchId: mockSearchId
     aiId: mockAiId
     automationId: mockAutomationId
+    automationName: 'test-automation'
     isManagedApplication: false
+    publisherAdminObjectId: ''
+    publisherAdminPrincipalType: 'User'
     tags: {}
   }
 }

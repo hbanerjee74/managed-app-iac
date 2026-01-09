@@ -48,16 +48,42 @@ module kv '../../../iac/modules/kv.bicep' = {
   }
 }
 
+// Create secrets module for admin credentials
+module secrets '../../../iac/modules/secrets.bicep' = {
+  name: 'secrets'
+  dependsOn: [
+    kv
+  ]
+  params: {
+    kvName: naming.outputs.names.kv
+    vmAdminUsername: 'azureuser'
+    vmAdminPassword: 'test-password-123'
+    psqlAdminUsername: 'psqladmin'
+    psqlAdminPassword: 'test-psql-password-123'
+  }
+}
+
 // Module under test
 module vmJumphost '../../../iac/modules/vm-jumphost.bicep' = {
   name: 'vm-jumphost'
-  dependsOn: [kv]
+  dependsOn: [
+    kv
+    secrets
+  ]
   params: {
     location: location
     vmName: naming.outputs.names.vm
     subnetId: mockNetworkOutputs.subnetPeId
     kvName: naming.outputs.names.kv
-    adminPassword: ''
+    adminUsername: 'azureuser'
+    adminPassword: 'test-password-123'
+    vmAdminUsernameSecretName: secrets.outputs.vmAdminUsernameSecretName
+    vmAdminPasswordSecretName: secrets.outputs.vmAdminPasswordSecretName
+    vmSize: 'Standard_A1_v2'
+    imagePublisher: 'Canonical'
+    imageOffer: '0001-com-ubuntu-server-jammy'
+    imageSku: '22_04-lts-gen2'
+    imageVersion: 'latest'
     tags: {}
   }
 }
