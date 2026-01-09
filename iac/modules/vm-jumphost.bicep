@@ -19,8 +19,18 @@ param adminPassword string = ''
 @description('Key Vault name for storing VM admin password.')
 param kvName string
 
-@description('VM size (default: Standard_B2s).')
-param vmSize string = 'Standard_B2s'
+@description('VM size (default: Standard_A1_v2).')
+@allowed([
+  'Standard_A1_v2'
+  'Standard_A1'
+  'Standard_A2_v2'
+  'Standard_A4_v2'
+  'Standard_B1s'
+  'Standard_B2s'
+  'Standard_B1ms'
+  'Standard_B2ms'
+])
+param vmSize string = 'Standard_A1_v2'
 
 @description('VM image publisher (default: Canonical).')
 param imagePublisher string = 'Canonical'

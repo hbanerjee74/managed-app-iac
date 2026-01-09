@@ -52,6 +52,19 @@ param sku string = 'B1'
 ])
 param nodeSize string = 'Standard_D4s_v3'
 
+@description('VM jump host size.')
+@allowed([
+  'Standard_A1_v2'
+  'Standard_A1'
+  'Standard_A2_v2'
+  'Standard_A4_v2'
+  'Standard_B1s'
+  'Standard_B2s'
+  'Standard_B1ms'
+  'Standard_B2ms'
+])
+param vmSize string = 'Standard_A1_v2'
+
 @description('PostgreSQL compute tier (RFC-64 computeTier).')
 @allowed([
   'Standard_B1ms'
@@ -465,6 +478,7 @@ module vmJumphost 'modules/vm-jumphost.bicep' = {
     subnetId: network.outputs.subnetPeId
     kvName: naming.outputs.names.kv
     adminPassword: vmAdminPassword
+    vmSize: vmSize
     tags: tags
   }
 }
