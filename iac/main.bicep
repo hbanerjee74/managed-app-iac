@@ -569,8 +569,7 @@ resource deployerAutomationJobOperator 'Microsoft.Authorization/roleAssignments@
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
     principalId: deployerObjectId
     principalType: deployerPrincipalType
-    // delegatedManagedIdentityResourceId is only for cross-tenant (managed application) scenarios
-    // For same-tenant (non-managed app), assign role directly without delegated managed identity
+    // Role assignments are created directly without delegated managed identity for single-tenant deployments
   }
   dependsOn: [
     automation

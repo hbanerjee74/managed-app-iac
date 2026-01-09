@@ -13,8 +13,7 @@ param(
     [string]$AcrId = $env:ACR_ID,
     [string]$SearchId = $env:SEARCH_ID,
     [string]$AiId = $env:AI_ID,
-    [string]$AutomationId = $env:AUTOMATION_ID,
-    [string]$IsManagedApplication = $env:IS_MANAGED_APPLICATION
+    [string]$AutomationId = $env:AUTOMATION_ID
 )
 
 $ErrorActionPreference = "Stop"
@@ -89,8 +88,7 @@ function New-RoleAssignment {
         [string]$RoleDefinitionId,
         [string]$PrincipalId,
         [string]$PrincipalType,
-        [string]$RoleAssignmentName,
-        [string]$DelegatedManagedIdentityResourceId = $null
+        [string]$RoleAssignmentName
     )
     
     Write-Host "Assigning role $RoleAssignmentName at scope $Scope..."
@@ -114,11 +112,6 @@ function New-RoleAssignment {
             "--name", $RoleAssignmentName
         )
         
-        if ($DelegatedManagedIdentityResourceId) {
-            $azArgs += "--delegated-managed-identity-resource-id"
-            $azArgs += $DelegatedManagedIdentityResourceId
-        }
-        
         # Create role assignment
         az @azArgs | Out-Null
         
@@ -139,14 +132,12 @@ function New-RoleAssignment {
 Write-Host "`n=== Assigning UAMI RBAC Roles ===" -ForegroundColor Cyan
 
 # UAMI: Contributor on Resource Group
-$delegatedUamiId = ($IsManagedApplication -eq "true") ? $UamiId : $null
 $rgContributorName = Get-DeterministicGuid -Scope $ResourceGroupId -PrincipalId $UamiId -Suffix "Contributor"
 New-RoleAssignment -Scope $ResourceGroupId `
     -RoleDefinitionId $roleDefinitions.Contributor `
     -PrincipalId $UamiPrincipalId `
     -PrincipalType "ServicePrincipal" `
-    -RoleAssignmentName $rgContributorName `
-    -DelegatedManagedIdentityResourceId $delegatedUamiId
+    -RoleAssignmentName $rgContributorName
 
 # UAMI: Log Analytics Contributor (if LAW provided)
 if (![string]::IsNullOrEmpty($LawId) -and ![string]::IsNullOrEmpty($LawName)) {
@@ -155,8 +146,7 @@ if (![string]::IsNullOrEmpty($LawId) -and ![string]::IsNullOrEmpty($LawName)) {
         -RoleDefinitionId $roleDefinitions.LogAnalyticsContributor `
         -PrincipalId $UamiPrincipalId `
         -PrincipalType "ServicePrincipal" `
-        -RoleAssignmentName $lawContributorName `
-        -DelegatedManagedIdentityResourceId $delegatedUamiId
+        -RoleAssignmentName $lawContributorName
 }
 
 # UAMI: Key Vault Secrets Officer

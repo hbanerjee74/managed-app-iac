@@ -91,7 +91,7 @@ resource rbacUamiRunbook 'Microsoft.Automation/automationAccounts/runbooks@2023-
     runbookType: 'PowerShell'
     logVerbose: false
     logProgress: true
-    description: 'Assigns all RBAC roles for UAMI. Can be run by admins to re-apply UAMI RBAC assignments. Parameters: ResourceGroupId, UamiPrincipalId, UamiId, LawId, LawName, KvId, StorageId, AcrId, SearchId, AiId, AutomationId, IsManagedApplication.'
+    description: 'Assigns all RBAC roles for UAMI. Can be run by admins to re-apply UAMI RBAC assignments. Parameters: ResourceGroupId, UamiPrincipalId, UamiId, LawId, LawName, KvId, StorageId, AcrId, SearchId, AiId, AutomationId.'
   }
   dependsOn: [
     automationAccount
