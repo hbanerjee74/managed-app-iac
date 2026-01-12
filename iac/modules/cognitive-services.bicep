@@ -15,8 +15,6 @@ param lawId string
 @description('DNS zone resource IDs map (from dns module).')
 param zoneIds object
 
-@description('Principal ID of the UAMI for RBAC (optional).')
-param uamiPrincipalId string = ''
 
 @description('Private endpoint name from naming helper.')
 param peAiName string
@@ -27,8 +25,8 @@ param peAiDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagAiName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource ai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: aiName
@@ -64,6 +62,9 @@ resource peAi 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    ai
+  ]
 }
 
 resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -79,6 +80,9 @@ resource peAiDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
       }
     ]
   }
+  dependsOn: [
+    peAi
+  ]
 }
 
 // Diagnostic settings
@@ -96,18 +100,12 @@ resource aiDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    ai
+  ]
 }
 
-// RBAC assignments
-resource aiContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(uamiPrincipalId)) {
-  name: guid(ai.id, uamiPrincipalId, 'ai-contrib')
-  scope: ai
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908') // Cognitive Services Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 output aiId string = ai.id
 output peAiId string = peAi.id

@@ -22,10 +22,6 @@ var mockNetworkOutputs = {
   subnetPeId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-pe'
 }
 
-var mockIdentityOutputs = {
-  uamiPrincipalId: '00000000-0000-0000-0000-000000000000'
-}
-
 var mockDiagnosticsOutputs = {
   lawId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law'
 }
@@ -44,7 +40,6 @@ module cognitiveServices '../../../iac/modules/cognitive-services.bicep' = {
     aiName: naming.outputs.names.ai
     subnetPeId: mockNetworkOutputs.subnetPeId
     lawId: mockDiagnosticsOutputs.lawId
-    uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
     zoneIds: mockDnsOutputs.zoneIds
     peAiName: naming.outputs.names.peAi
     peAiDnsName: naming.outputs.names.peAiDns

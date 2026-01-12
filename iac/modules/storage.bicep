@@ -9,8 +9,6 @@ param storageName string
 @description('Private Endpoints subnet ID.')
 param subnetPeId string
 
-@description('Principal ID of the UAMI for RBAC.')
-param uamiPrincipalId string
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string
@@ -31,8 +29,8 @@ param peStTableDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagStName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 var storageSuffix = environment().suffixes.storage
 var blobZone = 'privatelink.blob.${storageSuffix}'
@@ -113,6 +111,9 @@ resource peStBlob 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -128,6 +129,9 @@ resource peStBlobDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
       }
     ]
   }
+  dependsOn: [
+    peStBlob
+  ]
 }
 
 resource peStQueue 'Microsoft.Network/privateEndpoints@2023-05-01' = {
@@ -150,6 +154,9 @@ resource peStQueue 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -165,6 +172,9 @@ resource peStQueueDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
       }
     ]
   }
+  dependsOn: [
+    peStQueue
+  ]
 }
 
 resource peStTable 'Microsoft.Network/privateEndpoints@2023-05-01' = {
@@ -187,6 +197,9 @@ resource peStTable 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -202,38 +215,12 @@ resource peStTableDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
       }
     ]
   }
+  dependsOn: [
+    peStTable
+  ]
 }
 
-// RBAC assignments
-resource stBlobContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(st.id, uamiPrincipalId, 'st-blob-data-contrib')
-  scope: st
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource stQueueContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(st.id, uamiPrincipalId, 'st-queue-data-contrib')
-  scope: st
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88') // Storage Queue Data Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource stTableContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(st.id, uamiPrincipalId, 'st-table-data-contrib')
-  scope: st
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3') // Storage Table Data Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 // Diagnostic settings
 // Note: Storage Accounts don't support StorageRead/StorageWrite/StorageDelete log categories.
@@ -250,6 +237,9 @@ resource stDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    st
+  ]
 }
 
 output storageId string = st.id

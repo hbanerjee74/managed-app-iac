@@ -1,6 +1,6 @@
 targetScope = 'resourceGroup'
 
-// Test wrapper for compute module
+// Test wrapper for app module
 
 @description('Resource group name for naming seed.')
 param resourceGroupName string
@@ -20,8 +20,8 @@ module naming '../../../iac/lib/naming.bicep' = {
 }
 
 // Module under test
-module compute '../../../iac/modules/compute.bicep' = {
-  name: 'compute'
+module app '../../../iac/modules/app.bicep' = {
+  name: 'app'
   params: {
     location: location
     sku: sku

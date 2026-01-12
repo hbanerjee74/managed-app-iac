@@ -9,8 +9,8 @@ param retentionDays int
 @description('Log Analytics Workspace name.')
 param lawName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource law 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: lawName
@@ -50,6 +50,9 @@ resource customTable 'Microsoft.OperationalInsights/workspaces/tables@2021-12-01
       ]
     }
   }
+  dependsOn: [
+    law
+  ]
 }
 
 output lawId string = law.id

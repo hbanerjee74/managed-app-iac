@@ -10,7 +10,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "12162526229984069492"
+      "templateHash": "1893015151072574142"
     }
   },
   "parameters": {
@@ -93,7 +93,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "15621289005927083905"
+              "templateHash": "17654329828128695486"
             }
           },
           "parameters": {
@@ -139,6 +139,7 @@
                   "priority": "[variables('wafRules')[copyIndex('wafAllowRules')].priority]",
                   "ruleType": "MatchRule",
                   "action": "[variables('wafRules')[copyIndex('wafAllowRules')].action]",
+                  "state": "Enabled",
                   "matchConditions": [
                     {
                       "matchVariables": [
@@ -167,7 +168,7 @@
                 "cidrs": "[parameters('publisherIpRanges')]"
               }
             ],
-            "wafCustomRules": "[concat(variables('wafAllowRules'), createArray(createObject('name', 'Deny-All', 'priority', 3, 'ruleType', 'MatchRule', 'action', 'Block', 'matchConditions', createArray(createObject('matchVariables', createArray(createObject('variableName', 'RemoteAddr')), 'operator', 'IPMatch', 'matchValues', createArray('0.0.0.0/0'))))))]"
+            "wafCustomRules": "[concat(variables('wafAllowRules'), createArray(createObject('name', 'Deny-All', 'priority', 3, 'ruleType', 'MatchRule', 'action', 'Block', 'state', 'Enabled', 'matchConditions', createArray(createObject('matchVariables', createArray(createObject('variableName', 'RemoteAddr')), 'operator', 'IPMatch', 'matchValues', createArray('0.0.0.0/0'))))))]"
           },
           "resources": {
             "agwPolicy": {

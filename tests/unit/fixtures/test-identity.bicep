@@ -9,11 +9,11 @@ param resourceGroupName string
 @description('Azure region for deployment (RFC-64: location).')
 param location string
 
-@description('Admin Object ID.')
-param adminObjectId string
+@description('Customer Admin Object ID.')
+param customerAdminObjectId string
 
-@description('Admin Principal Type.')
-param adminPrincipalType string
+@description('Customer Admin Principal Type.')
+param customerAdminPrincipalType string
 
 // Include naming module
 module naming '../../../iac/lib/naming.bicep' = {
@@ -34,9 +34,6 @@ module identity '../../../iac/modules/identity.bicep' = {
   params: {
     location: location
     uamiName: naming.outputs.names.uami
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
-    lawName: mockDiagnosticsOutputs.lawName
     tags: {}
   }
 }

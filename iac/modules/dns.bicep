@@ -3,8 +3,8 @@ targetScope = 'resourceGroup'
 @description('Name of the Services VNet to link.')
 param vnetName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource vnet 'Microsoft.Network/virtualNetworks@2023-04-01' existing = {
   name: vnetName
@@ -43,6 +43,10 @@ resource vnetLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-0
     }
   }
   tags: tags
+  dependsOn: [
+    vnet
+    privateZones
+  ]
 }]
 
 output zoneIds object = {

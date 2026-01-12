@@ -15,9 +15,6 @@ param location string
 @description('Customer IP ranges for WAF allowlist (RFC-64: customerIpRanges).')
 param customerIpRanges array
 
-@description('Publisher IP ranges for WAF allowlist (RFC-64: publisherIpRanges).')
-param publisherIpRanges array
-
 @description('Application Gateway capacity (RFC-64: appGwCapacity).')
 param appGwCapacity int
 
@@ -60,7 +57,6 @@ module wafPolicy '../../../iac/modules/waf-policy.bicep' = {
     location: location
     wafPolicyName: wafPolicyName
     customerIpRanges: customerIpRanges
-    publisherIpRanges: publisherIpRanges
     tags: {}
   }
 }

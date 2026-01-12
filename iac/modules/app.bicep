@@ -9,8 +9,8 @@ param sku string
 @description('App Service Plan name.')
 param aspName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 // Determine tier based on SKU
 var tier = startsWith(sku, 'B') ? 'Basic' : startsWith(sku, 'S') ? 'Standard' : 'PremiumV3'

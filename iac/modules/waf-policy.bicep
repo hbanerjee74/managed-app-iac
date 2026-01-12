@@ -9,11 +9,8 @@ param wafPolicyName string
 @description('Customer IP ranges for WAF allowlist.')
 param customerIpRanges array
 
-@description('Publisher IP ranges for WAF allowlist.')
-param publisherIpRanges array
-
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 var wafRules = [
   // Customer allowlist (RFC-71: priority range 100-199)
@@ -22,13 +19,6 @@ var wafRules = [
     priority: 1
     action: 'Allow'
     cidrs: customerIpRanges
-  }
-  // Publisher allowlist (RFC-71: priority range 200-299)
-  {
-    name: 'Allow-Publisher'
-    priority: 2
-    action: 'Allow'
-    cidrs: publisherIpRanges
   }
 ]
 
@@ -54,7 +44,7 @@ var wafAllowRules = [for rule in wafRules: {
 var wafCustomRules = concat(wafAllowRules, [
   {
     name: 'Deny-All'
-    priority: 3  // RFC-71: priority range 1000+ for deny rules
+    priority: 2  // Deny all traffic after customer allowlist
     ruleType: 'MatchRule'
     action: 'Block'
     state: 'Enabled'

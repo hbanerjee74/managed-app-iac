@@ -6,31 +6,25 @@ param resourceGroupName string = resourceGroup().name
 @description('Azure region for deployment. Defaults to current resource group location from ARM context.')
 param location string = resourceGroup().location
 
-@description('Customer admin Entra object ID (RFC-64).')
-param adminObjectId string
+@description('Customer admin Entra object ID (RFC-64). Will be overridden by deployer identity for single-tenant deployments.')
+param customerAdminObjectId string
 
 @description('Contact email for notifications (RFC-64).')
 param contactEmail string
 
-@description('Principal type for adminObjectId (User or Group).')
+@description('Principal type for customerAdminObjectId (User or Group).')
 @allowed([
   'User'
   'Group'
 ])
-param adminPrincipalType string = 'User'
+param customerAdminPrincipalType string
 
-// Note: servicesVnetCidr parameter removed - network module now uses hardcoded VNet/subnet CIDRs
-// Hardcoded values: VNet 10.20.0.0/16, subnets 10.20.0.0/24 through 10.20.4.0/24
-// This simplifies deployment and avoids Azure cidrSubnet limitations
-// TODO: Consider making VNet/subnet CIDRs configurable via parameters if needed for different environments
+@description('VNet address prefix (CIDR notation, e.g., 10.20.0.0/16). Subnets will be automatically derived as /24 subnets.')
+param vnetCidr string
 
 @description('Customer IP ranges for WAF allowlist (RFC-64).')
 @minLength(1)
 param customerIpRanges array
-
-@description('Publisher IP ranges for WAF allowlist (RFC-64).')
-@minLength(1)
-param publisherIpRanges array
 
 @description('App Service Plan SKU (RFC-64 sku).')
 @allowed([
@@ -44,10 +38,7 @@ param publisherIpRanges array
   'P2v3'
   'P3v3'
 ])
-param sku string = 'B1'
-
-@description('Enable App Service Plan deployment (set to false to skip due to quota constraints).')
-param enableAppServicePlan bool = true
+param sku string
 
 @description('AKS node size (RFC-64 nodeSize). Note: Parameter defined per RFC-64 but currently unused as AKS deployment is out of scope for PRD-30.')
 @allowed([
@@ -55,7 +46,21 @@ param enableAppServicePlan bool = true
   'Standard_D8s_v3'
   'Standard_D16s_v3'
 ])
-param nodeSize string = 'Standard_D4s_v3'
+param nodeSize string
+
+@description('Jump host VM compute tier.')
+@allowed([
+  'Standard_A1_v2'
+  'Standard_A1'
+  'Standard_A2_v2'
+  'Standard_A4_v2'
+  'Standard_B1s'
+  'Standard_B2s'
+  'Standard_B1ms'
+  'Standard_B2ms'
+  'Standard_D2ds_v4'
+])
+param jumpHostComputeTier string
 
 @description('PostgreSQL compute tier (RFC-64 computeTier).')
 @allowed([
@@ -66,7 +71,7 @@ param nodeSize string = 'Standard_D4s_v3'
   'GP_Standard_D2s_v3'
   'GP_Standard_D4s_v3'
 ])
-param computeTier string = 'Standard_B1ms'
+param psqlComputeTier string
 
 @description('AI Services tier (RFC-64).')
 @allowed([
@@ -78,33 +83,59 @@ param computeTier string = 'Standard_B1ms'
   'storage_optimized_l1'
   'storage_optimized_l2'
 ])
-param aiServicesTier string = 'basic'
+param aiServicesTier string
 
 @description('Log Analytics retention in days (RFC-64 retentionDays display).')
 @minValue(30)
 @maxValue(730)
-param retentionDays int = 30
+param retentionDays int
 
 @description('Application Gateway capacity (RFC-64 appGwCapacity display).')
 @minValue(1)
 @maxValue(10)
-param appGwCapacity int = 1
+param appGwCapacity int
 
 @description('Application Gateway SKU (RFC-64 appGwSku display).')
 @allowed([
   'WAF_v2'
 ])
-param appGwSku string = 'WAF_v2'
+param appGwSku string
 
 @description('PostgreSQL storage in GB (RFC-64 storageGB display).')
 @minValue(32)
 @maxValue(16384)
-param storageGB int = 128
+param storageGB int
 
 @description('PostgreSQL backup retention days (RFC-64 backupRetentionDays display).')
 @minValue(7)
 @maxValue(35)
-param backupRetentionDays int = 7
+param backupRetentionDays int
+
+@description('VM admin username for jump host.')
+param vmAdminUsername string = 'azureuser'
+
+@description('VM admin password for jump host (auto-generated if not provided).')
+@secure()
+param vmAdminPassword string = ''
+
+@description('VM image publisher.')
+param vmImagePublisher string = 'Canonical'
+
+@description('VM image offer.')
+param vmImageOffer string = '0001-com-ubuntu-server-jammy'
+
+@description('VM image SKU.')
+param vmImageSku string = '22_04-lts-gen2'
+
+@description('VM image version.')
+param vmImageVersion string = 'latest'
+
+@description('PostgreSQL admin username.')
+param psqlAdminUsername string = 'psqladmin'
+
+@description('PostgreSQL admin password (auto-generated if not provided).')
+@secure()
+param psqlAdminPassword string = ''
 
 @description('Optional tags: environment (dev/release/prod), owner, purpose, created (ISO8601).')
 param environment string = ''
@@ -112,8 +143,8 @@ param owner string = ''
 param purpose string = ''
 param created string = ''
 
-@description('Whether this is a managed application deployment (cross-tenant). Set to false for same-tenant testing.')
-param isManagedApplication bool = true
+@description('Default tags for single-tenant deployments (from metadata.defaultTags).')
+param defaultTags object = {}
 
 // Naming helper to generate deterministic per-resource nanoids.
 module naming 'lib/naming.bicep' = {
@@ -123,7 +154,12 @@ module naming 'lib/naming.bicep' = {
   }
 }
 
-var tags = union(
+// Always use deployer identity for customer admin (single-tenant deployment)
+var deployerInfo = az.deployer()
+var effectiveCustomerAdminObjectId = deployerInfo.objectId
+
+// Use default tags from metadata when individual tag params are empty
+var effectiveTags = empty(environment) && empty(owner) && empty(purpose) && empty(created) ? defaultTags : union(
   empty(environment) ? {} : { environment: environment },
   empty(owner) ? {} : { owner: owner },
   empty(purpose) ? {} : { purpose: purpose },
@@ -131,10 +167,15 @@ var tags = union(
   empty(contactEmail) ? {} : { contactEmail: contactEmail }
 )
 
+var tags = effectiveTags
+
 // TODO: add remaining RFC-64 parameters as modules are implemented.
 
 module diagnostics 'modules/diagnostics.bicep' = {
   name: 'diagnostics'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     retentionDays: retentionDays
@@ -145,23 +186,26 @@ module diagnostics 'modules/diagnostics.bicep' = {
 
 module identity 'modules/identity.bicep' = {
   name: 'identity'
-  dependsOn: [diagnostics]
+  dependsOn: [
+    naming
+    diagnostics
+  ]
   params: {
     location: location
     uamiName: naming.outputs.names.uami
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
-    lawName: naming.outputs.names.law
-    isManagedApplication: isManagedApplication
     tags: tags
   }
 }
 
 module network 'modules/network.bicep' = {
   name: 'network'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     vnetName: naming.outputs.names.vnet
+    vnetCidr: vnetCidr
     nsgAppgwName: naming.outputs.names.nsgAppgw
     nsgAksName: naming.outputs.names.nsgAks
     nsgAppsvcName: naming.outputs.names.nsgAppsvc
@@ -172,6 +216,10 @@ module network 'modules/network.bicep' = {
 
 module dns 'modules/dns.bicep' = {
   name: 'dns'
+  dependsOn: [
+    naming
+    network
+  ]
   params: {
     vnetName: naming.outputs.names.vnet
     tags: tags
@@ -180,11 +228,16 @@ module dns 'modules/dns.bicep' = {
 
 module kv 'modules/kv.bicep' = {
   name: 'kv'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     kvName: naming.outputs.names.kv
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peKvName: naming.outputs.names.peKv
@@ -194,13 +247,40 @@ module kv 'modules/kv.bicep' = {
   }
 }
 
+// Generate VM admin password if not provided
+var kvId = kv.outputs.kvId
+var vmAdminPasswordValue = empty(vmAdminPassword) ? guid(subscription().id, kvId, 'vm-admin-password') : vmAdminPassword
+
+// Generate PostgreSQL admin password if not provided
+var psqlAdminPasswordValue = empty(psqlAdminPassword) ? guid(subscription().id, kvId, 'psql-admin-password') : psqlAdminPassword
+
+// Create admin credentials secrets in Key Vault
+module secrets 'modules/secrets.bicep' = {
+  name: 'secrets'
+  dependsOn: [
+    kv
+  ]
+  params: {
+    kvName: naming.outputs.names.kv
+    vmAdminUsername: vmAdminUsername
+    vmAdminPassword: vmAdminPasswordValue
+    psqlAdminUsername: psqlAdminUsername
+    psqlAdminPassword: psqlAdminPasswordValue
+  }
+}
+
 module storage 'modules/storage.bicep' = {
   name: 'storage'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     storageName: naming.outputs.names.storage
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peStBlobName: naming.outputs.names.peStBlob
@@ -216,11 +296,16 @@ module storage 'modules/storage.bicep' = {
 
 module acr 'modules/acr.bicep' = {
   name: 'acr'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     acrName: naming.outputs.names.acr
     subnetPeId: network.outputs.subnetPeId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
     zoneIds: dns.outputs.zoneIds
     peAcrName: naming.outputs.names.peAcr
@@ -230,27 +315,40 @@ module acr 'modules/acr.bicep' = {
   }
 }
 
-module data 'modules/data.bicep' = {
-  name: 'data'
+module psql 'modules/psql.bicep' = {
+  name: 'psql'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+    kv
+    secrets
+  ]
   params: {
     location: location
     psqlName: naming.outputs.names.psql
-    computeTier: computeTier
+    computeTier: psqlComputeTier
     backupRetentionDays: backupRetentionDays
     storageGB: storageGB
     subnetPsqlId: network.outputs.subnetPsqlId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     lawId: diagnostics.outputs.lawId
-    uamiClientId: identity.outputs.uamiClientId
-    uamiId: identity.outputs.uamiId
     zoneIds: dns.outputs.zoneIds
     diagPsqlName: naming.outputs.names.diagPsql
+    kvName: naming.outputs.names.kv
+    psqlAdminUsername: psqlAdminUsername
+    psqlAdminPassword: psqlAdminPasswordValue
+    psqlAdminUsernameSecretName: secrets.outputs.psqlAdminUsernameSecretName
+    psqlAdminPasswordSecretName: secrets.outputs.psqlAdminPasswordSecretName
     tags: tags
   }
 }
 
-module compute 'modules/compute.bicep' = if (enableAppServicePlan) {
-  name: 'compute'
+module app 'modules/app.bicep' = {
+  name: 'app'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     sku: sku
@@ -261,6 +359,9 @@ module compute 'modules/compute.bicep' = if (enableAppServicePlan) {
 
 module publicIp 'modules/public-ip.bicep' = {
   name: 'publicIp'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     pipName: naming.outputs.names.pipAgw
@@ -272,17 +373,26 @@ var wafPolicyName = '${naming.outputs.names.agw}-waf'
 
 module wafPolicy 'modules/waf-policy.bicep' = {
   name: 'wafPolicy'
+  dependsOn: [
+    naming
+  ]
   params: {
     location: location
     wafPolicyName: wafPolicyName
     customerIpRanges: customerIpRanges
-    publisherIpRanges: publisherIpRanges
     tags: tags
   }
 }
 
 module gateway 'modules/gateway.bicep' = {
   name: 'gateway'
+  dependsOn: [
+    naming
+    publicIp
+    wafPolicy
+    network
+    diagnostics
+  ]
   params: {
     location: location
     agwName: naming.outputs.names.agw
@@ -299,13 +409,18 @@ module gateway 'modules/gateway.bicep' = {
 
 module search 'modules/search.bicep' = {
   name: 'search'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     aiServicesTier: aiServicesTier
     searchName: naming.outputs.names.search
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     zoneIds: dns.outputs.zoneIds
     peSearchName: naming.outputs.names.peSearch
     peSearchDnsName: naming.outputs.names.peSearchDns
@@ -316,12 +431,17 @@ module search 'modules/search.bicep' = {
 
 module cognitiveServices 'modules/cognitive-services.bicep' = {
   name: 'cognitive-services'
+  dependsOn: [
+    naming
+    network
+    diagnostics
+    dns
+  ]
   params: {
     location: location
     aiName: naming.outputs.names.ai
     subnetPeId: network.outputs.subnetPeId
     lawId: diagnostics.outputs.lawId
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
     zoneIds: dns.outputs.zoneIds
     peAiName: naming.outputs.names.peAi
     peAiDnsName: naming.outputs.names.peAiDns
@@ -330,20 +450,80 @@ module cognitiveServices 'modules/cognitive-services.bicep' = {
   }
 }
 
+// Grant Automation Job Operator role to deployer identity
+// This allows the identity running the deployment script to execute automation runbooks
+var deployerObjectId = deployerInfo.objectId
+// Determine principal type: if userPrincipalName is empty, it's likely a ServicePrincipal
+var deployerPrincipalType = empty(deployerInfo.userPrincipalName) ? 'ServicePrincipal' : 'User'
+
 module automation 'modules/automation.bicep' = {
   name: 'automation'
+  dependsOn: [
+    naming
+    diagnostics
+  ]
   params: {
     location: location
     automationName: naming.outputs.names.automation
-    uamiPrincipalId: identity.outputs.uamiPrincipalId
-    adminObjectId: adminObjectId
-    adminPrincipalType: adminPrincipalType
     lawId: diagnostics.outputs.lawId
     diagAutomationName: naming.outputs.names.diagAutomation
+    deployerObjectId: deployerObjectId
+    deployerPrincipalType: deployerPrincipalType
     tags: tags
   }
 }
 
+module bastion 'modules/bastion.bicep' = {
+  name: 'bastion'
+  dependsOn: [
+    naming
+    network
+  ]
+  params: {
+    location: location
+    bastionName: naming.outputs.names.bastion
+    pipBastionName: naming.outputs.names.pipBastion
+    subnetBastionId: network.outputs.subnetBastionId
+    tags: tags
+  }
+}
+
+module vmJumphost 'modules/vm-jumphost.bicep' = {
+  name: 'vm-jumphost'
+  dependsOn: [
+    naming
+    network
+    kv
+    secrets
+  ]
+  params: {
+    location: location
+    vmName: naming.outputs.names.vm
+    subnetId: network.outputs.subnetPeId
+    kvName: naming.outputs.names.kv
+    adminUsername: vmAdminUsername
+    adminPassword: vmAdminPasswordValue
+    vmAdminUsernameSecretName: secrets.outputs.vmAdminUsernameSecretName
+    vmAdminPasswordSecretName: secrets.outputs.vmAdminPasswordSecretName
+    vmSize: jumpHostComputeTier
+    imagePublisher: vmImagePublisher
+    imageOffer: vmImageOffer
+    imageSku: vmImageSku
+    imageVersion: vmImageVersion
+    tags: tags
+  }
+}
+
+// Grant Automation Job Operator role to deployer identity
+// This is handled inside the automation module where the resource can be properly scoped
+//
+// Note: RBAC role assignments and PostgreSQL role creation are performed via runbooks
+// Runbooks are NOT created in Bicep per RFC-71 Section 12.2 (Automation Account deployed empty)
+// See README.md for instructions on creating and executing runbooks
+
 output names object = naming.outputs.names
 output lawId string = diagnostics.outputs.lawId
 output lawWorkspaceId string = diagnostics.outputs.lawWorkspaceId
+output vmName string = vmJumphost.outputs.vmName
+output vmPrivateIp string = vmJumphost.outputs.vmPrivateIp
+output bastionName string = bastion.outputs.bastionName

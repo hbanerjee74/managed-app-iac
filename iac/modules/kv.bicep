@@ -9,8 +9,6 @@ param kvName string
 @description('Private Endpoints subnet ID.')
 param subnetPeId string
 
-@description('Principal ID of the UAMI for RBAC.')
-param uamiPrincipalId string
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string
@@ -27,8 +25,8 @@ param peKvDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagKvName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource kv 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: kvName
@@ -73,6 +71,9 @@ resource peKv 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -88,18 +89,12 @@ resource peKvDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-0
       }
     ]
   }
+  dependsOn: [
+    peKv
+  ]
 }
 
-// RBAC assignment
-resource kvSecretsOfficer 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(kv.id, uamiPrincipalId, 'kv-secret-officer')
-  scope: kv
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7') // Key Vault Secrets Officer
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 // Diagnostic settings
 resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
@@ -120,6 +115,9 @@ resource kvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    kv
+  ]
 }
 
 output kvId string = kv.id

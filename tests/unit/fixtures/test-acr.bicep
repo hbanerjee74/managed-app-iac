@@ -22,10 +22,6 @@ var mockNetworkOutputs = {
   subnetPeId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.Network/virtualNetworks/test-vnet/subnets/snet-pe'
 }
 
-var mockIdentityOutputs = {
-  uamiPrincipalId: '00000000-0000-0000-0000-000000000000'
-}
-
 var mockDiagnosticsOutputs = {
   lawId: '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test-rg/providers/Microsoft.OperationalInsights/workspaces/test-law'
 }
@@ -43,7 +39,6 @@ module acr '../../../iac/modules/acr.bicep' = {
     location: location
     acrName: naming.outputs.names.acr
     subnetPeId: mockNetworkOutputs.subnetPeId
-    uamiPrincipalId: mockIdentityOutputs.uamiPrincipalId
     lawId: mockDiagnosticsOutputs.lawId
     zoneIds: mockDnsOutputs.zoneIds
     peAcrName: naming.outputs.names.peAcr

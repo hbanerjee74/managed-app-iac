@@ -206,6 +206,32 @@ def get_subscription_id_from_shared_params() -> str:
     raise ValueError(f"Subscription ID not found in {SHARED_PARAMS_FILE}")
 
 
+def get_current_user_object_id() -> str:
+    """Get the current signed-in user's object ID using Azure CLI.
+    
+    Returns:
+        Object ID string (GUID)
+        
+    Raises:
+        RuntimeError: If Azure CLI is not available or user is not signed in
+    """
+    try:
+        result = subprocess.run(
+            ['az', 'ad', 'signed-in-user', 'show', '--query', 'id', '-o', 'tsv'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        object_id = result.stdout.strip()
+        if not object_id:
+            raise RuntimeError("Could not retrieve current user object ID from Azure CLI")
+        return object_id
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Failed to get current user object ID: {e.stderr}")
+    except FileNotFoundError:
+        raise RuntimeError("Azure CLI not found. Please install Azure CLI.")
+
+
 def run_what_if(
     bicep_file: Path,
     params_file: Path = None,  # Optional - if None, uses only shared params
@@ -267,7 +293,24 @@ def run_what_if(
         # 1. Not already in module params (module params take precedence)
         # 2. Parameter is declared in the Bicep template (to avoid ARM validation errors)
         if param_name not in module_params['parameters'] and param_name in declared_params:
-            module_params['parameters'][param_name] = param_value
+            # Special handling for customerAdminObjectId: replace dummy value with current user's object ID
+            if param_name == 'customerAdminObjectId':
+                current_value = param_value.get('value', '')
+                # If it's the dummy value, replace with current user's object ID
+                if current_value == '00000000-0000-0000-0000-000000000000':
+                    try:
+                        current_user_id = get_current_user_object_id()
+                        module_params['parameters'][param_name] = {'value': current_user_id}
+                        print(f"Using current user's object ID for customerAdminObjectId: {current_user_id}")
+                    except RuntimeError as e:
+                        # If we can't get the current user ID, use the original value
+                        print(f"Warning: {e}. Using customerAdminObjectId from params.dev.json")
+                        module_params['parameters'][param_name] = param_value
+                else:
+                    # Use the value from params.dev.json as-is
+                    module_params['parameters'][param_name] = param_value
+            else:
+                module_params['parameters'][param_name] = param_value
     
     # Always merge resourceGroupName and location from metadata (these are special)
     # These come from metadata section, not parameters section
@@ -286,6 +329,18 @@ def run_what_if(
         except ValueError:
             # If subscription ID not found, skip adding it (will fail with clear error)
             pass
+    
+    # Handle defaultTags from metadata if available (for single-tenant deployments)
+    # Only add if declared in template
+    if 'defaultTags' in declared_params and 'defaultTags' not in module_params['parameters']:
+        try:
+            params_data = load_json_file(SHARED_PARAMS_FILE)
+            default_tags = params_data.get('metadata', {}).get('defaultTags', {})
+            if default_tags:
+                module_params['parameters']['defaultTags'] = {'value': default_tags}
+        except Exception:
+            # If not found, use empty object
+            module_params['parameters']['defaultTags'] = {'value': {}}
     
     # Create temporary merged params file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:

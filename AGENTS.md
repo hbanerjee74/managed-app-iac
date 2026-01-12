@@ -8,8 +8,9 @@
 ## Project Structure
 
 - `iac/main.bicep` — resource group-scope entrypoint for managed application deployment; wires RFC-64 parameters to RG modules.
-- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `kv`, `storage`, `acr`, `data`, `compute`, `gateway`, `search`, `cognitive-services`, `automation`, `diagnostics`, `logic`).
+- `iac/modules/` — domain modules (`identity`, `network`, `dns`, `kv`, `storage`, `acr`, `psql`, `app`, `gateway`, `search`, `cognitive-services`, `automation`, `diagnostics`, `bastion`, `vm-jumphost`).
 - `iac/lib/naming.bicep` — deterministic per-resource nanoid naming (RFC-71).
+- `scripts/` — PowerShell scripts for RBAC assignments (`assign-rbac-roles-uami.ps1`, `assign-rbac-roles-admin.ps1`, `assign-rbac-roles-publisher-admin.ps1`), PostgreSQL role creation (`create-psql-roles.ps1`), and SSH utility for VM jump host (`ssh-via-bastion.sh`).
 - `tests/fixtures/params.dev.json` — single source of truth for RG name, location, subscription ID, and all parameters.
 - `tests/test_params.py` — required param presence check.
 - `tests/unit/` — unit tests for individual modules (what-if mode, auto-creates RG if needed).
@@ -24,7 +25,7 @@
 - **E2E what-if tests** (safe, no actual deployment): `pytest tests/e2e/`
 - **E2E actual deployment** (opt-in, creates real resources): `ENABLE_ACTUAL_DEPLOYMENT=true pytest tests/e2e/test_main.py::TestMainBicep::test_actual_deployment`
 - **Keep resource group for debugging**: `KEEP_RESOURCE_GROUP=true` (with `ENABLE_ACTUAL_DEPLOYMENT=true`)
-- **Manual deployment** (if needed): `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create ...`)
+- **Manual deployment** (if needed): `az deployment group what-if --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json` (or `az deployment group create --mode Complete --resource-group <rg-name> -f iac/main.bicep -p @tests/fixtures/params.dev.json`)
 - **Diagnostics**: LAW with custom table `VibeData_Operations_CL`; all resources emit diagnostics to LAW.
 
 See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
@@ -37,9 +38,9 @@ See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 
 ## Identities & RBAC
 
-- Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push, Postgres Admin). Automation Job Operator assigned to `adminObjectId`.
+- Always create/use `vibedata-uami-*`; RG Contributor + resource-scoped roles (KV Secrets Officer, Storage Blob Data Contributor, ACR Pull/Push). Automation Job Operator assigned to deployer identity.
 - `adminPrincipalType` param (User/Group) for RG Reader assignment.
-- **Managed Application Requirements**: All role assignments use `delegatedManagedIdentityResourceId` property for cross-tenant scenarios. Includes 30-second propagation delay after UAMI creation to allow identity propagation across tenants.
+- **Single-Tenant Deployment**: All role assignments are created directly without delegated managed identity for single-tenant deployments.
 - **Scope**: All RBAC assignments occur at resource group scope (subscription-scope roles like Cost Management Reader are not assigned).
 
 ## Postgres Roles
@@ -48,7 +49,7 @@ See [`tests/README.md`](tests/README.md) for comprehensive test documentation.
 
 ## App Gateway
 
-- WAF_v2 with customer/publisher IP allowlists and deny-all; connection draining enabled.
+- WAF_v2 with customer IP allowlist and deny-all; connection draining enabled.
 - **Placeholder resources**: Minimal placeholder backend pool, listener, and routing rule added to satisfy Azure validation requirements (see `.vibedata/spec-changes.md` section 12). Actual app endpoints should be configured when ready.
 
 ## Tests & Quality

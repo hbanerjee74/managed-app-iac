@@ -4,7 +4,7 @@ targetScope = 'resourceGroup'
 param resourceGroupName string
 
 // helper to build deterministic nanoids per resource type
-param seedPrefix string = resourceGroupName
+var seedPrefix = resourceGroupName
 
 func nano16(seed string, suffix string) string => toLower('${substring(uniqueString('${seed}-${suffix}-a'), 0, 8)}${substring(uniqueString('${seed}-${suffix}-b'), 0, 8)}')
 func nano8(seed string, suffix string) string => toLower(substring(uniqueString('${seed}-${suffix}'), 0, 8))
@@ -27,6 +27,9 @@ var names = {
   search: 'vd-search-${nano16(seedPrefix, 'search')}'
   ai: 'vd-ai-${nano16(seedPrefix, 'ai')}'
   automation: 'vd-aa-${nano16(seedPrefix, 'aa')}'
+  vm: 'vd-vm-${nano16(seedPrefix, 'vm')}'
+  bastion: 'vd-bastion-${nano16(seedPrefix, 'bastion')}'
+  pipBastion: 'vd-pip-bastion-${nano16(seedPrefix, 'pipbastion')}'
   // Private endpoints per RFC-71 rtype 'pe'
   peKv: 'vd-pe-kv-${nano16(seedPrefix, 'pekv')}'
   peStBlob: 'vd-pe-st-blob-${nano16(seedPrefix, 'pestblob')}'

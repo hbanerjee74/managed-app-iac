@@ -6,30 +6,24 @@ param location string
 @description('Automation Account name.')
 param automationName string
 
-@description('User-assigned managed identity resource id (deprecated - using SystemAssigned).')
-param uamiId string = ''
-
-@description('Principal ID of the UAMI for RBAC (optional).')
-param uamiPrincipalId string = ''
-
-@description('Admin Object ID for customer (for Automation role).')
-param adminObjectId string
-
-@description('Principal type for adminObjectId (User or Group).')
-@allowed([
-  'User'
-  'Group'
-])
-param adminPrincipalType string = 'User'
-
 @description('Log Analytics Workspace resource ID.')
 param lawId string
 
 @description('Diagnostic setting name from naming helper.')
 param diagAutomationName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
+
+@description('Deployer object ID for Automation Job Operator role assignment.')
+param deployerObjectId string = ''
+
+@description('Deployer principal type (User or ServicePrincipal).')
+@allowed([
+  'User'
+  'ServicePrincipal'
+])
+param deployerPrincipalType string = 'User'
 
 resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
   name: automationName
@@ -42,12 +36,28 @@ resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
     sku: {
       name: 'Basic'
     }
-    publicNetworkAccess: false
     disableLocalAuth: true
   }
 }
 
+// Grant Automation Job Operator role to deployer identity
+// This allows the identity running the deployment script to execute automation runbooks
+resource deployerAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(deployerObjectId)) {
+  name: guid(resourceGroup().id, 'automation', deployerObjectId, 'automation-job-operator')
+  scope: automation
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
+    principalId: deployerObjectId
+    principalType: deployerPrincipalType
+    // Role assignments are created directly without delegated managed identity for single-tenant deployments
+  }
+  dependsOn: [
+    automation
+  ]
+}
+
 output automationId string = automation.id
+output automationName string = automation.name
 
 resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
   name: diagAutomationName
@@ -71,26 +81,10 @@ resource automationDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-previe
       }
     ]
   }
+  dependsOn: [
+    automation
+  ]
 }
 
-// Automation Job Operator for UAMI
-resource uamiAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(uamiPrincipalId)) {
-  name: guid(automation.id, uamiPrincipalId, 'automation-job-operator')
-  scope: automation
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Automation Job Operator for adminObjectId (only if provided and not placeholder)
-resource adminAutomationJobOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(adminObjectId) && adminObjectId != '00000000-0000-0000-0000-000000000000') {
-  name: guid(automation.id, adminObjectId, 'automation-job-operator')
-  scope: automation
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4fe576fe-1146-4730-92eb-48519fa6bf9f') // Automation Job Operator
-    principalId: adminObjectId
-    principalType: adminPrincipalType
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
+// Runbook creation moved to psql-roles.bicep module

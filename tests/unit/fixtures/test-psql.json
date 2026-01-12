@@ -1,0 +1,1580 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "languageVersion": "2.1-experimental",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+    "_EXPERIMENTAL_FEATURES_ENABLED": [
+      "Asserts"
+    ],
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "12512699037035755225"
+    }
+  },
+  "parameters": {
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name for naming seed."
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment (RFC-64: location)."
+      }
+    },
+    "vnetCidr": {
+      "type": "string",
+      "metadata": {
+        "description": "VNet address prefix (CIDR notation, e.g., 10.20.0.0/16)."
+      }
+    },
+    "computeTier": {
+      "type": "string",
+      "metadata": {
+        "description": "PostgreSQL compute tier (RFC-64: computeTier)."
+      }
+    },
+    "storageGB": {
+      "type": "int",
+      "metadata": {
+        "description": "PostgreSQL storage in GB (RFC-64: storageGB)."
+      }
+    },
+    "backupRetentionDays": {
+      "type": "int",
+      "metadata": {
+        "description": "PostgreSQL backup retention days (RFC-64: backupRetentionDays)."
+      }
+    },
+    "retentionDays": {
+      "type": "int",
+      "metadata": {
+        "description": "Log Analytics retention in days (RFC-64: retentionDays)."
+      }
+    }
+  },
+  "resources": {
+    "naming": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "naming",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "resourceGroupName": {
+            "value": "[parameters('resourceGroupName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "9599786196098502373"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "nano16": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(format('{0}{1}', substring(uniqueString(format('{0}-{1}-a', parameters('seed'), parameters('suffix'))), 0, 8), substring(uniqueString(format('{0}-{1}-b', parameters('seed'), parameters('suffix'))), 0, 8)))]"
+                  }
+                },
+                "nano8": {
+                  "parameters": [
+                    {
+                      "type": "string",
+                      "name": "seed"
+                    },
+                    {
+                      "type": "string",
+                      "name": "suffix"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[toLower(substring(uniqueString(format('{0}-{1}', parameters('seed'), parameters('suffix'))), 0, 8))]"
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource group name used as seed for deterministic nanoid generation."
+              }
+            }
+          },
+          "variables": {
+            "seedPrefix": "[parameters('resourceGroupName')]",
+            "names": {
+              "uami": "[format('vd-uami-{0}', __bicep.nano16(variables('seedPrefix'), 'uami'))]",
+              "vnet": "[format('vd-vnet-{0}', __bicep.nano16(variables('seedPrefix'), 'vnet'))]",
+              "nsgAppgw": "[format('vd-nsg-appgw-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappgw'))]",
+              "nsgAks": "[format('vd-nsg-aks-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgaks'))]",
+              "nsgAppsvc": "[format('vd-nsg-appsvc-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgappsvc'))]",
+              "nsgPe": "[format('vd-nsg-pe-{0}', __bicep.nano16(variables('seedPrefix'), 'nsgpe'))]",
+              "kv": "[format('vd-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'kv'))]",
+              "storage": "[format('vdst{0}', __bicep.nano8(variables('seedPrefix'), 'st'))]",
+              "acr": "[format('vdacr{0}', __bicep.nano8(variables('seedPrefix'), 'acr'))]",
+              "law": "[format('vd-law-{0}', __bicep.nano16(variables('seedPrefix'), 'law'))]",
+              "asp": "[format('vd-asp-{0}', __bicep.nano16(variables('seedPrefix'), 'asp'))]",
+              "agw": "[format('vd-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'agw'))]",
+              "pipAgw": "[format('vd-pip-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'pipagw'))]",
+              "psql": "[format('vd-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'psql'))]",
+              "search": "[format('vd-search-{0}', __bicep.nano16(variables('seedPrefix'), 'search'))]",
+              "ai": "[format('vd-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'ai'))]",
+              "automation": "[format('vd-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'aa'))]",
+              "vm": "[format('vd-vm-{0}', __bicep.nano16(variables('seedPrefix'), 'vm'))]",
+              "bastion": "[format('vd-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'bastion'))]",
+              "pipBastion": "[format('vd-pip-bastion-{0}', __bicep.nano16(variables('seedPrefix'), 'pipbastion'))]",
+              "peKv": "[format('vd-pe-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pekv'))]",
+              "peStBlob": "[format('vd-pe-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pestblob'))]",
+              "peStQueue": "[format('vd-pe-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pestqueue'))]",
+              "peStTable": "[format('vd-pe-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pesttable'))]",
+              "peAcr": "[format('vd-pe-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'peacr'))]",
+              "peSearch": "[format('vd-pe-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pesearch'))]",
+              "peAi": "[format('vd-pe-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'peai'))]",
+              "peAutomation": "[format('vd-pe-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'peaa'))]",
+              "peKvDns": "[format('vd-pdns-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnskv'))]",
+              "peStBlobDns": "[format('vd-pdns-st-blob-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstblob'))]",
+              "peStQueueDns": "[format('vd-pdns-st-queue-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsstqueue'))]",
+              "peStTableDns": "[format('vd-pdns-st-table-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssttable'))]",
+              "peAcrDns": "[format('vd-pdns-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsacr'))]",
+              "peSearchDns": "[format('vd-pdns-search-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnssearch'))]",
+              "peAiDns": "[format('vd-pdns-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsai'))]",
+              "peAutomationDns": "[format('vd-pdns-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'pdnsaa'))]",
+              "diagKv": "[format('vd-diag-kv-{0}', __bicep.nano16(variables('seedPrefix'), 'diagkv'))]",
+              "diagSt": "[format('vd-diag-st-{0}', __bicep.nano16(variables('seedPrefix'), 'diagst'))]",
+              "diagAcr": "[format('vd-diag-acr-{0}', __bicep.nano16(variables('seedPrefix'), 'diagacr'))]",
+              "diagAgw": "[format('vd-diag-agw-{0}', __bicep.nano16(variables('seedPrefix'), 'diagagw'))]",
+              "diagPsql": "[format('vd-diag-psql-{0}', __bicep.nano16(variables('seedPrefix'), 'diagpsql'))]",
+              "diagSearch": "[format('vd-diag-search-{0}', __bicep.nano16(variables('seedPrefix'), 'diagsearch'))]",
+              "diagAi": "[format('vd-diag-ai-{0}', __bicep.nano16(variables('seedPrefix'), 'diagai'))]",
+              "diagAutomation": "[format('vd-diag-aa-{0}', __bicep.nano16(variables('seedPrefix'), 'diagaa'))]"
+            }
+          },
+          "resources": {},
+          "outputs": {
+            "names": {
+              "type": "object",
+              "value": "[variables('names')]"
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "network",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "vnetName": {
+            "value": "[reference('naming').outputs.names.value.vnet]"
+          },
+          "vnetCidr": {
+            "value": "[parameters('vnetCidr')]"
+          },
+          "nsgAppgwName": {
+            "value": "[reference('naming').outputs.names.value.nsgAppgw]"
+          },
+          "nsgAksName": {
+            "value": "[reference('naming').outputs.names.value.nsgAks]"
+          },
+          "nsgAppsvcName": {
+            "value": "[reference('naming').outputs.names.value.nsgAppsvc]"
+          },
+          "nsgPeName": {
+            "value": "[reference('naming').outputs.names.value.nsgPe]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "1852654252821930432"
+            }
+          },
+          "functions": [
+            {
+              "namespace": "__bicep",
+              "members": {
+                "calculateSubnetCidr": {
+                  "parameters": [
+                    {
+                      "type": "int",
+                      "name": "octetA"
+                    },
+                    {
+                      "type": "int",
+                      "name": "octetB"
+                    },
+                    {
+                      "type": "int",
+                      "name": "octetC"
+                    },
+                    {
+                      "type": "int",
+                      "name": "subnetIndex"
+                    },
+                    {
+                      "type": "int",
+                      "name": "prefixLength"
+                    }
+                  ],
+                  "output": {
+                    "type": "string",
+                    "value": "[format('{0}.{1}.{2}.0/{3}', parameters('octetA'), parameters('octetB'), add(parameters('octetC'), parameters('subnetIndex')), parameters('prefixLength'))]"
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "vnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name for the VNet."
+              }
+            },
+            "vnetCidr": {
+              "type": "string",
+              "metadata": {
+                "description": "VNet address prefix (CIDR notation, e.g., 10.20.0.0/16)."
+              }
+            },
+            "nsgAppgwName": {
+              "type": "string",
+              "metadata": {
+                "description": "NSG names."
+              }
+            },
+            "nsgAksName": {
+              "type": "string"
+            },
+            "nsgAppsvcName": {
+              "type": "string"
+            },
+            "nsgPeName": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "variables": {
+            "subnetPrefixLength": 24,
+            "vnetBaseIp": "[split(parameters('vnetCidr'), '/')[0]]",
+            "vnetPrefixLength": "[int(split(parameters('vnetCidr'), '/')[1])]",
+            "vnetOctets": "[split(variables('vnetBaseIp'), '.')]",
+            "vnetOctetA": "[int(variables('vnetOctets')[0])]",
+            "vnetOctetB": "[int(variables('vnetOctets')[1])]",
+            "vnetOctetC": "[int(variables('vnetOctets')[2])]",
+            "validPrefixLengths": [
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24
+            ],
+            "prefixLengthIndex": "[indexOf(variables('validPrefixLengths'), variables('vnetPrefixLength'))]",
+            "validatedPrefixLength": "[variables('validPrefixLengths')[if(greaterOrEquals(variables('prefixLengthIndex'), 0), variables('prefixLengthIndex'), 999)]]",
+            "subnetNames": [
+              "snet-appgw",
+              "snet-psql",
+              "snet-private-endpoints",
+              "snet-appsvc",
+              "snet-aks",
+              "snet-bastion"
+            ]
+          },
+          "resources": {
+            "vnet": {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('vnetName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "subnets",
+                    "count": "[length(variables('subnetNames'))]",
+                    "input": {
+                      "name": "[variables('subnetNames')[copyIndex('subnets')]]",
+                      "properties": {
+                        "addressPrefix": "[__bicep.calculateSubnetCidr(variables('vnetOctetA'), variables('vnetOctetB'), variables('vnetOctetC'), copyIndex('subnets'), variables('subnetPrefixLength'))]",
+                        "networkSecurityGroup": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-appgw'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAppgwName'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-aks'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAksName'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-appsvc'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgAppsvcName'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-private-endpoints'), createObject('id', resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgPeName'))), null()))))]",
+                        "delegations": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-psql'), createArray(createObject('name', 'Microsoft.DBforPostgreSQL/flexibleServers', 'properties', createObject('serviceName', 'Microsoft.DBforPostgreSQL/flexibleServers'))), if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-appsvc'), createArray(createObject('name', 'Microsoft.Web/serverFarms', 'properties', createObject('serviceName', 'Microsoft.Web/serverFarms'))), createArray()))]",
+                        "privateEndpointNetworkPolicies": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-psql'), 'Disabled', 'Enabled')]",
+                        "privateLinkServiceNetworkPolicies": "[if(equals(variables('subnetNames')[copyIndex('subnets')], 'snet-psql'), 'Disabled', 'Enabled')]"
+                      }
+                    }
+                  }
+                ],
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "[parameters('vnetCidr')]"
+                  ]
+                }
+              },
+              "dependsOn": [
+                "nsgAks",
+                "nsgAppgw",
+                "nsgAppsvc",
+                "nsgPe"
+              ]
+            },
+            "nsgAppgw": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgAppgwName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-443-Internet",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "Tcp",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "443",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-GatewayManager",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "Tcp",
+                      "sourceAddressPrefix": "GatewayManager",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "65200-65535",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-AzureLoadBalancer",
+                    "properties": {
+                      "priority": 120,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "AzureLoadBalancer",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 130,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-All-Inbound",
+                    "properties": {
+                      "priority": 200,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-All-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            "nsgAks": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgAksName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Inbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-All-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            "nsgAppsvc": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgAppsvcName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Inbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-All-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            "nsgPe": {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('nsgPeName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "Allow-VNet-Inbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Inbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Inbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Inbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "Internet",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Allow-VNet-Outbound",
+                    "properties": {
+                      "priority": 100,
+                      "direction": "Outbound",
+                      "access": "Allow",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "Deny-Internet-Outbound",
+                    "properties": {
+                      "priority": 110,
+                      "direction": "Outbound",
+                      "access": "Deny",
+                      "protocol": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "Internet",
+                      "destinationPortRange": "*",
+                      "sourcePortRange": "*"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "outputs": {
+            "vnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            },
+            "subnetAppgwId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[0].id]"
+            },
+            "subnetPsqlId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[1].id]"
+            },
+            "subnetPeId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[2].id]"
+            },
+            "subnetAppsvcId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[3].id]"
+            },
+            "subnetAksId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[4].id]"
+            },
+            "subnetBastionId": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[5].id]"
+            },
+            "subnetAppgwPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[0].properties.addressPrefix]"
+            },
+            "subnetPsqlPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[1].properties.addressPrefix]"
+            },
+            "subnetPePrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[2].properties.addressPrefix]"
+            },
+            "subnetAppsvcPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[3].properties.addressPrefix]"
+            },
+            "subnetAksPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[4].properties.addressPrefix]"
+            },
+            "subnetBastionPrefix": {
+              "type": "string",
+              "value": "[reference('vnet').subnets[5].properties.addressPrefix]"
+            },
+            "vnetPrefixLengthValidated": {
+              "type": "int",
+              "value": "[variables('validatedPrefixLength')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    },
+    "diagnostics": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "diagnostics",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "retentionDays": {
+            "value": "[parameters('retentionDays')]"
+          },
+          "lawName": {
+            "value": "[reference('naming').outputs.names.value.law]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "7412414084729967496"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "retentionDays": {
+              "type": "int",
+              "metadata": {
+                "description": "Log Analytics retention in days."
+              }
+            },
+            "lawName": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace name."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "resources": {
+            "law": {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "[parameters('lawName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": "[parameters('retentionDays')]",
+                "features": {
+                  "enableLogAccessUsingOnlyResourcePermissions": true
+                }
+              }
+            },
+            "customTable": {
+              "type": "Microsoft.OperationalInsights/workspaces/tables",
+              "apiVersion": "2021-12-01-preview",
+              "name": "[format('{0}/{1}', parameters('lawName'), 'VibeData_Operations_CL')]",
+              "properties": {
+                "retentionInDays": "[parameters('retentionDays')]",
+                "totalRetentionInDays": "[parameters('retentionDays')]",
+                "schema": {
+                  "name": "VibeData_Operations_CL",
+                  "columns": [
+                    {
+                      "name": "TimeGenerated",
+                      "type": "datetime"
+                    },
+                    {
+                      "name": "Category",
+                      "type": "string"
+                    },
+                    {
+                      "name": "CorrelationId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "InstanceId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "ComponentId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Operation",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Status",
+                      "type": "string"
+                    },
+                    {
+                      "name": "DurationMs",
+                      "type": "long"
+                    },
+                    {
+                      "name": "Message",
+                      "type": "string"
+                    },
+                    {
+                      "name": "Details",
+                      "type": "dynamic"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "law"
+              ]
+            }
+          },
+          "outputs": {
+            "lawId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('lawName'))]"
+            },
+            "lawWorkspaceId": {
+              "type": "string",
+              "value": "[reference('law').customerId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    },
+    "dns": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "dns",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vnetName": {
+            "value": "[reference('naming').outputs.names.value.vnet]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "11986682545423746488"
+            }
+          },
+          "parameters": {
+            "vnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Services VNet to link."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "variables": {
+            "storageSuffix": "[environment().suffixes.storage]",
+            "zones": [
+              "privatelink.vaultcore.azure.net",
+              "privatelink.postgres.database.azure.com",
+              "[format('privatelink.blob.{0}', variables('storageSuffix'))]",
+              "[format('privatelink.queue.{0}', variables('storageSuffix'))]",
+              "[format('privatelink.table.{0}', variables('storageSuffix'))]",
+              "privatelink.azurecr.io",
+              "privatelink.azurewebsites.net",
+              "privatelink.search.windows.net",
+              "privatelink.cognitiveservices.azure.com",
+              "privatelink.azure-automation.net",
+              "vibedata.internal"
+            ]
+          },
+          "resources": {
+            "vnet": {
+              "existing": true,
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-04-01",
+              "name": "[parameters('vnetName')]"
+            },
+            "privateZones": {
+              "copy": {
+                "name": "privateZones",
+                "count": "[length(variables('zones'))]"
+              },
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "[variables('zones')[copyIndex()]]",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            "vnetLinks": {
+              "copy": {
+                "name": "vnetLinks",
+                "count": "[length(variables('zones'))]"
+              },
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', variables('zones')[copyIndex()], format('link-{0}', parameters('vnetName')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                }
+              },
+              "tags": "[parameters('tags')]",
+              "dependsOn": [
+                "[format('privateZones[{0}]', copyIndex())]"
+              ]
+            }
+          },
+          "outputs": {
+            "zoneIds": {
+              "type": "object",
+              "value": {
+                "vault": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]",
+                "postgres": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]",
+                "blob": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', variables('storageSuffix')))]",
+                "queue": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', format('privatelink.queue.{0}', variables('storageSuffix')))]",
+                "table": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', format('privatelink.table.{0}', variables('storageSuffix')))]",
+                "acr": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurecr.io')]",
+                "appsvc": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]",
+                "search": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.search.windows.net')]",
+                "ai": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]",
+                "automation": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'privatelink.azure-automation.net')]",
+                "internal": "[resourceId(resourceGroup().name, 'Microsoft.Network/privateDnsZones', 'vibedata.internal')]"
+              }
+            },
+            "vnetLinkIds": {
+              "type": "object",
+              "value": {
+                "vault": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[0], format('link-{0}', parameters('vnetName')))]",
+                "postgres": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[1], format('link-{0}', parameters('vnetName')))]",
+                "blob": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[2], format('link-{0}', parameters('vnetName')))]",
+                "queue": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[3], format('link-{0}', parameters('vnetName')))]",
+                "table": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[4], format('link-{0}', parameters('vnetName')))]",
+                "acr": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[5], format('link-{0}', parameters('vnetName')))]",
+                "appsvc": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[6], format('link-{0}', parameters('vnetName')))]",
+                "search": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[7], format('link-{0}', parameters('vnetName')))]",
+                "ai": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[8], format('link-{0}', parameters('vnetName')))]",
+                "automation": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[9], format('link-{0}', parameters('vnetName')))]",
+                "internal": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('zones')[10], format('link-{0}', parameters('vnetName')))]"
+              }
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    },
+    "identity": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "identity",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "uamiName": {
+            "value": "[reference('naming').outputs.names.value.uami]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "18026571156535126747"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "uamiName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name for the user-assigned managed identity."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "resources": {
+            "vibedataUami": {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[parameters('uamiName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            }
+          },
+          "outputs": {
+            "uamiPrincipalId": {
+              "type": "string",
+              "value": "[reference('vibedataUami').principalId]"
+            },
+            "uamiClientId": {
+              "type": "string",
+              "value": "[reference('vibedataUami').clientId]"
+            },
+            "uamiId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "naming"
+      ]
+    },
+    "kv": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "kv",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "kvName": {
+            "value": "[reference('naming').outputs.names.value.kv]"
+          },
+          "subnetPeId": {
+            "value": "[reference('network').outputs.subnetPeId.value]"
+          },
+          "lawId": {
+            "value": "[reference('diagnostics').outputs.lawId.value]"
+          },
+          "zoneIds": {
+            "value": "[reference('dns').outputs.zoneIds.value]"
+          },
+          "peKvName": {
+            "value": "[reference('naming').outputs.names.value.peKv]"
+          },
+          "peKvDnsName": {
+            "value": "[reference('naming').outputs.names.value.peKvDns]"
+          },
+          "diagKvName": {
+            "value": "[reference('naming').outputs.names.value.diagKv]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "13643215782870213555"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "kvName": {
+              "type": "string",
+              "metadata": {
+                "description": "Key Vault name."
+              }
+            },
+            "subnetPeId": {
+              "type": "string",
+              "metadata": {
+                "description": "Private Endpoints subnet ID."
+              }
+            },
+            "lawId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace resource ID."
+              }
+            },
+            "zoneIds": {
+              "type": "object",
+              "metadata": {
+                "description": "DNS zone resource IDs map (from dns module)."
+              }
+            },
+            "peKvName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private endpoint name from naming helper."
+              }
+            },
+            "peKvDnsName": {
+              "type": "string",
+              "metadata": {
+                "description": "Private DNS zone group name from naming helper."
+              }
+            },
+            "diagKvName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "resources": {
+            "kv": {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-02-01",
+              "name": "[parameters('kvName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "tenantId": "[subscription().tenantId]",
+                "enableRbacAuthorization": true,
+                "enablePurgeProtection": true,
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 90,
+                "publicNetworkAccess": "Disabled",
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                },
+                "networkAcls": {
+                  "defaultAction": "Deny",
+                  "bypass": "AzureServices"
+                }
+              }
+            },
+            "peKv": {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('peKvName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('subnetPeId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "kv-conn",
+                    "properties": {
+                      "groupIds": [
+                        "vault"
+                      ],
+                      "privateLinkServiceId": "[resourceId('Microsoft.KeyVault/vaults', parameters('kvName'))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "kv"
+              ]
+            },
+            "peKvDns": {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', parameters('peKvName'), parameters('peKvDnsName'))]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "privatelink.vaultcore.azure.net",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('zoneIds').vault]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "peKv"
+              ]
+            },
+            "kvDiag": {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('kvName'))]",
+              "name": "[parameters('diagKvName')]",
+              "properties": {
+                "workspaceId": "[parameters('lawId')]",
+                "logs": [
+                  {
+                    "category": "AuditEvent",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "kv"
+              ]
+            }
+          },
+          "outputs": {
+            "kvId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('kvName'))]"
+            },
+            "peKvId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateEndpoints', parameters('peKvName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "diagnostics",
+        "dns",
+        "naming",
+        "network"
+      ]
+    },
+    "psql": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "psql",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "psqlName": {
+            "value": "[reference('naming').outputs.names.value.psql]"
+          },
+          "computeTier": {
+            "value": "[parameters('computeTier')]"
+          },
+          "backupRetentionDays": {
+            "value": "[parameters('backupRetentionDays')]"
+          },
+          "storageGB": {
+            "value": "[parameters('storageGB')]"
+          },
+          "subnetPsqlId": {
+            "value": "[reference('network').outputs.subnetPsqlId.value]"
+          },
+          "lawId": {
+            "value": "[reference('diagnostics').outputs.lawId.value]"
+          },
+          "zoneIds": {
+            "value": "[reference('dns').outputs.zoneIds.value]"
+          },
+          "diagPsqlName": {
+            "value": "[reference('naming').outputs.names.value.diagPsql]"
+          },
+          "kvName": {
+            "value": "[reference('naming').outputs.names.value.kv]"
+          },
+          "tags": {
+            "value": {}
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.1-experimental",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_EXPERIMENTAL_WARNING": "This template uses ARM features that are experimental. Experimental features should be enabled for testing purposes only, as there are no guarantees about the quality or stability of these features. Do not enable these settings for any production usage, or your production environment may be subject to breaking.",
+            "_EXPERIMENTAL_FEATURES_ENABLED": [
+              "Asserts"
+            ],
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "17077746414087310608"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Deployment location."
+              }
+            },
+            "computeTier": {
+              "type": "string",
+              "metadata": {
+                "description": "PostgreSQL compute tier SKU."
+              }
+            },
+            "psqlName": {
+              "type": "string",
+              "metadata": {
+                "description": "PostgreSQL server name."
+              }
+            },
+            "subnetPsqlId": {
+              "type": "string",
+              "metadata": {
+                "description": "Delegated subnet ID for PostgreSQL Flexible Server."
+              }
+            },
+            "lawId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace resource ID."
+              }
+            },
+            "storageGB": {
+              "type": "int",
+              "defaultValue": 128,
+              "metadata": {
+                "description": "PostgreSQL storage size (GB)."
+              }
+            },
+            "backupRetentionDays": {
+              "type": "int",
+              "defaultValue": 7,
+              "metadata": {
+                "description": "PostgreSQL backup retention days."
+              }
+            },
+            "zoneIds": {
+              "type": "object",
+              "metadata": {
+                "description": "DNS zone resource IDs map (from dns module)."
+              }
+            },
+            "diagPsqlName": {
+              "type": "string",
+              "metadata": {
+                "description": "Diagnostic setting name from naming helper."
+              }
+            },
+            "kvName": {
+              "type": "string",
+              "metadata": {
+                "description": "Key Vault name for storing admin credentials."
+              }
+            },
+            "psqlAdminUsername": {
+              "type": "string",
+              "defaultValue": "psqladmin",
+              "metadata": {
+                "description": "PostgreSQL admin username (optional, defaults to psqladmin)."
+              }
+            },
+            "psqlAdminPassword": {
+              "type": "securestring",
+              "defaultValue": "",
+              "metadata": {
+                "description": "PostgreSQL admin password (optional, auto-generated if not provided)."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional tags to apply."
+              }
+            }
+          },
+          "variables": {
+            "psqlAdminPasswordValue": "[if(empty(parameters('psqlAdminPassword')), guid(subscription().id, resourceId('Microsoft.KeyVault/vaults', parameters('kvName')), 'psql-admin-password'), parameters('psqlAdminPassword'))]"
+          },
+          "resources": {
+            "kv": {
+              "existing": true,
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-02-01",
+              "name": "[parameters('kvName')]"
+            },
+            "psqlAdminUsernameSecret": {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-02-01",
+              "name": "[format('{0}/{1}', parameters('kvName'), 'psql-admin-username')]",
+              "properties": {
+                "value": "[parameters('psqlAdminUsername')]"
+              }
+            },
+            "psqlAdminPasswordSecret": {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-02-01",
+              "name": "[format('{0}/{1}', parameters('kvName'), 'psql-admin-password')]",
+              "properties": {
+                "value": "[variables('psqlAdminPasswordValue')]"
+              }
+            },
+            "psql": {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "apiVersion": "2023-06-01-preview",
+              "name": "[parameters('psqlName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('computeTier')]",
+                "tier": "[if(startsWith(parameters('computeTier'), 'Standard_B'), 'Burstable', 'GeneralPurpose')]"
+              },
+              "properties": {
+                "administratorLogin": "[parameters('psqlAdminUsername')]",
+                "administratorLoginPassword": "[variables('psqlAdminPasswordValue')]",
+                "version": "16",
+                "storage": {
+                  "storageSizeGB": "[parameters('storageGB')]",
+                  "autoGrow": "Enabled"
+                },
+                "backup": {
+                  "backupRetentionDays": "[parameters('backupRetentionDays')]",
+                  "geoRedundantBackup": "Disabled"
+                },
+                "network": {
+                  "delegatedSubnetResourceId": "[parameters('subnetPsqlId')]",
+                  "privateDnsZoneArmResourceId": "[parameters('zoneIds').postgres]",
+                  "publicNetworkAccess": "Disabled"
+                },
+                "authConfig": {
+                  "activeDirectoryAuth": "Enabled",
+                  "passwordAuth": "Enabled",
+                  "tenantId": "[subscription().tenantId]"
+                },
+                "highAvailability": {
+                  "mode": "Disabled"
+                },
+                "createMode": "Default"
+              }
+            },
+            "psqlDiag": {
+              "type": "Microsoft.Insights/diagnosticSettings",
+              "apiVersion": "2021-05-01-preview",
+              "scope": "[format('Microsoft.DBforPostgreSQL/flexibleServers/{0}', parameters('psqlName'))]",
+              "name": "[parameters('diagPsqlName')]",
+              "properties": {
+                "workspaceId": "[parameters('lawId')]",
+                "logs": [
+                  {
+                    "category": "PostgreSQLLogs",
+                    "enabled": true
+                  }
+                ],
+                "metrics": [
+                  {
+                    "category": "AllMetrics",
+                    "enabled": true
+                  }
+                ]
+              },
+              "dependsOn": [
+                "psql"
+              ]
+            }
+          },
+          "outputs": {
+            "psqlId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('psqlName'))]"
+            },
+            "psqlName": {
+              "type": "string",
+              "value": "[parameters('psqlName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "diagnostics",
+        "dns",
+        "kv",
+        "naming",
+        "network"
+      ]
+    }
+  },
+  "outputs": {
+    "psqlId": {
+      "type": "string",
+      "value": "[reference('psql').outputs.psqlId.value]"
+    },
+    "psqlName": {
+      "type": "string",
+      "value": "[reference('psql').outputs.psqlName.value]"
+    },
+    "names": {
+      "type": "object",
+      "value": "[reference('naming').outputs.names.value]"
+    }
+  }
+}

@@ -9,8 +9,6 @@ param acrName string
 @description('Private Endpoints subnet ID.')
 param subnetPeId string
 
-@description('Principal ID of the UAMI for RBAC.')
-param uamiPrincipalId string
 
 @description('Log Analytics Workspace resource ID.')
 param lawId string
@@ -27,8 +25,8 @@ param peAcrDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagAcrName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-06-01-preview' = {
   name: acrName
@@ -66,6 +64,9 @@ resource peAcr 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    acr
+  ]
 }
 
 resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -81,28 +82,12 @@ resource peAcrDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-
       }
     ]
   }
+  dependsOn: [
+    peAcr
+  ]
 }
 
-// RBAC assignments
-resource acrPull 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(acr.id, uamiPrincipalId, 'acr-pull')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d') // AcrPull
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource acrPush 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(acr.id, uamiPrincipalId, 'acr-push')
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8311e382-0749-4cb8-b61a-304f252e45ec') // AcrPush
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 // Diagnostic settings
 resource acrDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
@@ -127,6 +112,9 @@ resource acrDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
       }
     ]
   }
+  dependsOn: [
+    acr
+  ]
 }
 
 output acrId string = acr.id

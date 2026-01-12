@@ -18,8 +18,6 @@ param lawId string
 @description('DNS zone resource IDs map (from dns module).')
 param zoneIds object
 
-@description('Principal ID of the UAMI for RBAC (optional).')
-param uamiPrincipalId string = ''
 
 @description('Private endpoint name from naming helper.')
 param peSearchName string
@@ -30,8 +28,8 @@ param peSearchDnsName string
 @description('Diagnostic setting name from naming helper.')
 param diagSearchName string
 
-@description('Optional tags to apply.')
-param tags object = {}
+@description('Tags to apply.')
+param tags object
 
 resource search 'Microsoft.Search/searchServices@2023-11-01' = {
   name: searchName
@@ -68,6 +66,9 @@ resource peSearch 'Microsoft.Network/privateEndpoints@2023-05-01' = {
       }
     ]
   }
+  dependsOn: [
+    search
+  ]
 }
 
 resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = {
@@ -83,6 +84,9 @@ resource peSearchDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@20
       }
     ]
   }
+  dependsOn: [
+    peSearch
+  ]
 }
 
 resource searchDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
@@ -98,18 +102,12 @@ resource searchDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' =
       }
     ]
   }
+  dependsOn: [
+    search
+  ]
 }
 
-// RBAC assignments
-resource searchContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(uamiPrincipalId)) {
-  name: guid(search.id, uamiPrincipalId, 'search-contrib')
-  scope: search
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772') // Search Service Contributor
-    principalId: uamiPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// RBAC assignments moved to consolidated rbac.bicep module
 
 output searchId string = search.id
 output peSearchId string = peSearch.id
