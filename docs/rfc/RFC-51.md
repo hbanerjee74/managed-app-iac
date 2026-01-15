@@ -4,7 +4,7 @@ notion_numeric_id: 51
 doc_id: "RFC-51"
 notion_title: "Observability Standards"
 source: "notion"
-pulled_at: "2026-01-06T09:30:00Z"
+pulled_at: "2026-01-10T01:50:32Z"
 type: "RFC"
 root_prd_numeric_id: 30
 linear_issue_id: "VD-69"
@@ -13,7 +13,7 @@ linear_issue_id: "VD-69"
 # 📜 Observability Standards
 
 **RFC ID:** RFC-51  
-**Status:** In Review  
+**Status:** Accepted  
 **Type:** Standard  
 **Owning Team:** Assurance Agents
 
@@ -27,7 +27,11 @@ All VibeData managed applications implement a hybrid observability model: Azure 
 ---
 
 # Summary
-Defines observability and alerting standards for VibeData managed applications. Azure Monitor handles infrastructure observability via LAW. Fabric Workspace Monitoring handles data platform observability via Eventhouse. Alerts from both sources flow through HTTP ingest endpoints to a unified queue-based processor.
+Defines observability and alerting standards for VibeData managed applications.
+- Azure Monitor handles infrastructure observability via LAW. Fabric Workspace Monitoring handles data platform observability via Eventhouse.
+- Alerts from both sources flow through HTTP ingest endpoints to a unified queue-based processor.
+- The Observability Service follows the at-least-once execution standard (RFC-72 Section 1) for reliable, idempotent alert processing operations.
+- All operations are recorded to unified observability tables (`engineHistory` and `engineDlq`) per RFC-72.
 
 ---
 
@@ -41,7 +45,9 @@ Defines observability and alerting standards for VibeData managed applications. 
 ---
 
 # Proposal
+
 ## 1. Observability Architecture
+
 ### 1.1 Hybrid Model
 | Domain | Log Destination | Alert Source |
 |--------|-----------------|--------------|
@@ -57,6 +63,7 @@ Data Activator Alert → fabric-alert-ingest (HTTP) → monitor-alerts-queue →
 ---
 
 ## 2. Azure Infrastructure Observability
+
 ### 2.1 Diagnostic Settings
 All Azure resources emit diagnostics per RFC-71 Section 19. Configuration applies to:
 - All PaaS services in MRG
@@ -73,6 +80,7 @@ Configuration per RFC-71 Section 11.
 
 ### 2.3 Custom Log Table
 Single custom table for operational logging from VibeData services.
+
 **Table:** `VibeData_Operations_CL`
 | Column | Type | Description |
 |--------|------|-------------|
@@ -104,6 +112,7 @@ VibeData_Operations_CL
 ---
 
 ## 3. Fabric Workspace Observability
+
 ### 3.1 Workspace Monitoring
 Fabric Workspace Monitoring is customer-enabled and emits logs to Eventhouse.
 | Setting | Value |
@@ -117,6 +126,7 @@ During data domain pairing, VibeData validates that the Fabric workspace:
 - has Workspace Monitoring enabled
 - has an Eventhouse destination configured
 - has a Data Activator alert rule with webhook pointing to `fabric-alert-ingest`
+
 Results are used to bootstrap the registry under `dataDomains[].fabricWorkspace.monitoring` (RFC-45).
 
 ### 3.3 Data Activator Configuration
@@ -130,6 +140,7 @@ Data Activator monitors Eventhouse tables and triggers webhooks on alert conditi
 ---
 
 ## 4. Azure Monitor Alert Rules
+
 ### 4.1 Alert Rule Categories
 | Category | Scope | Examples |
 |----------|-------|----------|
@@ -152,6 +163,9 @@ All Azure Monitor alerts use Common Alert Schema for consistent parsing.
 ---
 
 ## 5. Alert Processing Architecture
+
+**Execution Standard:** The Observability Service follows the at-least-once execution standard defined in RFC-72 Section 1. This ensures reliable alert processing through standardized retry handling, dead-letter queue management, and operation history tracking.
+
 ### 5.1 Components
 Three Azure Functions handle alert ingestion and processing:
 | Function | Trigger | Purpose |
@@ -163,6 +177,7 @@ Three Azure Functions handle alert ingestion and processing:
 All functions deployed per RFC-42 Section 4.3 as containerized workloads.
 
 ### 5.2 HTTP Ingest Functions
+
 **monitor-alert-ingest:**
 1. Receive Azure Monitor webhook (Common Alert Schema)
 2. Validate payload structure
@@ -191,18 +206,15 @@ All functions deployed per RFC-42 Section 4.3 as containerized workloads.
 }
 ```
 
-### 5.4 Alert Processor
-Queue-triggered function that processes alerts:
-1. Dequeue message from `monitor-alerts-queue`
-2. Parse and validate message
-3. Log to `VibeData_Operations_CL` with `category: "alert"`
-4. Record to `engineHistory` table (engine=`alerts`)
-5. Delete message on success
-6. On failure: retry up to max attempts, then move to `engineDlq` (engine=`alerts`)
+### 5.4 Alert Processing Design
+- Messages are processed asynchronously via queue-triggered function → durable function pattern per RFC-72 Section 1.2
+- Queue-triggered function checks message retry count (`dequeueCount`) and If retry count exceeded then its sent to DLQ and the message is deleted.
+- Retry logic, DLQ management, and failure handling follow RFC-72 Section 1.7 patterns
 
 ---
 
 ## 6. Storage Resources
+
 ### 6.1 Queue
 Per RFC-42 Section 9.2:
 | Queue | Purpose |
@@ -218,6 +230,7 @@ Per RFC-42 Section 9.3:
 ---
 
 ## 7. API Surface
+
 ### 7.1 Alert Ingest Endpoints
 | Method | Path | Purpose |
 |--------|------|---------|

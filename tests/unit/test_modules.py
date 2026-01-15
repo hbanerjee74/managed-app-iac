@@ -1,4 +1,5 @@
 """Parameterized unit tests for all Bicep modules."""
+import re
 import sys
 from pathlib import Path
 
@@ -240,3 +241,46 @@ class TestBicepModules:
             finally:
                 # Clean up temp file
                 Path(tmp_params_file).unlink(missing_ok=True)
+
+
+def _extract_module_dependencies(bicep_text):
+    module_re = re.compile(r"module\s+(\w+)\s+'[^']+'\s*=\s*{(.*?)\n}", re.S)
+    deps = {}
+    for name, body in module_re.findall(bicep_text):
+        dep_match = re.search(r"dependsOn:\s*\[(.*?)\]", body, re.S)
+        if dep_match:
+            dep_block = dep_match.group(1)
+            deps[name] = set(re.findall(r"\b(\w+)\b", dep_block))
+        else:
+            deps[name] = set()
+    return deps
+
+
+def test_static_dependency_rules():
+    """Validate explicit dependency rules for static Bicep sequencing."""
+    repo_root = Path(__file__).resolve().parents[2]
+    main_bicep_path = repo_root / 'iac' / 'main.bicep'
+    bicep_text = main_bicep_path.read_text()
+
+    deps = _extract_module_dependencies(bicep_text)
+
+    pe_modules = {'kv', 'storage', 'acr', 'psql', 'search', 'cognitiveServices'}
+    vnet_modules = {'gateway', 'bastion', 'vmJumphost', 'dns'}
+    kv_secret_modules = {'psql', 'vmJumphost'}
+
+    missing_modules = [m for m in pe_modules | vnet_modules | kv_secret_modules | {'publicIp', 'wafPolicy'} if m not in deps]
+    assert not missing_modules, f"Modules missing from main.bicep: {', '.join(sorted(missing_modules))}"
+
+    for module_name in pe_modules:
+        assert 'network' in deps[module_name], f"{module_name} must depend on network (private endpoints)"
+        assert 'dns' in deps[module_name], f"{module_name} must depend on dns (private endpoints)"
+
+    for module_name in vnet_modules:
+        assert 'network' in deps[module_name], f"{module_name} must depend on network (VNet integration)"
+
+    for module_name in kv_secret_modules:
+        assert 'kv' in deps[module_name], f"{module_name} must depend on kv (uses secrets)"
+        assert 'secrets' in deps[module_name], f"{module_name} must depend on secrets (uses secrets)"
+
+    assert 'publicIp' in deps['gateway'], "gateway must depend on publicIp"
+    assert 'wafPolicy' in deps['gateway'], "gateway must depend on wafPolicy"
